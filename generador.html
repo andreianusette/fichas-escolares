@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Fichas Escolares LOMLOE - Local MVP</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; display: flex; gap: 20px; }
+        .panel-control { width: 35%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); height: calc(100vh - 80px); position: sticky; top: 20px; overflow-y: auto; box-sizing: border-box; }
+        .panel-vista-previa { width: 65%; display: flex; flex-direction: column; align-items: center; }
+        h2 { color: #1e293b; margin-top: 0; font-size: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 14px; }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 100px; resize: vertical; }
+        .api-input { background-color: #fef08a; border: 1px solid #eab308; }
+        button { width: 100%; padding: 12px; background-color: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 15px; }
+        button:hover { background-color: #1d4ed8; }
+        .btn-print { background-color: #10b981; margin-bottom: 15px; width: auto; padding: 10px 20px; }
+        .btn-print:hover { background-color: #059669; }
+        .loading { display: none; color: #2563eb; font-weight: bold; text-align: center; margin-top: 10px; }
+
+        /* Formato Hoja A4 */
+        .hoja-a4 { background: white; width: 210mm; min-height: 297mm; padding: 20mm; box-sizing: border-box; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 4px; color: #000; }
+        .encabezado-ficha { border: 2px solid #000; padding: 15px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: 'Arial', sans-serif; }
+        .encabezado-ficha div { border-bottom: 1px dashed #666; padding-bottom: 5px; font-size: 12pt; }
+        .contenido-ficha { font-family: 'Arial', sans-serif; font-size: 14pt; line-height: 1.6; outline: none; }
+        
+        /* Estilos que aplicará la IA automáticamente a las tablas de sumas */
+        .contenido-ficha h3 { color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; margin-top: 20px; }
+        .contenido-ficha table { margin: 20px 0; border-collapse: collapse; }
+        .contenido-ficha th, .contenido-ficha td { border: 1px solid #000; padding: 8px 12px; text-align: center; }
+
+        @media print {
+            body { background: white; padding: 0; display: block; }
+            .panel-control { display: none; }
+            .panel-vista-previa { width: 100%; }
+            .hoja-a4 { box-shadow: none; margin: 0; padding: 15mm; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="panel-control">
+        <h2>🔑 Configuración API</h2>
+        <div class="form-group">
+            <label>Pega tu API Key de Anthropic:</label>
+            <input type="password" id="api-key" class="api-input" placeholder="sk-ant-...">
+        </div>
+
+        <h2>🛠️ Opciones de la Ficha</h2>
+        
+        <div class="form-group">
+            <label>1. Idioma:</label>
+            <select id="sel-idioma">
+                <option value="Español">Español</option>
+                <option value="Catalán">Catalán / Valenciano</option>
+                <option value="Gallego">Gallego</option>
+                <option value="Euskera">Euskera</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>2. Comunidad Autónoma (Currículo LOMLOE):</label>
+            <select id="sel-comunidad">
+                <option value="Andalucía">Andalucía</option>
+                <option value="Aragón">Aragón</option>
+                <option value="Asturias">Asturias</option>
+                <option value="Baleares">Baleares</option>
+                <option value="Canarias">Canarias</option>
+                <option value="Cantabria">Cantabria</option>
+                <option value="Castilla-La Mancha" selected>Castilla-La Mancha</option>
+                <option value="Castilla y León">Castilla y León</option>
+                <option value="Cataluña">Cataluña</option>
+                <option value="Comunidad Valenciana">Comunidad Valenciana</option>
+                <option value="Extremadura">Extremadura</option>
+                <option value="Galicia">Galicia</option>
+                <option value="Madrid">Madrid</option>
+                <option value="Murcia">Murcia</option>
+                <option value="Navarra">Navarra</option>
+                <option value="País Vasco">País Vasco</option>
+                <option value="La Rioja">La Rioja</option>
+                <option value="Ceuta">Ceuta</option>
+                <option value="Melilla">Melilla</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>3. Curso:</label>
+            <select id="sel-curso">
+                <option value="1º de Primaria">1º de Primaria</option>
+                <option value="2º de Primaria" selected>2º de Primaria</option>
+                <option value="3º de Primaria">3º de Primaria</option>
+                <option value="4º de Primaria">4º de Primaria</option>
+                <option value="5º de Primaria">5º de Primaria</option>
+                <option value="6º de Primaria">6º de Primaria</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>4. Materia / Contenido General:</label>
+            <input type="text" id="input-materia" value="Matemáticas - Cálculo">
+        </div>
+
+        <div class="form-group">
+            <label>✏️ Instrucciones específicas de tu aula:</label>
+            <textarea id="input-instrucciones" placeholder="Ej: Solo cuentas limpias, 1 hoja, 2 columnas. En cada columna 5 operaciones con dos sumandos, suma sin llevar."></textarea>
+        </div>
+
+        <button onclick="llamarAClaude()">✨ Generar Ficha con IA</button>
+        <div id="loading-text" class="loading">Claude está pensando y maquetando... Por favor, espera.</div>
+    </div>
+
+    <div class="panel-vista-previa">
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+        
+        <div class="hoja-a4">
+            <div class="encabezado-ficha">
+                <div><strong>Alumno/a:</strong></div>
+                <div><strong>Fecha:</strong></div>
+                <div><strong>Curso:</strong> <span id="lbl-curso">2º de Primaria</span></div>
+                <div><strong>Materia:</strong> <span id="lbl-materia">Matemáticas - Cálculo</span></div>
+                <div style="grid-column: span 2; font-size: 10pt; color: #555; border: none;">
+                    Regulación: LOMLOE - <span id="lbl-ley">Castilla-La Mancha</span>
+                </div>
+            </div>
+
+            <div class="contenido-ficha" id="zona-contenido" contenteditable="true">
+                <p style="color: #666; text-align: center; margin-top: 50px;">Configura las opciones de la izquierda, introduce tu API Key y pulsa el botón para generar la ficha real.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function llamarAClaude() {
+            const apiKey = document.getElementById('api-key').value;
+            const idioma = document.getElementById('sel-idioma').value;
+            const comunidad = document.getElementById('sel-comunidad').value;
+            const curso = document.getElementById('sel-curso').value;
+            const materia = document.getElementById('input-materia').value;
+            const instrucciones = document.getElementById('input-instrucciones').value;
+
+            if(!apiKey) { alert("Por favor, introduce tu API Key de Anthropic."); return; }
+
+            // Actualizamos encabezados visuales
+            document.getElementById('lbl-curso').innerText = curso;
+            document.getElementById('lbl-materia').innerText = materia;
+            document.getElementById('lbl-ley').innerText = comunidad;
+
+            document.getElementById('loading-text').style.display = 'block';
+
+            // El "System Prompt" oculto con instrucciones estrictas de maquetación escolar
+            const systemPrompt = `Eres un asistente experto en diseño curricular de Primaria en España (LOMLOE). Generas fichas escolares LISTAS PARA IMPREMIR. 
+            Es OBLIGATORIO que uses formato HTML limpio (solo etiquetas h3, p, b, table, tr, td) para estructurar el contenido. 
+            Si te piden operaciones matemáticas con tablas o columnas, utiliza tablas HTML de forma muy limpia. No uses markdown ni rodees el código con tres comillas francesas. Devuelve SOLAMENTE el código HTML interno que va dentro de la ficha. Idioma obligatorio: ${idioma}.`;
+
+            const userPrompt = `Genera una ficha de la materia "${materia}" para el curso "${curso}" en la comunidad de "${comunidad}". 
+            Instrucciones específicas del profesor sobre el ritmo y maquetación del aula: ${instrucciones}`;
+
+            try {
+                // Llamada directa a la API de Anthropic (Proxy local)
+                const response = await fetch('https://cors-anywhere.herokuapp.com/https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json',
+                        'anthropic-dangerous-direct-browser-access': 'true' // Permite probar en local
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-5-sonnet-latest',
+                        max_tokens: 2000,
+                        system: systemPrompt,
+                        messages: [{ role: 'user', content: userPrompt }]
+                    })
+                });
+
+                const data = await response.json();
+                if(data.content && data.content[0]) {
+                    document.getElementById('zona-contenido').innerHTML = data.content[0].text;
+                } else {
+                    alert("Error en la respuesta de Claude: " + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Hubo un error al conectar con la API de Anthropic.");
+            } finally {
+                document.getElementById('loading-text').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

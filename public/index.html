@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de Fichas Escolares LOMLOE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="panel-superior">
+    <h1>Generador de Fichas Escolares (LOMLOE)</h1>
+    <p>Diseño didáctico maquetado para Educación Primaria</p>
+  </header>
+
+  <main class="contenedor-principal">
+    
+    <!-- PANEL DE CONFIGURACIÓN (FORMULARIO) -->
+    <section class="panel-formulario">
+      <h2>Configuración de la Ficha</h2>
+      
+      <form id="formFicha">
+        <div class="campo">
+          <label for="materia">Asignatura:</label>
+          <select id="materia" name="materia" required>
+            <option value="Matemáticas">Matemáticas</option>
+            <option value="Lengua Castellana">Lengua Castellana</option>
+            <option value="Conocimiento del Medio">Conocimiento del Medio</option>
+            <option value="Educación Física">Educación Física</option>
+            <option value="Música">Música</option>
+            <option value="Inglés">Inglés</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="curso">Curso de Primaria:</label>
+          <select id="curso" name="curso" required>
+            <option value="1º">1º de Primaria</option>
+            <option value="2º">2º de Primaria</option>
+            <option value="3º">3º de Primaria</option>
+            <option value="4º">4º de Primaria</option>
+            <option value="5º">5º de Primaria</option>
+            <option value="6º">6º de Primaria</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="comunidad">Comunidad Autónoma:</label>
+          <input type="text" id="comunidad" name="comunidad" placeholder="Ej: Andalucía, Madrid, C. Valenciana...">
+        </div>
+
+        <div class="campo">
+          <label for="instrucciones">Instrucciones o Tema específico:</label>
+          <textarea id="instrucciones" name="instrucciones" rows="4" placeholder="Ej: Sumas con llevada de dos cifras, o Lectura comprensiva sobre los animales..."></textarea>
+        </div>
+
+        <button type="submit" id="btnGenerar">✨ Generar Ficha</button>
+      </form>
+    </section>
+
+    <!-- PANEL DE VISTA PREVIA Y HERRAMIENTAS -->
+    <section class="panel-visor">
+      
+      <div class="barra-herramientas">
+        <label class="control-tinta">
+          <input type="checkbox" id="toggleTinta" onchange="cambiarModoTinta()">
+          <span>Modo Ahorro Tinta (B/N Fotocopia)</span>
+        </label>
+        
+        <button type="button" class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      </div>
+
+      <!-- Aquí se inyecta la ficha que genera server.js -->
+      <div id="contenedorFicha" class="area-impresion">
+        <div class="estado-inicial">
+          <p>👈 Configura los datos a la izquierda y pulsa <strong>"Generar Ficha"</strong> para ver la maquetación aquí.</p>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // Cambio dinámico entre color y Blanco/Negro para ahorro de tinta
+    function cambiarModoTinta() {
+      const checkbox = document.getElementById('toggleTinta');
+      const ficha = document.querySelector('.ficha');
+      
+      if (ficha) {
+        if (checkbox.checked) {
+          ficha.classList.add('modo-blanco-negro');
+        } else {
+          ficha.classList.remove('modo-blanco-negro');
+        }
+      }
+    }
+
+    // Bloquea la edición de elementos estructurales (SVGs, cajas de dibujo, tests, tablas
+    // de operaciones) para que el maestro pueda editar el texto sin riesgo de romper
+    // sin querer el diseño de esos bloques, aunque el contenedor general sea editable.
+    function protegerElementosEstructurales(contenedor) {
+      const selectoresProtegidos = [
+        'svg',
+        '.caja-espacio-dibujo',
+        '.casilla-test',
+        '.operacion-vertical'
+      ];
+
+      selectoresProtegidos.forEach(selector => {
+        contenedor.querySelectorAll(selector).forEach(el => {
+          el.setAttribute('contenteditable', 'false');
+        });
+      });
+    }
+
+    // Envío del formulario al backend server.js
+    document.getElementById('formFicha').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('btnGenerar');
+      const contenedor = document.getElementById('contenedorFicha');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Diseñando ficha...';
+      contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
+
+      const datos = {
+        materia: document.getElementById('materia').value,
+        curso: document.getElementById('curso').value,
+        comunidad: document.getElementById('comunidad').value,
+        instrucciones: document.getElementById('instrucciones').value
+      };
+
+      try {
+        const respuesta = await fetch('/api/generar-ficha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+
+        const resultado = await respuesta.json();
+
+        if (resultado.html) {
+          contenedor.innerHTML = resultado.html;
+          contenedor.setAttribute('contenteditable', 'true'); // permite editar la ficha en pantalla
+          protegerElementosEstructurales(contenedor); // bloquea SVGs y estructuras clave
+          // Reaplicar modo tinta si el checkbox estaba marcado
+          cambiarModoTinta();
+        } else {
+          contenedor.innerHTML = '<p class="error">Hubo un problema al generar la ficha.</p>';
+        }
+      } catch (err) {
+        console.error(err);
+        contenedor.innerHTML = '<p class="error">Error de conexión con el servidor.</p>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ Generar Ficha';
+      }
+    });
+  </script>
+
+</body>
+</html>
