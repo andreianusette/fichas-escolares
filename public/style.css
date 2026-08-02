@@ -1,17 +1,21 @@
 /* ==========================================================================
-   1. ESTILOS DE LA APLICACIÓN (PANEL, FORMULARIO Y BOTONES)
+   1. FUENTES Y VARIABLES GLOBALES
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Fredoka:wght@500;600;700&display=swap');
 
 :root {
-  --color-primario: #1d4ed8;
+  --color-primario:   #1d4ed8;
   --color-secundario: #0e7490;
-  --color-fondo: #f1f5f9;
-  --color-texto: #1e293b;
-  --fuente-titulo: 'Fredoka', cursive, sans-serif;
-  --fuente-cuerpo: 'Andika', sans-serif;
+  --color-fondo:      #f1f5f9;
+  --color-texto:      #1e293b;
+  --fuente-titulo:    'Fredoka', cursive, sans-serif;
+  --fuente-cuerpo:    'Andika', sans-serif;
 }
+
+/* ==========================================================================
+   2. ESTILOS DE LA APLICACIÓN (PANELES, FORMULARIO, BOTONES)
+   ========================================================================== */
 
 body {
   margin: 0;
@@ -35,7 +39,7 @@ body {
 }
 
 .panel-superior p {
-  margin: 5px 0 0 0;
+  margin: 5px 0 0;
   opacity: 0.9;
   font-size: 14px;
 }
@@ -48,13 +52,13 @@ body {
   padding: 0 20px;
 }
 
-/* Formulario lateral */
 .panel-formulario {
   width: 320px;
+  flex-shrink: 0;
   background: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   height: fit-content;
 }
 
@@ -65,9 +69,7 @@ body {
   font-size: 18px;
 }
 
-.campo {
-  margin-bottom: 15px;
-}
+.campo { margin-bottom: 14px; }
 
 .campo label {
   display: block;
@@ -76,7 +78,9 @@ body {
   margin-bottom: 5px;
 }
 
-.campo select, .campo input, .campo textarea {
+.campo select,
+.campo input,
+.campo textarea {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid #cbd5e1;
@@ -84,6 +88,13 @@ body {
   font-family: inherit;
   font-size: 13px;
   box-sizing: border-box;
+}
+
+.campo-ayuda {
+  font-size: 11px;
+  color: #64748b;
+  margin: 4px 0 0;
+  line-height: 1.4;
 }
 
 #btnGenerar {
@@ -97,18 +108,18 @@ body {
   font-size: 16px;
   cursor: pointer;
   transition: background 0.2s;
+  margin-top: 4px;
 }
 
-#btnGenerar:hover {
-  background: #1e40af;
-}
+#btnGenerar:hover    { background: #1e40af; }
+#btnGenerar:disabled { background: #94a3b8; cursor: not-allowed; }
 
-/* Panel del Visor (Vista Previa) */
 .panel-visor {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  min-width: 0;
 }
 
 .barra-herramientas {
@@ -121,6 +132,14 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.control-tinta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .btn-imprimir {
   background: #059669;
   color: white;
@@ -129,7 +148,10 @@ body {
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
+  font-size: 13px;
 }
+
+.btn-imprimir:hover { background: #047857; }
 
 .area-impresion {
   background: #cbd5e1;
@@ -142,13 +164,21 @@ body {
 
 .estado-inicial {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #64748b;
+  text-align: center;
+  gap: 10px;
 }
 
+.estado-inicial p       { margin: 0; }
+.estado-inicial-sub     { font-size: 13px; max-width: 380px; }
+.cargando               { color: #64748b; font-style: italic; }
+.error                  { color: #dc2626; }
+
 /* ==========================================================================
-   2. ESTILO EDITORIAL DE LA FICHA (A4 HOJA BLANCA)
+   3. ESTILO EDITORIAL DE LA FICHA (A4)
    ========================================================================== */
 
 .ficha {
@@ -158,10 +188,39 @@ body {
   background: white;
   padding: 40px;
   border-radius: 4px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
   box-sizing: border-box;
+  font-family: var(--fuente-cuerpo);
+  font-size: 14px;
 }
 
+/* ── Tipografía para cursos iniciales (1º, 2º, 3º) ───────────────────────
+   La clase "curso-inicial" la añade el SYSTEM_PROMPT automáticamente.
+   Andika es una fuente diseñada para lectoescritura infantil: letras
+   redondeadas, sin serif, con formas similares a la escritura a mano.
+   Se aplica a TODO el contenido, incluidas las operaciones verticales,
+   para evitar que Courier New confunda a los niños con sus formas de imprenta. */
+
+.ficha.curso-inicial {
+  font-family: 'Andika', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.ficha.curso-inicial .operacion-vertical {
+  font-family: 'Andika', sans-serif;
+  font-size: 22px;
+}
+
+.ficha.curso-inicial .titulo-ficha {
+  font-size: 24px;
+}
+
+.ficha.curso-inicial .enunciado {
+  font-size: 15px;
+}
+
+/* Cabecera */
 .cabecera {
   display: flex;
   justify-content: space-between;
@@ -170,7 +229,10 @@ body {
   padding: 10px 15px;
   margin-bottom: 20px;
   background: #f8fafc;
+  font-size: 14px;
 }
+
+.cabecera p { margin: 0; }
 
 .hueco-nombre {
   display: inline-block;
@@ -184,18 +246,27 @@ body {
   border-bottom: 2px dashed #94a3b8;
 }
 
+/* Título */
 .titulo-ficha {
   font-family: var(--fuente-titulo);
   color: var(--color-primario);
   font-size: 22px;
   text-align: center;
-  margin-bottom: 25px;
+  margin: 0 0 25px;
   border-bottom: 2px solid var(--color-primario);
-  padding-bottom: 5px;
+  padding-bottom: 8px;
 }
 
+/* Ejercicio */
 .ejercicio {
-  margin-bottom: 25px;
+  margin-bottom: 22px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.enunciado {
+  font-size: 14px;
+  margin: 0 0 10px;
 }
 
 .enunciado strong {
@@ -203,98 +274,173 @@ body {
   color: white;
   padding: 2px 8px;
   border-radius: 4px;
-  margin-right: 8px;
+  margin-right: 6px;
 }
 
-/* Operaciones verticales */
+/* ==========================================================================
+   4. ESTRUCTURA DE PROBLEMAS — 1º, 2º Y 3º DE PRIMARIA
+   ========================================================================== */
+
+.bloque-problema {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.bloque-enunciado,
+.bloque-datos,
+.bloque-operacion,
+.bloque-resultado {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.bloque-enunciado {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.bloque-datos {
+  background: #fefce8;
+  border-left: 4px solid #eab308;
+}
+
+.bloque-operacion {
+  background: #f0fdf4;
+  border-left: 4px solid #22c55e;
+}
+
+.bloque-resultado {
+  background: #fdf4ff;
+  border-left: 4px solid #a855f7;
+}
+
+.etiqueta-bloque {
+  display: block;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  opacity: 0.75;
+}
+
+/* En cursos iniciales los bloques se ven algo más grandes */
+.ficha.curso-inicial .bloque-enunciado,
+.ficha.curso-inicial .bloque-datos,
+.ficha.curso-inicial .bloque-operacion,
+.ficha.curso-inicial .bloque-resultado {
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+/* ==========================================================================
+   5. OPERACIONES VERTICALES
+   ========================================================================== */
+
 .fila-operaciones {
   display: flex;
-  gap: 30px;
-  margin: 15px 0;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 12px 0;
 }
 
 .operacion-vertical {
   border-collapse: collapse;
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
   font-size: 20px;
 }
 
 .operacion-vertical td {
-  width: 25px;
+  width: 26px;
   height: 30px;
   text-align: center;
+  padding: 2px;
 }
 
 .operacion-vertical .linea-resultado td {
-  border-bottom: 2px solid #000;
+  border-top: 2px solid #000;
+}
+
+.operacion-vertical .signo {
+  font-weight: bold;
+  color: #333;
 }
 
 .hueco-cifra {
   display: inline-block;
   width: 22px;
   height: 24px;
-  border: 1px dashed #94a3b8;
+  border: 1.5px dashed #94a3b8;
   border-radius: 3px;
+  vertical-align: middle;
 }
 
 /* ==========================================================================
-   3. REGLAS DE IMPRESIÓN (MODO B/N Y OCULTAR PANELES AL IMPRIMIR)
+   6. OTROS ELEMENTOS DE FICHA
    ========================================================================== */
 
-@media print {
-  .panel-superior, .panel-formulario, .barra-herramientas {
-    display: none !important;
-  }
-  
-  .contenedor-principal, .panel-visor, .area-impresion {
-    padding: 0 !important;
-    margin: 0 !important;
-    background: transparent !important;
-  }
-
-  .ficha {
-    box-shadow: none !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-  }
+/* Huecos inline */
+.hueco {
+  display: inline-block;
+  border-bottom: 1.5px solid #333;
+  min-width: 55px;
+  margin: 0 3px;
+  height: 16px;
+  vertical-align: bottom;
 }
 
-.ficha.modo-blanco-negro {
-  color: black !important;
+.hueco-largo { min-width: 160px; }
+.hueco-corto { min-width: 30px; }
+
+/* Espacios de respuesta */
+.espacio-respuesta {
+  border: 1.5px solid #333;
+  border-radius: 4px;
+  min-height: 40px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
 }
 
-.ficha.modo-blanco-negro .cabecera,
-.ficha.modo-blanco-negro .titulo-ficha {
-  border-color: black !important;
-  color: black !important;
+.espacio-respuesta.pauta {
+  background-image: repeating-linear-gradient(
+    transparent, transparent 27px,
+    #c7d2e0 27px, #c7d2e0 28px
+  );
+  min-height: 84px;
+  padding: 4px 8px;
 }
 
-.ficha.modo-blanco-negro .enunciado strong {
-  background: black !important;
-}
-/* Evita que un ejercicio se corte por la mitad al cambiar de página */
-.ejercicio {
-  page-break-inside: avoid;
-  break-inside: avoid;
+.espacio-respuesta.alto { min-height: 80px; }
+.espacio-respuesta.bajo { min-height: 28px; }
+
+/* Tablas */
+.tabla-ejercicio {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin-top: 8px;
 }
 
-/* Si quieres forzar que un bloque empiece en una página nueva */
-.salto-pagina {
-  page-break-before: always;
-  break-before: always;
-}
-/* ==========================================================================
-   MEJORAS DE PAGINACIÓN Y FORMATO MULTI-PÁGINA
-   ========================================================================== */
-
-/* Garantiza que cada ejercicio no se corte feo a la mitad al imprimir */
-.ejercicio {
-  page-break-inside: avoid;
-  break-inside: avoid;
-  margin-bottom: 20px;
+.tabla-ejercicio th {
+  background: #e8e8e8;
+  border: 1.5px solid #333;
+  padding: 5px 8px;
+  text-align: center;
+  font-weight: bold;
 }
 
-/* Formato compacto y limpio para preguntas Tipo Test */
+.tabla-ejercicio td {
+  border: 1.5px solid #333;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+/* Tipo test */
 .opciones-test {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -313,12 +459,12 @@ body {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 1.5px solid #000000;
+  border: 1.5px solid #000;
   border-radius: 3px;
   flex-shrink: 0;
 }
 
-/* Cajas vacías para actividades de dibujo/esquemas cuando no hay imágenes */
+/* Caja para dibujar */
 .caja-espacio-dibujo {
   border: 2px dashed #94a3b8;
   border-radius: 8px;
@@ -328,8 +474,116 @@ body {
   font-size: 13px;
   margin: 10px 0;
   background-color: #fafafa;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* Texto de lectura */
+blockquote.texto-lectura {
+  border-left: 4px solid var(--color-primario);
+  background: #f0f7ff;
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Lista de ejercicios */
+ol.ejercicio-lista {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+ol.ejercicio-lista li {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* Pie de página */
+.nota-pie {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 8px;
+}
+
+/* Salto de página manual */
+.salto-pagina {
+  page-break-before: always;
+  break-before: always;
+}
+
+/* ==========================================================================
+   7. MODO AHORRO DE TINTA (B/N)
+   ========================================================================== */
+
+.ficha.modo-blanco-negro { color: black !important; }
+
+.ficha.modo-blanco-negro .cabecera,
+.ficha.modo-blanco-negro .titulo-ficha {
+  border-color: black !important;
+  color: black !important;
+}
+
+.ficha.modo-blanco-negro .enunciado strong {
+  background: black !important;
+}
+
+.ficha.modo-blanco-negro blockquote.texto-lectura {
+  border-color: black !important;
+  background: #f5f5f5 !important;
+}
+
+.ficha.modo-blanco-negro .bloque-enunciado,
+.ficha.modo-blanco-negro .bloque-datos,
+.ficha.modo-blanco-negro .bloque-operacion,
+.ficha.modo-blanco-negro .bloque-resultado {
+  background: white !important;
+  border-left-color: black !important;
+}
+
+/* ==========================================================================
+   8. IMPRESIÓN
+   ========================================================================== */
+
 @media print {
+  .panel-superior,
+  .panel-formulario,
+  .barra-herramientas {
+    display: none !important;
+  }
+
+  .contenedor-principal,
+  .panel-visor,
+  .area-impresion {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    display: block !important;
+  }
+
+  .ficha {
+    box-shadow: none !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    min-height: unset !important;
+  }
+
+  .ejercicio {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .bloque-problema {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
   [contenteditable="true"] {
     outline: none !important;
   }

@@ -14,21 +14,46 @@
   </header>
 
   <main class="contenedor-principal">
-    
-    <!-- PANEL DE CONFIGURACIÓN (FORMULARIO) -->
+
+    <!-- PANEL DE CONFIGURACIÓN -->
     <section class="panel-formulario">
       <h2>Configuración de la Ficha</h2>
-      
+
       <form id="formFicha">
+
         <div class="campo">
-          <label for="materia">Asignatura:</label>
-          <select id="materia" name="materia" required>
-            <option value="Matemáticas">Matemáticas</option>
-            <option value="Lengua Castellana">Lengua Castellana</option>
-            <option value="Conocimiento del Medio">Conocimiento del Medio</option>
-            <option value="Educación Física">Educación Física</option>
-            <option value="Música">Música</option>
-            <option value="Inglés">Inglés</option>
+          <label for="idioma">Idioma:</label>
+          <select id="idioma" name="idioma">
+            <option value="Español">Español</option>
+            <option value="Catalán/Valenciano">Catalán / Valenciano</option>
+            <option value="Gallego">Gallego</option>
+            <option value="Euskera">Euskera</option>
+          </select>
+        </div>
+
+        <div class="campo">
+          <label for="comunidad">Comunidad Autónoma:</label>
+          <select id="comunidad" name="comunidad">
+            <option value="">— LOMLOE estatal (general) —</option>
+            <option value="Andalucía">Andalucía</option>
+            <option value="Aragón">Aragón</option>
+            <option value="Asturias">Asturias</option>
+            <option value="Islas Baleares">Islas Baleares</option>
+            <option value="Canarias">Canarias</option>
+            <option value="Cantabria">Cantabria</option>
+            <option value="Castilla-La Mancha">Castilla-La Mancha</option>
+            <option value="Castilla y León">Castilla y León</option>
+            <option value="Cataluña">Cataluña</option>
+            <option value="Ceuta">Ceuta</option>
+            <option value="Comunidad Valenciana">Comunidad Valenciana</option>
+            <option value="Extremadura">Extremadura</option>
+            <option value="Galicia">Galicia</option>
+            <option value="La Rioja">La Rioja</option>
+            <option value="Madrid">Madrid</option>
+            <option value="Melilla">Melilla</option>
+            <option value="Murcia">Murcia</option>
+            <option value="Navarra">Navarra</option>
+            <option value="País Vasco">País Vasco</option>
           </select>
         </div>
 
@@ -45,35 +70,44 @@
         </div>
 
         <div class="campo">
-          <label for="comunidad">Comunidad Autónoma:</label>
-          <input type="text" id="comunidad" name="comunidad" placeholder="Ej: Andalucía, Madrid, C. Valenciana...">
+          <label for="materia">Asignatura:</label>
+          <select id="materia" name="materia" required>
+            <option value="Matemáticas">Matemáticas</option>
+            <option value="Lengua Castellana">Lengua Castellana</option>
+            <option value="Conocimiento del Medio">Conocimiento del Medio</option>
+            <option value="Educación Física">Educación Física</option>
+            <option value="Música">Música</option>
+            <option value="Inglés">Inglés</option>
+          </select>
         </div>
 
         <div class="campo">
-          <label for="instrucciones">Instrucciones o Tema específico:</label>
-          <textarea id="instrucciones" name="instrucciones" rows="4" placeholder="Ej: Sumas con llevada de dos cifras, o Lectura comprensiva sobre los animales..."></textarea>
+          <label for="instrucciones">Instrucciones especiales:</label>
+          <textarea id="instrucciones" name="instrucciones" rows="4"
+            placeholder="Aquí está la clave de la variedad. Ej: Temática de dinosaurios · solo 8 ejercicios · números hasta el 30 · incluye un problema con dibujo"></textarea>
+          <p class="campo-ayuda">El docente puede pedir temática, nivel, número de ejercicios, formato... tiene prioridad máxima sobre todo lo demás.</p>
         </div>
 
         <button type="submit" id="btnGenerar">✨ Generar Ficha</button>
+
       </form>
     </section>
 
-    <!-- PANEL DE VISTA PREVIA Y HERRAMIENTAS -->
+    <!-- PANEL DE VISTA PREVIA -->
     <section class="panel-visor">
-      
+
       <div class="barra-herramientas">
         <label class="control-tinta">
           <input type="checkbox" id="toggleTinta" onchange="cambiarModoTinta()">
-          <span>Modo Ahorro Tinta (B/N Fotocopia)</span>
+          <span>Modo Ahorro Tinta (B/N)</span>
         </label>
-        
         <button type="button" class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
       </div>
 
-      <!-- Aquí se inyecta la ficha que genera server.js -->
       <div id="contenedorFicha" class="area-impresion">
         <div class="estado-inicial">
-          <p>👈 Configura los datos a la izquierda y pulsa <strong>"Generar Ficha"</strong> para ver la maquetación aquí.</p>
+          <p>👈 Configura los datos a la izquierda y pulsa <strong>"Generar Ficha"</strong>.</p>
+          <p class="estado-inicial-sub">💡 Las <strong>Instrucciones especiales</strong> son el campo más potente: úsalas para pedir temática, nivel concreto o formato específico.</p>
         </div>
       </div>
 
@@ -82,53 +116,38 @@
   </main>
 
   <script>
-    // Cambio dinámico entre color y Blanco/Negro para ahorro de tinta
     function cambiarModoTinta() {
       const checkbox = document.getElementById('toggleTinta');
       const ficha = document.querySelector('.ficha');
-      
       if (ficha) {
-        if (checkbox.checked) {
-          ficha.classList.add('modo-blanco-negro');
-        } else {
-          ficha.classList.remove('modo-blanco-negro');
-        }
+        ficha.classList.toggle('modo-blanco-negro', checkbox.checked);
       }
     }
 
-    // Bloquea la edición de elementos estructurales (SVGs, cajas de dibujo, tests, tablas
-    // de operaciones) para que el maestro pueda editar el texto sin riesgo de romper
-    // sin querer el diseño de esos bloques, aunque el contenedor general sea editable.
+    // Bloquea SVGs y estructuras clave para que el maestro no las rompa al editar
     function protegerElementosEstructurales(contenedor) {
-      const selectoresProtegidos = [
-        'svg',
-        '.caja-espacio-dibujo',
-        '.casilla-test',
-        '.operacion-vertical'
-      ];
-
-      selectoresProtegidos.forEach(selector => {
+      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-vertical'].forEach(selector => {
         contenedor.querySelectorAll(selector).forEach(el => {
           el.setAttribute('contenteditable', 'false');
         });
       });
     }
 
-    // Envío del formulario al backend server.js
     document.getElementById('formFicha').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const btn = document.getElementById('btnGenerar');
       const contenedor = document.getElementById('contenedorFicha');
-      
+
       btn.disabled = true;
       btn.textContent = '⏳ Diseñando ficha...';
       contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
 
       const datos = {
-        materia: document.getElementById('materia').value,
-        curso: document.getElementById('curso').value,
-        comunidad: document.getElementById('comunidad').value,
+        idioma:        document.getElementById('idioma').value,
+        comunidad:     document.getElementById('comunidad').value,
+        curso:         document.getElementById('curso').value,
+        materia:       document.getElementById('materia').value,
         instrucciones: document.getElementById('instrucciones').value
       };
 
@@ -143,16 +162,15 @@
 
         if (resultado.html) {
           contenedor.innerHTML = resultado.html;
-          contenedor.setAttribute('contenteditable', 'true'); // permite editar la ficha en pantalla
-          protegerElementosEstructurales(contenedor); // bloquea SVGs y estructuras clave
-          // Reaplicar modo tinta si el checkbox estaba marcado
+          contenedor.setAttribute('contenteditable', 'true');
+          protegerElementosEstructurales(contenedor);
           cambiarModoTinta();
         } else {
-          contenedor.innerHTML = '<p class="error">Hubo un problema al generar la ficha.</p>';
+          contenedor.innerHTML = `<p class="error">⚠️ ${resultado.error || 'Hubo un problema al generar la ficha.'}</p>`;
         }
       } catch (err) {
         console.error(err);
-        contenedor.innerHTML = '<p class="error">Error de conexión con el servidor.</p>';
+        contenedor.innerHTML = '<p class="error">⚠️ Error de conexión con el servidor.</p>';
       } finally {
         btn.disabled = false;
         btn.textContent = '✨ Generar Ficha';
