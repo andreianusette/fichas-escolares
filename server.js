@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
+import { renderizarFichaMatematicas, ICONOS_DISPONIBLES } from './renderer-matematicas.js';
 
 dotenv.config();
 
@@ -19,7 +20,11 @@ if (!apiKey) {
 const anthropic = new Anthropic({ apiKey });
 
 // ─────────────────────────────────────────────
-// SYSTEM PROMPT
+// SYSTEM PROMPT "LEGACY" — Lengua, Conocimiento del Medio, Educación Física,
+// Música e Inglés. Estas asignaturas siguen generando HTML directamente
+// (todavía no migradas al pipeline JSON + renderizador). Matemáticas YA NO
+// usa este prompt: tiene el suyo propio más abajo, mucho más corto porque
+// no necesita explicar reglas de maquetado HTML — eso ahora es código.
 // ─────────────────────────────────────────────
 const SYSTEM_PROMPT = `
 Eres un experto en diseño de materiales didácticos para Educación Primaria en España,
@@ -35,9 +40,15 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
    No incluyas <html>, <head>, <body> ni <style>.
 
 2. CABECERA OBLIGATORIA:
+   Si en los datos de la ficha se indica un "Centro educativo", añade una línea extra
+   ARRIBA con el nombre del centro. Si NO se indica (está vacío), omite esa línea por
+   completo — no escribas "Centro:" en blanco.
    <div class="cabecera">
-     <p><strong>Nombre:</strong> <span class="hueco-nombre"></span></p>
-     <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
+     <p class="cabecera-centro">[Nombre del centro]</p> <!-- SOLO si hay centro -->
+     <div class="cabecera-datos">
+       <p><strong>Nombre:</strong> <span class="hueco-nombre"></span></p>
+       <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
+     </div>
    </div>
 
 3. TÍTULO:
@@ -45,7 +56,7 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
 
 4. CADA EJERCICIO en su propio contenedor:
    <div class="ejercicio">
-     <p class="enunciado"><strong>Ejercicio [N].</strong> [Instrucción clara]</p>
+     <p class="enunciado"><span class="numero-ejercicio">[N]</span><span class="texto-enunciado">[Instrucción clara]</span></p>
      [contenido]
    </div>
 
@@ -55,118 +66,36 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
    - Distribución por defecto: 40% cálculo/respuesta directa, 30% completar/relacionar,
      20% problemas contextualizados, 10% ejercicio creativo o abierto.
 
-6. ADECUACIÓN NUMÉRICA POR CURSO — MATEMÁTICAS (OBLIGATORIO):
-   - 1º Primaria: números 0-50, sumas y restas SIN llevadas, resultados ≤20 en cálculo mental.
-   - 2º Primaria: números 0-99, principalmente sin llevadas, llevadas simples muy graduales.
-   - 3º Primaria: números 0-999, sumas y restas CON llevadas, tablas del 1 al 5.
-   - 4º Primaria: hasta 9.999, multiplicaciones 1 y 2 cifras, división exacta.
-   - 5º Primaria: hasta 999.999, cuatro operaciones, fracciones sencillas, decimales.
-   - 6º Primaria: hasta millones, fracciones, decimales, porcentajes, geometría, estadística simple.
-
-7. OPERACIONES VERTICALES — MATEMÁTICAS:
-   Usa tablas HTML con clase "operacion-vertical". Exactamente DOS números por operación. NUNCA tres.
-   <table class="operacion-vertical">
-     <tr><td></td><td class="cifra">3</td><td class="cifra">4</td></tr>
-     <tr class="linea-resultado"><td class="signo">+</td><td class="cifra">2</td><td class="cifra">3</td></tr>
-     <tr><td></td><td class="hueco-cifra"></td><td class="hueco-cifra"></td></tr>
-   </table>
-   Agrupa varias en: <div class="fila-operaciones">[op1][op2]...</div>
-   Para columnas paralelas (ej: "2 columnas de 7 sumas"): N bloques paralelos, exactamente X
-   operaciones cada uno, total = N×X.
-
-8. ILUSTRACIONES SVG (SOLO 1º Y 2º — MATEMÁTICAS):
-   En ejercicios de conteo y sumas/restas, acompaña SIEMPRE la operación con SVGs.
-   Todos tamaño width="40" height="40" viewBox="0 0 52 52":
-
-   Manzana: <svg width="40" height="40" viewBox="0 0 52 52"><circle cx="26" cy="32" r="17" fill="#e74c3c"/><ellipse cx="18" cy="18" rx="7" ry="9" fill="#27ae60" transform="rotate(-15,18,18)"/><ellipse cx="32" cy="16" rx="6" ry="8" fill="#2ecc71" transform="rotate(15,32,16)"/><rect x="24" y="10" width="4" height="10" rx="2" fill="#5d4037"/></svg>
-   Estrella: <svg width="40" height="40" viewBox="0 0 52 52"><polygon points="26,4 31,19 47,19 35,29 39,45 26,35 13,45 17,29 5,19 21,19" fill="#f1c40f" stroke="#e67e22" stroke-width="1.5"/></svg>
-   Pelota: <svg width="40" height="40" viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="white" stroke="#222" stroke-width="1.5"/><polygon points="26,8 33,15 30,24 22,24 19,15" fill="#222"/><polygon points="8,21 15,17 19,24 15,33 7,30" fill="#222"/><polygon points="44,21 37,17 33,24 37,33 45,30" fill="#222"/><polygon points="26,44 19,37 22,30 30,30 33,37" fill="#222"/></svg>
-   Flor: <svg width="40" height="40" viewBox="0 0 52 52"><ellipse cx="26" cy="10" rx="6" ry="9" fill="#e91e63"/><ellipse cx="26" cy="42" rx="6" ry="9" fill="#e91e63"/><ellipse cx="10" cy="26" rx="9" ry="6" fill="#e91e63"/><ellipse cx="42" cy="26" rx="9" ry="6" fill="#e91e63"/><ellipse cx="15" cy="15" rx="5" ry="8" fill="#ff4081" transform="rotate(45,15,15)"/><ellipse cx="37" cy="15" rx="5" ry="8" fill="#ff4081" transform="rotate(-45,37,15)"/><ellipse cx="15" cy="37" rx="5" ry="8" fill="#ff4081" transform="rotate(-45,15,37)"/><ellipse cx="37" cy="37" rx="5" ry="8" fill="#ff4081" transform="rotate(45,37,37)"/><circle cx="26" cy="26" r="9" fill="#f1c40f"/></svg>
-   Globo: <svg width="40" height="40" viewBox="0 0 52 52"><ellipse cx="26" cy="21" rx="15" ry="17" fill="#9b59b6"/><ellipse cx="20" cy="16" rx="5" ry="4" fill="#b07ee8" opacity="0.5"/><polygon points="22,38 26,46 30,38" fill="#9b59b6"/><line x1="26" y1="46" x2="26" y2="51" stroke="#555" stroke-width="1.5"/></svg>
-   Mariposa: <svg width="40" height="40" viewBox="0 0 52 52"><ellipse cx="14" cy="18" rx="12" ry="9" fill="#3498db"/><ellipse cx="38" cy="18" rx="12" ry="9" fill="#3498db"/><ellipse cx="14" cy="34" rx="10" ry="8" fill="#2980b9"/><ellipse cx="38" cy="34" rx="10" ry="8" fill="#2980b9"/><ellipse cx="26" cy="26" rx="3" ry="11" fill="#2c3e50"/></svg>
-   Coche: <svg width="40" height="40" viewBox="0 0 52 52"><rect x="4" y="22" width="44" height="18" rx="4" fill="#e74c3c"/><rect x="10" y="14" width="28" height="14" rx="4" fill="#c0392b"/><rect x="12" y="16" width="10" height="10" rx="2" fill="#aed6f1"/><rect x="26" y="16" width="10" height="10" rx="2" fill="#aed6f1"/><circle cx="13" cy="40" r="6" fill="#2c3e50"/><circle cx="39" cy="40" r="6" fill="#2c3e50"/><circle cx="13" cy="40" r="3" fill="#7f8c8d"/><circle cx="39" cy="40" r="3" fill="#7f8c8d"/></svg>
-   Pájaro: <svg width="40" height="40" viewBox="0 0 52 52"><ellipse cx="26" cy="30" rx="14" ry="10" fill="#e67e22"/><circle cx="35" cy="22" r="9" fill="#e67e22"/><circle cx="38" cy="20" r="2" fill="#2c3e50"/><polygon points="44,22 50,20 44,25" fill="#f39c12"/><path d="M12,30 Q4,24 6,18" stroke="#e67e22" stroke-width="3" fill="none"/><path d="M18,22 Q14,14 20,10" stroke="#e67e22" stroke-width="3" fill="none"/></svg>
-   Pez: <svg width="40" height="40" viewBox="0 0 52 52"><ellipse cx="24" cy="26" rx="18" ry="11" fill="#3498db"/><polygon points="42,26 50,18 50,34" fill="#2980b9"/><circle cx="14" cy="23" r="3" fill="white"/><circle cx="14" cy="23" r="1.5" fill="#2c3e50"/><path d="M22,20 Q28,14 34,20" stroke="#aed6f1" stroke-width="1.5" fill="none"/></svg>
-
-   LAYOUT SVG + OPERACIÓN (flex row, siempre juntos):
-   <div style="display:flex; align-items:center; gap:16px; margin:10px 0; flex-wrap:wrap;">
-     <div style="display:flex; gap:5px; align-items:center;">
-       [SVG grupo 1, máx 5]
-       <span style="font-size:24px; font-weight:bold; color:#555;">+</span>
-       [SVG grupo 2, máx 5]
-     </div>
-     <table class="operacion-vertical">...</table>
-   </div>
-
-   Para SOLO CONTAR:
-   <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0; max-width:230px; margin-left:auto; margin-right:auto;">
-     [SVG1]...[SVGn, máx 5 por fila]
-   </div>
-
-9. PREGUNTAS TIPO TEST:
+6. PREGUNTAS TIPO TEST:
    <div class="opciones-test">
      <div class="opcion-item"><span class="casilla-test"></span> a) Opción</div>
    </div>
 
-10. ESPACIOS PARA DIBUJAR:
-    <div class="caja-espacio-dibujo">[ Dibuja aquí ]</div>
+7. ESPACIOS PARA DIBUJAR:
+   <div class="caja-espacio-dibujo">[ Dibuja aquí ]</div>
 
-11. INSTRUCCIONES ESPECIALES DEL DOCENTE — MÁXIMA PRIORIDAD.
-    Prevalecen sobre cualquier regla anterior (excepto 1, 7-formato, y 12).
-    - Temática concreta: intégrala en TODOS los ejercicios.
-    - Número exacto de ejercicios: respétalo sin redondear.
-    - Rango numérico distinto: úsalo.
+8. INSTRUCCIONES ESPECIALES DEL DOCENTE — MÁXIMA PRIORIDAD.
+   Prevalecen sobre cualquier regla anterior (excepto 1 y 9).
+   - Temática concreta: intégrala en TODOS los ejercicios.
+   - Número exacto de ejercicios: respétalo sin redondear.
+   - Rango numérico distinto: úsalo.
 
-12. SIN AUTOEVALUACIÓN NI CARITAS. Nunca.
+9. SIN AUTOEVALUACIÓN NI CARITAS. Nunca.
 
-13. PIE DE PÁGINA:
+10. PIE DE PÁGINA:
     <p class="nota-pie">Ficha generada con LOMLOE · [CURSO] · [MATERIA] · [COMUNIDAD]</p>
 
-14. CLASE DE CURSO EN EL CONTENEDOR RAÍZ.
+11. CLASE DE CURSO EN EL CONTENEDOR RAÍZ.
     Cuando el curso sea 1º, 2º o 3º de Primaria, añade la clase "curso-inicial"
     al contenedor raíz de la ficha:
     <div class="ficha curso-inicial">
     Para 4º, 5º y 6º, usa solo:
     <div class="ficha">
     Esto permite que el CSS aplique automáticamente la tipografía adecuada a cada etapa.
-
-15. ESTRUCTURA DE PROBLEMAS EN 1º, 2º Y 3º DE PRIMARIA.
-    Cuando el ejercicio sea un problema contextualizado (no cálculo directo ni hueco),
-    usa SIEMPRE esta estructura de cuatro bloques para guiar al alumno paso a paso:
-
-    <div class="ejercicio">
-      <p class="enunciado"><strong>Ejercicio [N].</strong> Lee el problema y resuélvelo:</p>
-      <div class="bloque-problema">
-        <div class="bloque-enunciado">
-          <span class="etiqueta-bloque">📖 Enunciado</span>
-          [Texto del problema, con lenguaje sencillo y adecuado al curso]
-        </div>
-        <div class="bloque-datos">
-          <span class="etiqueta-bloque">📋 Datos</span>
-          [Lista los datos clave del problema, uno por línea o separados por ·]
-        </div>
-        <div class="bloque-operacion">
-          <span class="etiqueta-bloque">✏️ Operación</span>
-          <div class="espacio-respuesta"></div>
-        </div>
-        <div class="bloque-resultado">
-          <span class="etiqueta-bloque">✅ Resultado</span>
-          <div class="espacio-respuesta bajo"></div>
-        </div>
-      </div>
-    </div>
-
-    Para 4º, 5º y 6º los problemas pueden tener formato libre sin esta estructura.
 `;
 
-// Instrucciones específicas por asignatura
+// Instrucciones específicas por asignatura (pipeline legacy — sin Matemáticas)
 const PROMPTS_MATERIA = {
-  'Matemáticas': `
-    - Sumas y restas SIEMPRE en tabla "operacion-vertical" con exactamente 2 sumandos.
-    - Incluye problemas contextualizados adaptados al rango numérico del curso.
-    - En 1º, 2º y 3º: los problemas DEBEN usar la estructura bloque-problema (regla 15).
-    - Varía entre cálculo mental (huecos), operaciones verticales y problemas de enunciado.
-  `,
   'Lengua Castellana': `
     - Para escritura o redacción usa: <div class="espacio-respuesta pauta"></div>
     - Textos de lectura comprensiva en: <blockquote class="texto-lectura">...</blockquote>
@@ -192,12 +121,149 @@ const PROMPTS_MATERIA = {
   `
 };
 
-function construirPrompt(materia, curso, comunidad, instrucciones, idioma) {
+// ─────────────────────────────────────────────
+// MATEMÁTICAS — pipeline nuevo: JSON pedagógico + renderizador (renderer-matematicas.js).
+// Claude ya no describe HTML: solo decide números, enunciados y qué tipo de
+// ejercicio encaja. El maquetado (CSS/HTML) lo garantiza el código, siempre.
+// ─────────────────────────────────────────────
+
+const RANGOS_NUMERICOS_MATE = {
+  '1º': 'números 0-50, sumas y restas SIN llevadas, resultados ≤20 en cálculo mental.',
+  '2º': 'números 0-99, principalmente sin llevadas, llevadas simples muy graduales.',
+  '3º': 'números 0-999, sumas y restas CON llevadas, tablas del 1 al 5.',
+  '4º': 'hasta 9.999, multiplicaciones de 1 y 2 cifras, división exacta.',
+  '5º': 'hasta 999.999, cuatro operaciones, fracciones sencillas, decimales.',
+  '6º': 'hasta millones, fracciones, decimales, porcentajes, geometría, estadística simple.'
+};
+
+function construirSystemPromptMatematicas(curso) {
+  const rango = RANGOS_NUMERICOS_MATE[curso] || RANGOS_NUMERICOS_MATE['3º'];
+  const listaIconos = ICONOS_DISPONIBLES.join(', ');
+  const esConDibujos = ['1º', '2º'].includes(curso);
+  const esGuiado = ['1º', '2º', '3º'].includes(curso);
+
+  // La lista de tipos disponibles varía por curso: a partir de 3º ya no tiene
+  // sentido ni mencionarle a Claude "conteo_svg" — así ni existe la tentación
+  // de usarlo donde no toca.
+  const tiposDisponibles = esConDibujos
+    ? 'operacion_vertical | conteo_svg | calculo_mental | problema | tipo_test | dibujo'
+    : 'operacion_vertical | calculo_mental | problema | tipo_test | dibujo';
+
+  let bloqueOperacion = `
+- "operacion_vertical": sumas y restas en columna.
+  { "operaciones": [ { "signo": "+" o "-", "numeros": [n1, n2, ...] } ]${esConDibujos ? `,
+    "svg": { "icono1": "...", "cantidad1": n, "icono2": "...", "cantidad2": n }` : ''},
+    "columnasParalelas": 2 (o null) }
+  * Rango numérico para este curso (${curso}): ${rango}
+  * SUMAS: usa EXACTAMENTE el número de sumandos indicado en "Sumandos por suma".
+  * RESTAS: SIEMPRE exactamente 2 números. Nunca más.`;
+
+  if (esConDibujos) {
+    bloqueOperacion += `
+  * OBLIGATORIO en ${curso}: incluye SIEMPRE "svg" (nunca null) representando los dos primeros
+    términos con objetos para contar — en ${curso} el niño cuenta objetos, no lee números
+    abstractos. Iconos disponibles (usa EXACTAMENTE estos nombres): ${listaIconos}.`;
+  }
+
+  bloqueOperacion += `
+  * "columnasParalelas" solo si el docente pide explícitamente varias columnas de operaciones.`;
+
+  const bloqueConteo = esConDibujos ? `
+
+- "conteo_svg": solo contar objetos, sin operación.
+  { "icono": "...", "cantidad": n } — icono de la lista: ${listaIconos}.` : '';
+
+  const bloqueCalculoMental = `
+
+- "calculo_mental": lista de operaciones horizontales cortas con hueco para la respuesta.
+  { "operaciones": [ { "texto": "7 + 5 =" } ] }`;
+
+  let bloqueProblema;
+  if (esConDibujos) {
+    bloqueProblema = `
+- "problema": problema contextualizado con base de dibujos (OBLIGATORIO en ${curso}).
+  { "texto": "enunciado del problema, lenguaje sencillo y adecuado al curso",
+    "datosClave": ["dato 1", "dato 2"],
+    "svg": { "icono1": "...", "cantidad1": n, "signo": "+" o "-", "icono2": "...", "cantidad2": n } }
+  * "datosClave": el sistema SOLO usa la CANTIDAD de elementos de esta lista para saber cuántas
+    líneas en blanco dejar — nunca se imprime el texto. No es un resumen para el lector, es
+    solo un contador; normalmente serán 2.
+  * "svg": OBLIGATORIO en ${curso} (nunca null). Ilustra con objetos los dos términos del
+    problema, igual que en las operaciones verticales — el niño cuenta los dibujos.`;
+  } else if (esGuiado) {
+    bloqueProblema = `
+- "problema": problema contextualizado. El sistema usa el formato guiado de bloques en ${curso}.
+  { "texto": "enunciado del problema, lenguaje adecuado al curso",
+    "datosClave": ["dato 1", "dato 2"] }
+  * "datosClave": el sistema SOLO usa la CANTIDAD de elementos de esta lista para saber cuántas
+    líneas en blanco dejar para que el alumno escriba los datos — nunca se imprime el texto.`;
+  } else {
+    bloqueProblema = `
+- "problema": problema contextualizado, formato libre (${curso}, sin bloques guiados).
+  { "texto": "enunciado del problema, lenguaje adecuado al curso", "datosClave": [] }`;
+  }
+
+  return `
+Eres un experto en diseño de materiales didácticos de Matemáticas para Educación Primaria
+en España, con dominio de la LOMLOE (Ley Orgánica 3/2020) y el Real Decreto 157/2022.
+
+Tu ÚNICA salida es JSON VÁLIDO. Nada de HTML, nada de markdown, nada de \`\`\`json,
+ni una sola palabra antes o después del objeto JSON.
+
+ESQUEMA EXACTO:
+{
+  "titulo": "string — título descriptivo de la ficha",
+  "ejercicios": [
+    {
+      "enunciado": "string — instrucción del ejercicio, SIN 'Ejercicio N.' delante (lo añade el sistema).
+        EXCEPCIÓN: para tipo 'problema' este campo se IGNORA (el sistema pone su propia
+        instrucción fija) — no te esfuerces en rellenarlo, pon cualquier cosa breve.",
+      "tipo": "${tiposDisponibles}",
+      "datos": { ... según el tipo, ver abajo ... }
+    }
+  ]
+}
+
+TIPOS DE EJERCICIO DISPONIBLES PARA ${curso} Y SU CAMPO "datos":
+${bloqueOperacion}
+${bloqueConteo}
+${bloqueCalculoMental}
+${bloqueProblema}
+
+- "tipo_test": pregunta de opción múltiple (la pregunta va en "enunciado").
+  { "opciones": ["opción a", "opción b", "opción c"] }
+
+- "dibujo": espacio para dibujar. "datos": {}
+
+REGLAS GENERALES:
+- Por defecto genera ~10 ejercicios variados. Si el docente pide un número EXACTO, respétalo.
+- Distribución por defecto: 40% cálculo/operación directa, 30% cálculo mental o completar,
+  20% problemas contextualizados, 10% tipo test o ejercicio abierto.
+- Las instrucciones especiales del docente tienen MÁXIMA PRIORIDAD sobre todo lo anterior
+  (temática, número de ejercicios, rango numérico distinto...).
+- NUNCA autoevaluación ni caritas.
+- El título y los enunciados deben ser coherentes con Matemáticas de ${curso} de Primaria.
+`.trim();
+}
+
+function construirPromptMatematicas({ curso, comunidad, instrucciones, idioma, sumandos }) {
+  return `
+DATOS DE LA FICHA:
+- Curso: ${curso} de Educación Primaria
+- Idioma: ${idioma || 'Español'}
+- Comunidad Autónoma: ${comunidad || 'LOMLOE estatal (general)'}
+- Sumandos por suma: ${sumandos} (aplica solo a sumas; las restas son siempre de 2 números)
+- Instrucciones especiales del docente: ${instrucciones || 'Ninguna — genera una ficha variada y adecuada al curso.'}
+  `.trim();
+}
+
+function construirPrompt(materia, curso, comunidad, instrucciones, idioma, colegio) {
   const promptMateria = PROMPTS_MATERIA[materia]
     || `- Genera ejercicios variados y adecuados para ${materia} en ${curso} de Primaria.`;
 
   return `
 DATOS DE LA FICHA:
+- Centro educativo: ${colegio || '(no indicado — omite la línea de centro en la cabecera)'}
 - Idioma: ${idioma || 'Español'}
 - Comunidad Autónoma: ${comunidad || 'LOMLOE estatal (general)'}
 - Curso: ${curso} de Educación Primaria
@@ -213,13 +279,60 @@ RECUERDA: el título y los textos deben reflejar explícitamente la materia "${m
 
 app.post('/api/generar-ficha', async (req, res) => {
   try {
-    const { materia, curso, comunidad, instrucciones, idioma } = req.body;
+    const { materia, curso, comunidad, instrucciones, idioma, colegio, sumandos } = req.body;
 
     if (!materia || !curso) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: materia y curso.' });
     }
 
-    const userPrompt = construirPrompt(materia, curso, comunidad, instrucciones, idioma);
+    // ═══════════════════════════════════════════════════════════
+    // MATEMÁTICAS: pipeline nuevo (JSON pedagógico + renderizador).
+    // ═══════════════════════════════════════════════════════════
+    if (materia === 'Matemáticas') {
+      // Acota el número de sumandos a un rango razonable (2 a 4); por defecto 2.
+      let sumandosValidados = parseInt(sumandos, 10);
+      if (!Number.isInteger(sumandosValidados) || sumandosValidados < 2) sumandosValidados = 2;
+      if (sumandosValidados > 4) sumandosValidados = 4;
+
+      const systemPrompt = construirSystemPromptMatematicas(curso);
+      const userPrompt = construirPromptMatematicas({
+        curso, comunidad, instrucciones, idioma, sumandos: sumandosValidados
+      });
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      });
+
+      if (response.stop_reason === 'max_tokens') {
+        console.warn('⚠️ Respuesta cortada por límite de tokens.');
+      }
+
+      const bloqueTexto = response.content.find(block => block.type === 'text');
+      let textoJson = bloqueTexto?.text || '';
+      textoJson = textoJson.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      let datosFicha;
+      try {
+        datosFicha = JSON.parse(textoJson);
+      } catch (errorParseo) {
+        console.error('❌ La IA devolvió JSON inválido:', errorParseo.message);
+        console.error('Contenido recibido:', textoJson.slice(0, 500));
+        return res.status(500).json({
+          error: 'La IA devolvió un formato inesperado al generar la ficha. Inténtalo de nuevo.'
+        });
+      }
+
+      const html = renderizarFichaMatematicas(datosFicha, { curso, materia, comunidad, colegio });
+      return res.json({ html });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RESTO DE ASIGNATURAS: pipeline anterior (HTML directo), sin cambios.
+    // ═══════════════════════════════════════════════════════════
+    const userPrompt = construirPrompt(materia, curso, comunidad, instrucciones, idioma, colegio);
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',

@@ -195,10 +195,27 @@ Las reglas 14 y 15 (clase `curso-inicial` y estructura de 4 bloques) se aplican 
 
 ## 11. Archivos a adjuntar al iniciar un nuevo chat
 
-1. `server.js`
-2. `public/index.html`
-3. `public/style.css`
-4. Este archivo: `CONTEXTO_FICHAS_ESCOLARES.md`
-5. `REFERENCIA_CLASES_HTML_FICHAS.md` (si se trabaja con CSS o con Gemini)
+**Siempre:**
+1. `Docs/ROADMAP_FICHAS_ESCOLARES.md` — en qué fase estáis y qué toca ahora.
+2. Este archivo: `CONTEXTO_FICHAS_ESCOLARES.md`
+
+**Si se va a tocar código o generar/depurar fichas:**
+3. `server.js`
+4. `renderer-matematicas.js` (motor de Matemáticas — JSON + renderizador)
+5. `public/index.html`
+6. `public/style.css`
+
+**Si se trabaja específicamente el maquetado de Matemáticas:**
+7. `REFERENCIA_CLASES_HTML_FICHAS.md`
+
+**Si hay un bug visual en una ficha ya generada:**
+8. El PDF o captura de la ficha con el problema — así se puede diagnosticar
+   directamente en vez de suponer qué pasó.
 
 El código real manda sobre este resumen. Si hay discrepancia, el código tiene razón.
+
+⚠️ **Nota**: `CONTEXTO_FICHAS_ESCOLARES.md` tiene partes desactualizadas
+desde la sesión de arquitectura JSON+renderizador (ver aviso al principio
+de `ROADMAP_FICHAS_ESCOLARES.md`). Pendiente de revisión completa — no dar
+por buena a ciegas la sección 4 (las "15 reglas") ni la sección 10
+(decisiones descartadas).

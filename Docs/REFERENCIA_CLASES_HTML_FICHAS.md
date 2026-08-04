@@ -1,5 +1,11 @@
 # REFERENCIA DE CLASES HTML — Generador de Fichas Escolares
 
+*Sincronizado con el código el 04/08/2026: se corrigió el maquetado de las
+operaciones verticales (antes usaban una tabla con una celda por dígito,
+que se rompía con números de varias cifras; ahora son líneas de texto
+alineadas a la derecha, ver sección 8). `server.js` y `style.css` ya
+generan y estilan exactamente las clases descritas aquí.*
+
 Este documento describe la estructura HTML que genera el motor de IA (Claude)
 para cada ficha escolar. Sirve como contrato fijo entre el HTML (contenido)
 y el CSS (diseño visual). Quien diseñe el CSS debe usar EXACTAMENTE estas
@@ -106,12 +112,19 @@ Estructura de UNA operación (siempre exactamente 2 números):
 
 ```html
 <div class="operacion-columna">
-  <div class="operacion-fila"><span>3 4</span></div>
-  <div class="operacion-fila"><span class="op-signo">+</span><span>2 3</span></div>
+  <div class="operacion-fila"><span class="op-signo"></span><span class="num">34</span></div>
+  <div class="operacion-fila"><span class="op-signo">+</span><span class="num">23</span></div>
   <hr class="linea-op">
-  <span class="resultado-hueco">_ _</span>
+  <div class="operacion-fila"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
 </div>
 ```
+
+El número va **entero** dentro de `.num` (nunca separado en dígitos sueltos
+en celdas de tabla — así el número se alinea solo a la derecha sea de 1
+cifra o de 7, sin depender de que el contenido calcule cuántas celdas
+vacías hacen falta para cuadrar columnas). La primera fila SIEMPRE lleva
+un `<span class="op-signo"></span>` vacío, para que el número quede
+alineado en la misma columna que el de la fila con signo.
 
 Varias operaciones agrupadas (distribución simple en rejilla):
 
@@ -144,10 +157,9 @@ Distribución en columnas paralelas (cuando el docente pide "N columnas de X ope
 ```
 
 **IMPORTANTE — decisión de diseño ya tomada:** `.operacion-columna` NO debe
-tener recuadro/borde alrededor (se quitó a propósito en una iteración
-anterior). Solo se ven los números, el signo, la línea horizontal de
-resultado (`.linea-op`) y el hueco de resultado (`.resultado-hueco`,
-visualmente debe parecer una rayita corta tipo "_ _", no un número).
+tener recuadro/borde alrededor. Solo se ven el número, el signo, la línea
+horizontal de resultado (`.linea-op`) y el hueco de resultado
+(`.resultado-hueco`, una raya de puntos bajo la línea, no una caja cerrada).
 
 ---
 

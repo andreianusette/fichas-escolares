@@ -22,6 +22,12 @@
       <form id="formFicha">
 
         <div class="campo">
+          <label for="colegio">Nombre del centro (opcional):</label>
+          <input type="text" id="colegio" name="colegio" placeholder="Ej: CEIP Miguel de Cervantes">
+          <p class="campo-ayuda">Aparecerá en la cabecera de la ficha. Déjalo vacío si no quieres mostrarlo.</p>
+        </div>
+
+        <div class="campo">
           <label for="idioma">Idioma:</label>
           <select id="idioma" name="idioma">
             <option value="Español">Español</option>
@@ -82,6 +88,16 @@
         </div>
 
         <div class="campo">
+          <label for="sumandos">Sumandos por suma (Matemáticas):</label>
+          <select id="sumandos" name="sumandos">
+            <option value="2">2 (el estándar)</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+          <p class="campo-ayuda">Solo afecta a las sumas verticales. Las restas siempre son de 2 números.</p>
+        </div>
+
+        <div class="campo">
           <label for="instrucciones">Instrucciones especiales:</label>
           <textarea id="instrucciones" name="instrucciones" rows="4"
             placeholder="Aquí está la clave de la variedad. Ej: Temática de dinosaurios · solo 8 ejercicios · números hasta el 30 · incluye un problema con dibujo"></textarea>
@@ -126,7 +142,7 @@
 
     // Bloquea SVGs y estructuras clave para que el maestro no las rompa al editar
     function protegerElementosEstructurales(contenedor) {
-      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-vertical'].forEach(selector => {
+      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-columna'].forEach(selector => {
         contenedor.querySelectorAll(selector).forEach(el => {
           el.setAttribute('contenteditable', 'false');
         });
@@ -144,10 +160,12 @@
       contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
 
       const datos = {
+        colegio:       document.getElementById('colegio').value,
         idioma:        document.getElementById('idioma').value,
         comunidad:     document.getElementById('comunidad').value,
         curso:         document.getElementById('curso').value,
         materia:       document.getElementById('materia').value,
+        sumandos:      document.getElementById('sumandos').value,
         instrucciones: document.getElementById('instrucciones').value
       };
 

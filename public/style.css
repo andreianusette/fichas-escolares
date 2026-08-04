@@ -207,7 +207,7 @@ body {
   line-height: 1.7;
 }
 
-.ficha.curso-inicial .operacion-vertical {
+.ficha.curso-inicial .operacion-columna {
   font-family: 'Andika', sans-serif;
   font-size: 22px;
 }
@@ -222,14 +222,24 @@ body {
 
 /* Cabecera */
 .cabecera {
-  display: flex;
-  justify-content: space-between;
   border: 2px solid var(--color-primario);
   border-radius: 10px;
   padding: 10px 15px;
   margin-bottom: 20px;
   background: #f8fafc;
   font-size: 14px;
+}
+
+.cabecera-centro {
+  margin: 0 0 6px;
+  font-weight: bold;
+  color: var(--color-primario);
+  font-size: 15px;
+}
+
+.cabecera-datos {
+  display: flex;
+  justify-content: space-between;
 }
 
 .cabecera p { margin: 0; }
@@ -265,16 +275,30 @@ body {
 }
 
 .enunciado {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 14px;
   margin: 0 0 10px;
 }
 
-.enunciado strong {
+.numero-ejercicio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   background: var(--color-primario);
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-right: 6px;
+  font-family: var(--fuente-titulo);
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.texto-enunciado {
+  padding-top: 4px;
 }
 
 /* ==========================================================================
@@ -328,6 +352,16 @@ body {
   opacity: 0.75;
 }
 
+/* Líneas en blanco donde el niño escribe los datos del problema
+   (NUNCA se rellenan ya resueltas: identificar los datos es el ejercicio). */
+.linea-datos {
+  border-bottom: 1.5px solid #333;
+  height: 22px;
+  margin-bottom: 6px;
+}
+
+.linea-datos:last-child { margin-bottom: 0; }
+
 /* En cursos iniciales los bloques se ven algo más grandes */
 .ficha.curso-inicial .bloque-enunciado,
 .ficha.curso-inicial .bloque-datos,
@@ -340,43 +374,74 @@ body {
 /* ==========================================================================
    5. OPERACIONES VERTICALES
    ========================================================================== */
+/* Diseño basado en líneas de texto monoespaciado alineadas a la derecha
+   (NO tabla de celdas por dígito). Al ser texto normal, el número se alinea
+   solo sea cual sea su longitud (1 cifra o 7), sin depender de que el
+   contenido genere el número exacto de celdas vacías para cuadrar columnas.
+   Sin recuadro alrededor: solo la línea de resultado (.linea-op) y el
+   hueco de respuesta (.resultado-hueco) son visibles. */
 
-.fila-operaciones {
+.grid-operaciones {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
   margin: 12px 0;
 }
 
-.operacion-vertical {
-  border-collapse: collapse;
+.distribucion-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin: 12px 0;
+}
+
+.columna-bloque .grid-operaciones {
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.operacion-columna {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 64px;
   font-family: 'Courier New', monospace;
   font-size: 20px;
 }
 
-.operacion-vertical td {
-  width: 26px;
-  height: 30px;
-  text-align: center;
-  padding: 2px;
+.operacion-fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 1px 4px;
 }
 
-.operacion-vertical .linea-resultado td {
-  border-top: 2px solid #000;
-}
-
-.operacion-vertical .signo {
+.op-signo {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: left;
   font-weight: bold;
   color: #333;
 }
 
-.hueco-cifra {
+.operacion-fila .num {
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 2px;
+}
+
+.linea-op {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 3px 4px 4px;
+}
+
+.resultado-hueco {
   display: inline-block;
-  width: 22px;
-  height: 24px;
-  border: 1.5px dashed #94a3b8;
-  border-radius: 3px;
-  vertical-align: middle;
+  flex: 1;
+  min-height: 22px;
+  border-bottom: 1.5px dashed #94a3b8;
 }
 
 /* ==========================================================================
@@ -525,12 +590,13 @@ ol.ejercicio-lista li {
 .ficha.modo-blanco-negro { color: black !important; }
 
 .ficha.modo-blanco-negro .cabecera,
+.ficha.modo-blanco-negro .cabecera-centro,
 .ficha.modo-blanco-negro .titulo-ficha {
   border-color: black !important;
   color: black !important;
 }
 
-.ficha.modo-blanco-negro .enunciado strong {
+.ficha.modo-blanco-negro .numero-ejercicio {
   background: black !important;
 }
 
@@ -572,6 +638,18 @@ ol.ejercicio-lista li {
     max-width: 100% !important;
     padding: 0 !important;
     min-height: unset !important;
+  }
+
+  /* Sin esto, la mayoría de navegadores NO imprimen background-color por
+     defecto (para ahorrar tinta), así que todos los colores del diseño
+     desaparecen al imprimir y todo sale en negro sobre blanco, tanto si el
+     "Modo Ahorro de Tinta" está activado como si no. Esto lo obliga a
+     respetar los colores reales del CSS (el modo B/N sigue funcionando
+     porque sus propias reglas, más específicas, tienen prioridad). */
+  .ficha, .ficha * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .ejercicio {
