@@ -2,7 +2,81 @@
    1. FUENTES Y VARIABLES GLOBALES
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Fredoka:wght@500;600;700&display=swap');
+/* ── Tipografías autoalojadas (05/08/2026) ────────────────────────────────
+   Antes se cargaban desde Google Fonts vía @import. Se ha pasado a alojarlas
+   en public/fonts/ para: (1) no depender de que Google mantenga esas fuentes
+   disponibles de cara a comercializar la app, (2) evitar el problema de RGPD
+   de cargar fuentes desde un CDN externo sin consentimiento (varios
+   tribunales alemanes han sancionado esto), y (3) que funcione sin conexión.
+   Todas son SIL Open Font License (OFL) — uso y redistribución comercial
+   libres; la licencia de cada una está en su carpeta (public/fonts/<fuente>/OFL.txt). */
+
+@font-face {
+  font-family: 'Andika';
+  src: url('fonts/andika/Andika-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Andika';
+  src: url('fonts/andika/Andika-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nunito';
+  src: url('fonts/nunito/Nunito-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('fonts/nunito/Nunito-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  src: url('fonts/quicksand/Quicksand-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('fonts/quicksand/Quicksand-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fredoka';
+  src: url('fonts/fredoka/Fredoka-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('fonts/fredoka/Fredoka-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('fonts/fredoka/Fredoka-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --color-primario:   #1d4ed8;
@@ -218,6 +292,45 @@ body {
 
 .ficha.curso-inicial .enunciado {
   font-size: 15px;
+}
+
+/* ── Tipografía por curso, más allá del tamaño (05/08/2026) ──────────────
+   "curso-inicial" (arriba) controla el TAMAÑO de letra para 1º-3º. Estas
+   reglas controlan la FAMILIA tipográfica y son independientes: se puede
+   ser "curso-inicial" (texto grande) y usar Nunito, Quicksand o Andika
+   según el curso exacto. Por ahora solo Matemáticas asigna estas clases
+   (el maquetado es código, no depende de que el modelo las recuerde) — se
+   extenderá al resto de asignaturas si esta prueba con el maestro va bien
+   (ver ROADMAP_FICHAS_ESCOLARES.md, Fase 3). Fredoka (títulos) no cambia. */
+.ficha.fuente-nunito,
+.ficha.fuente-nunito .operacion-columna {
+  font-family: 'Nunito', sans-serif;
+}
+
+/* 1º-2º piden además texto más grande que el resto de "curso-inicial"
+   (que ya da 15px/22px a 1º-3º) — se solicitó explícitamente más tamaño
+   para los más pequeños. Va después de las reglas .curso-inicial para
+   ganar en la cascada (misma especificidad, orden posterior). */
+.ficha.fuente-nunito.curso-inicial {
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.ficha.fuente-nunito.curso-inicial .operacion-columna {
+  font-size: 27px;
+}
+
+.ficha.fuente-nunito.curso-inicial .titulo-ficha {
+  font-size: 27px;
+}
+
+.ficha.fuente-nunito.curso-inicial .enunciado {
+  font-size: 17px;
+}
+
+.ficha.fuente-quicksand,
+.ficha.fuente-quicksand .operacion-columna {
+  font-family: 'Quicksand', sans-serif;
 }
 
 /* Cabecera */
@@ -442,6 +555,247 @@ body {
   flex: 1;
   min-height: 22px;
   border-bottom: 1.5px dashed #94a3b8;
+}
+
+/* ── Serie numérica ───────────────────────────────────────────────────── */
+.serie-numerica {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+}
+
+.serie-celda {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  height: 40px;
+  padding: 0 6px;
+  border: 2px solid #334155;
+  border-radius: 50%;
+}
+
+.serie-hueco {
+  border-style: dashed;
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.serie-flecha {
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+/* ── Comparar números ─────────────────────────────────────────────────── */
+.comparar-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 10px 0;
+}
+
+.comparar-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+}
+
+.comparar-hueco {
+  display: inline-block;
+  width: 34px;
+  height: 30px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 4px;
+}
+
+/* ── Tabla de conteo y frecuencia ─────────────────────────────────────── */
+.tabla-frecuencia-bloque {
+  margin: 10px 0;
+}
+
+.tabla-frecuencia-iconos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 2px;
+  max-width: 420px;
+  margin-bottom: 14px;
+}
+
+.tf-grupo-iconos {
+  display: contents;
+}
+
+.tabla-frecuencia {
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-frecuencia th,
+.tabla-frecuencia td {
+  border: 1px solid #cbd5e1;
+  padding: 6px 14px;
+  text-align: center;
+}
+
+.tabla-frecuencia th {
+  background: #eff6ff;
+}
+
+.tf-celda-icono svg {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.tf-hueco {
+  min-width: 60px;
+}
+
+.tf-total td {
+  font-weight: bold;
+}
+
+.tf-datos-lista {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.9;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin: 0 0 14px;
+  max-width: 540px;
+}
+
+.tf-celda-valor {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+/* ── Reloj analógico ──────────────────────────────────────────────────── */
+.reloj-bloque {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0;
+}
+
+.reloj-respuesta {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #475569;
+}
+
+/* ── Operaciones con decimales ───────────────────────────────────────────
+   Alineación por coma decimal (no por longitud total del texto): grid de
+   4 columnas (signo | entero | coma | decimal). Cada ".operacion-fila-decimal"
+   usa display:contents para que sus spans hijos entren directamente en el
+   grid del contenedor y las columnas se alineen entre filas. */
+.operacion-columna-decimal {
+  display: inline-grid;
+  grid-template-columns: 14px auto auto auto;
+  align-items: baseline;
+  row-gap: 1px;
+  column-gap: 1px;
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+}
+
+.operacion-fila-decimal {
+  display: contents;
+}
+
+.num-entero {
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 2px;
+}
+
+.num-coma {
+  text-align: center;
+  font-weight: bold;
+  width: 10px;
+}
+
+.num-decimal {
+  text-align: left;
+  white-space: nowrap;
+  letter-spacing: 2px;
+}
+
+.linea-op-decimal {
+  grid-column: 1 / -1;
+}
+
+.resultado-decimal {
+  grid-column: 2 / -1;
+}
+
+/* ── Multiplicación en columna ───────────────────────────────────────────
+   Igual que .operacion-columna pero con soporte de productos parciales
+   desplazados a la izquierda uno por cada cifra del multiplicador
+   (excepto cuando el multiplicador es de 1 cifra: una sola fila resultado). */
+.operacion-multiplicacion .producto-parcial .resultado-hueco {
+  min-height: 18px;
+}
+
+/* ── División en columna (caja clásica) ──────────────────────────────────
+   Dividendo a la izquierda, separador vertical, divisor arriba a la
+   derecha y hueco de cociente debajo. El área de trabajo (restas
+   parciales) queda en blanco para que el alumno la complete a mano. */
+.operacion-division {
+  display: inline-flex;
+  align-items: flex-start;
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  gap: 8px;
+}
+
+.operacion-division-bloque {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.division-dividendo {
+  border-right: 2px solid #000;
+  padding-right: 10px;
+  letter-spacing: 2px;
+}
+
+.division-caja {
+  min-width: 44px;
+  padding-left: 4px;
+}
+
+.division-divisor {
+  text-align: center;
+}
+
+.division-linea-caja {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 3px 0;
+}
+
+.division-cociente {
+  min-height: 22px;
+  border-bottom: 1.5px dashed #94a3b8;
+}
+
+.division-trabajo {
+  width: 100%;
+  margin: 10px 0 0;
+  min-height: 70px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
 /* ==========================================================================

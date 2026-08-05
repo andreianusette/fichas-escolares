@@ -87,7 +87,7 @@
           </select>
         </div>
 
-        <div class="campo">
+        <div class="campo" id="campoSumandos">
           <label for="sumandos">Sumandos por suma (Matemáticas):</label>
           <select id="sumandos" name="sumandos">
             <option value="2">2 (el estándar)</option>
@@ -117,7 +117,7 @@
           <input type="checkbox" id="toggleTinta" onchange="cambiarModoTinta()">
           <span>Modo Ahorro Tinta (B/N)</span>
         </label>
-        <button type="button" class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+        <button type="button" class="btn-imprimir" onclick="prepararImpresion(this)">🖨️ Imprimir / Guardar PDF</button>
       </div>
 
       <div id="contenedorFicha" class="area-impresion">
@@ -132,6 +132,40 @@
   </main>
 
   <script>
+    // El campo "sumandos" solo tiene sentido en Matemáticas (afecta a las
+    // sumas verticales) — en el resto de asignaturas no se usa para nada,
+    // así que se oculta para no confundir al docente.
+    function actualizarVisibilidadSumandos() {
+      const materia = document.getElementById('materia').value;
+      const campoSumandos = document.getElementById('campoSumandos');
+      campoSumandos.style.display = (materia === 'Matemáticas') ? '' : 'none';
+    }
+    document.getElementById('materia').addEventListener('change', actualizarVisibilidadSumandos);
+    actualizarVisibilidadSumandos();
+
+    // Espera a que las fuentes @font-face (Andika/Nunito/Quicksand/Fredoka)
+    // hayan terminado de cargar antes de imprimir. Sin esto, si se pulsa
+    // "Imprimir" justo después de generar la ficha, el navegador puede
+    // disparar la impresión mientras la fuente aún se está descargando desde
+    // public/fonts/ y usar la fuente de reserva del sistema en su lugar —
+    // el enunciado y los números pueden acabar en tipografías distintas
+    // aunque el CSS pida la misma para ambos.
+    async function prepararImpresion(boton) {
+      const textoOriginal = boton.textContent;
+      boton.disabled = true;
+      boton.textContent = '⏳ Preparando...';
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+      } catch (e) {
+        // Si el navegador no soporta document.fonts, no bloqueamos la impresión.
+      }
+      window.print();
+      boton.disabled = false;
+      boton.textContent = textoOriginal;
+    }
+
     function cambiarModoTinta() {
       const checkbox = document.getElementById('toggleTinta');
       const ficha = document.querySelector('.ficha');

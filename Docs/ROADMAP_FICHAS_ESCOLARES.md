@@ -1,6 +1,6 @@
 # ROADMAP DEL PROYECTO — Generador de Fichas Escolares
 
-*Última actualización: exploración de banco de imágenes propio para Fase 4 (04/08/2026)*
+*Última actualización: decisión de foco — validación curso/asignatura en este hilo, banco de ilustraciones en otro hilo/IA (05/08/2026)*
 
 Este documento existe para tener una **meta clara por fases**, en vez de ir
 tomando decisiones sueltas según van surgiendo dudas en la marcha. Antes de
@@ -95,7 +95,16 @@ Motivación completa en el historial de chat de esta sesión; resumen:
 ---
 
 ## FASE 3 — Validación real de Matemáticas, curso a curso
-**Estado: 🔄 En curso**
+**Estado: 🔄 En curso** · **Fase activa de este hilo (decisión 05/08/2026)**
+
+**Decisión de foco (05/08/2026)**: este hilo se centra en seguir validando
+cursos y asignaturas, uno detrás de otro (Fase 3 y, después, Fase 5). El
+banco de ilustraciones propio (Fase 4, Opción C) se trabajará en otro
+hilo/IA aparte, para no mezclar ambas líneas de trabajo. Esto es
+independiente de que las fichas deban ser visualmente atractivas: las
+mejoras visuales que no dependan del banco (CSS/SVG, Opción A) se pueden
+seguir pidiendo e implementando aquí mismo, curso a curso, según se vayan
+dando instrucciones.
 
 | Curso | Estado |
 |-------|--------|
@@ -103,17 +112,81 @@ Motivación completa en el historial de chat de esta sesión; resumen:
 | 2º | ⏳ Pendiente de revalidar con el motor JSON nuevo |
 | 3º | ⏳ Sin validar con ficha real |
 | 4º | ⏳ Sin validar con ficha real |
-| 5º | 🔄 En pruebas — se detectó y corrigió el bug del enunciado duplicado |
+| 5º | ✅ Validado (contenido/generativo) — 05/08/2026, ficha `Mates_5_C_007.pdf`. Visual pendiente de feedback del maestro (revisor distinto, ver nota de reparto de validación más abajo). |
 | 6º | ⏳ Sin validar con ficha real |
+
+**Reparto de validación (nota 05/08/2026)**: dos personas revisan cosas distintas
+y conviene no mezclarlas al reportar un bug — uno es prompt/código, el otro es
+CSS. El usuario de este hilo valida la **coherencia generativa** (números
+correctos, tipo de ejercicio adecuado al curso, sin duplicados, JSON bien
+formado). Un maestro que usa la app en el mismo ordenador local valida el
+**criterio pedagógico/visual** (si la ficha se ve y se siente como algo
+usable en su clase). Cuando llegue feedback del maestro sobre 5º, se añade
+aquí como una capa aparte, no como bloqueo de lo ya validado.
 
 **Metodología**: generar ficha real → PDF → inspección visual → reportar con
 curso + tipo de ejercicio + qué se esperaba vs qué salió → corregir →
 revalidar. No dar una fase por cerrada sin al menos una ficha real por curso.
 
+**05/08/2026 — bloqueante resuelto antes de validar 5º**: el JSON de
+`operacion_vertical` solo admitía `+`/`-`, sin soporte para multiplicación ni
+división en columna (pese a que el rango numérico de 4º-6º ya las menciona),
+y los decimales se alineaban por longitud de texto en vez de por la coma.
+Se añadieron los tipos `multiplicacion_vertical` y `division_vertical`
+(disponibles desde 4º) y una variante de `operacion_vertical` con alineación
+real por coma decimal. Probado con una ficha simulada (sin gastar llamada a
+la API) — ver clases nuevas en `REFERENCIA_CLASES_HTML_FICHAS.md`, secciones
+8bis-8quater. **Pendiente**: validar con una ficha real generada por Claude
+(no solo con datos simulados a mano).
+
+**05/08/2026 (misma sesión) — primera ficha real de 5º (`Mates_5_C_005.pdf`),
+dos problemas encontrados y corregidos**:
+1. *Generativo*: los tipos nuevos exigían números enteros, pero el tema real
+   (multiplicar/dividir decimales, currículo estándar de 5º-6º) no encajaba
+   ahí — Claude caía de vuelta a `operacion_vertical` con un signo que ese
+   tipo no reconoce, y el código lo convertía en `+` silenciosamente. Todas
+   las cuentas de la ficha salieron como sumas.
+2. *Visual*: `multiplicacion_vertical`/`division_vertical` solo admitían UNA
+   operación por ejercicio (a diferencia de `operacion_vertical`), así que
+   Claude generó 10 ejercicios de una sola cuenta cada uno → mucho espacio en
+   blanco, 2 páginas para contenido que cabe en menos de una.
+
+Arreglo: ambos tipos ahora admiten decimales y un array `"operaciones"`
+igual que `operacion_vertical` (se pueden agrupar 2-4 por ejercicio). Se
+añadió también una regla general en el prompt pidiendo agrupar operaciones
+del mismo tipo bajo un ejercicio en vez de crear uno por cada cuenta suelta.
+Probado con ficha simulada — mismo contenido en 1 página en vez de 2.
+**Pendiente**: confirmar con una ficha real nueva generada por Claude.
+
+**05/08/2026 (misma sesión) — ampliación de tipos de ejercicio (decisión
+explícita: seguir ampliando en Matemáticas y, más adelante, en el resto de
+asignaturas, priorizando siempre que el maestro pueda generar la ficha de la
+semana en pocos minutos — no añadir tipos que compliquen el uso)**:
+añadidos `serie_numerica`, `comparar_numeros`, `tabla_frecuencia` y
+`reloj_analogico` (dos modos: leer la hora / dibujar las agujas). Probados
+con ficha simulada — ver `REFERENCIA_CLASES_HTML_FICHAS.md`, secciones
+8quinquies-8octies. **Pendientes para la siguiente tanda** (no bloquean lo ya
+hecho): unir con flechas, patrón de figuras/colores, medir con regla,
+clasificar cuerpos geométricos con etiquetas.
+**Pendiente de validar**: ficha real con estos 4 tipos.
+
+**05/08/2026 (misma sesión) — `tabla_frecuencia` en 5º salía con iconos
+infantiles** (`Mates_5_C_010.pdf`, ejercicio 8): contar estrellitas/flores
+es currículo de 1º-2º, no de 5º, aunque las tablas de frecuencias sí son
+currículo real de 5º-6º. Arreglo: en 5º-6º la tabla ahora se genera a partir
+de una lista de datos en texto (`"registros": [...]`, ej. una encuesta o
+resultados de un dado) sin ningún icono; el sistema deduce las categorías de
+los propios datos. 1º-4º mantienen la versión con iconos. Probado con ficha
+simulada de ambas variantes — ver `REFERENCIA_CLASES_HTML_FICHAS.md`,
+sección 8septies. **Pendiente**: confirmar con ficha real de 5º-6º.
+
 ---
 
 ## FASE 4 — Diferenciación visual por asignatura y curso
-**Estado: 💭 Abierta — sin decidir alcance ni cuándo**
+**Estado: 💭 Abierta — sin decidir alcance ni cuándo** · **Banco de
+ilustraciones (Opción C) se trabaja en otro hilo/IA aparte (ver decisión
+de foco en Fase 3); las mejoras de Opción A (CSS/SVG, sin banco) siguen
+abiertas a instrucciones en este hilo.**
 
 Pregunta planteada: hoy solo hay una variable de diferenciación visual
 (`curso-inicial`, 1º-3º vs el resto — tipografía). No hay ninguna diferencia

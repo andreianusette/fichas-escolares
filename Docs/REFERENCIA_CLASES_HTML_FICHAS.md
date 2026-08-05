@@ -163,7 +163,182 @@ horizontal de resultado (`.linea-op`) y el hueco de resultado
 
 ---
 
-## 9. Listas de ejercicios
+## 8bis. Operaciones con decimales (alineadas por la coma)
+
+```html
+<div class="operacion-columna-decimal">
+  <div class="operacion-fila-decimal">
+    <span class="op-signo"></span><span class="num-entero">12</span><span class="num-coma">,</span><span class="num-decimal">5</span>
+  </div>
+  <div class="operacion-fila-decimal">
+    <span class="op-signo">+</span><span class="num-entero">3</span><span class="num-coma">,</span><span class="num-decimal">75</span>
+  </div>
+  <hr class="linea-op linea-op-decimal">
+  <div class="operacion-fila-decimal">
+    <span class="op-signo"></span><span class="resultado-hueco resultado-decimal"></span>
+  </div>
+</div>
+```
+Se usa en vez de `.operacion-columna` cuando algún número de la operación tiene
+decimales. El contenedor es un grid de 4 columnas (signo / entero / coma /
+decimal); cada `.operacion-fila-decimal` usa `display:contents` para que sus
+`<span>` se alineen por columna con las demás filas — así la coma decimal
+queda siempre en la misma posición vertical, en vez de alinear por longitud
+de texto (que rompía la alineación real cuando los números tenían distinta
+cantidad de decimales). `renderer-matematicas.js` decide automáticamente
+cuándo usar esta variante; el motor de IA solo entrega números JSON normales
+(`12.5`) y el sistema los convierte a coma española y los divide en las
+columnas — nunca hay que pedirle a Claude que escriba la coma él mismo.
+
+---
+
+## 8ter. Multiplicación en columna
+
+```html
+<div class="grid-operaciones">
+  <div class="operacion-columna operacion-multiplicacion">
+    <div class="operacion-fila"><span class="op-signo"></span><span class="num">345</span></div>
+    <div class="operacion-fila"><span class="op-signo">×</span><span class="num">27</span></div>
+    <hr class="linea-op">
+    <div class="operacion-fila producto-parcial"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
+    <div class="operacion-fila producto-parcial" style="margin-right:1ch;"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
+    <hr class="linea-op">
+    <div class="operacion-fila"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
+  </div>
+  <!-- varias .operacion-columna más, si el ejercicio agrupa varias multiplicaciones -->
+</div>
+```
+Multiplicando arriba, multiplicador abajo con signo `×`. Admite decimales en
+cualquiera de los dos (se muestran con coma; el conteo de cifras del
+multiplicador para las filas de producto parcial ignora la coma). Si el
+multiplicador tiene una sola cifra, solo hay una fila de resultado (sin
+productos parciales). Si tiene 2+ cifras, hay una fila `.producto-parcial`
+en blanco por cada cifra, desplazada `Nch` a la derecha (vía `margin-right`
+inline) según su posición — igual que el algoritmo clásico en papel —
+seguida de una línea de suma y el resultado final. El sistema nunca calcula
+ni imprime ningún número de estas filas: son huecos para que el alumno los
+rellene. Igual que en sumas/restas, el JSON entrega un array `"operaciones"`
+para poder agrupar varias multiplicaciones bajo un mismo ejercicio (se
+renderizan lado a lado dentro de `.grid-operaciones`, que ya envuelve con
+salto de línea automático).
+
+---
+
+## 8quater. División en columna (caja clásica)
+
+```html
+<div class="grid-operaciones">
+  <div class="operacion-division-bloque">
+    <div class="operacion-division">
+      <div class="division-dividendo">864</div>
+      <div class="division-caja">
+        <div class="division-divisor">4</div>
+        <hr class="division-linea-caja">
+        <div class="division-cociente"></div>
+      </div>
+    </div>
+    <div class="division-trabajo"></div>
+  </div>
+  <!-- varios .operacion-division-bloque más, si el ejercicio agrupa varias divisiones -->
+</div>
+```
+Dividendo a la izquierda con borde vertical separador, divisor arriba a la
+derecha con línea horizontal debajo y hueco de cociente. Admite decimales en
+dividendo y/o divisor (se muestran con coma). `.operacion-division-bloque`
+envuelve la caja y `.division-trabajo` (área en blanco para las restas
+parciales, debajo de todo) para que ambas compartan el mismo ancho y se
+puedan agrupar varias divisiones lado a lado dentro de `.grid-operaciones`,
+igual que en multiplicación. El sistema no dibuja los pasos intermedios del
+algoritmo (serían el resultado, no la estructura).
+
+---
+
+## 8quinquies. Serie numérica
+
+```html
+<div class="serie-numerica">
+  <span class="serie-celda">2</span><span class="serie-flecha">→</span>
+  <span class="serie-celda serie-hueco"></span><span class="serie-flecha">→</span>
+  <span class="serie-celda">6</span>
+</div>
+```
+Cadena de burbujas conectadas por flechas. `.serie-hueco` (borde discontinuo,
+fondo gris claro) marca las posiciones que el alumno debe rellenar.
+
+---
+
+## 8sexies. Comparar números
+
+```html
+<div class="comparar-numeros">
+  <div class="comparar-fila">
+    <span class="comparar-num">45</span>
+    <span class="comparar-hueco"></span>
+    <span class="comparar-num">78</span>
+  </div>
+</div>
+```
+Una fila por par, con una casilla en blanco (`.comparar-hueco`) en medio para
+que el alumno escriba `<`, `>` o `=`.
+
+---
+
+## 8septies. Tabla de conteo y frecuencia
+
+Dos variantes según el curso — **1º-4º** (iconos para contar) y **5º-6º**
+(datos en texto, sin dibujos infantiles; currículo real de estadística).
+
+```html
+<!-- 1º-4º -->
+<div class="tabla-frecuencia-bloque">
+  <div class="tabla-frecuencia-iconos">…iconos de cada categoría, agrupados…</div>
+  <table class="tabla-frecuencia">
+    <thead><tr><th>Figura</th><th>Conteo</th><th>Frecuencia</th></tr></thead>
+    <tbody>
+      <tr><td class="tf-celda-icono">…icono…</td><td class="tf-hueco"></td><td class="tf-hueco"></td></tr>
+      <tr class="tf-total"><td colspan="2">Total</td><td class="tf-hueco"></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 5º-6º -->
+<div class="tabla-frecuencia-bloque">
+  <p class="tf-datos-lista">7, 8, 7, 9, 6, 7, 8, 9, 9, 6…</p>
+  <table class="tabla-frecuencia">
+    <thead><tr><th>Valor</th><th>Conteo</th><th>Frecuencia</th></tr></thead>
+    <tbody>
+      <tr><td class="tf-celda-valor">6</td><td class="tf-hueco"></td><td class="tf-hueco"></td></tr>
+      <tr class="tf-total"><td colspan="2">Total</td><td class="tf-hueco"></td></tr>
+    </tbody>
+  </table>
+</div>
+```
+En 1º-4º los iconos de cada categoría se muestran agrupados arriba (el
+sistema no puede barajar píxeles para simular el "revuelto" de una ficha
+editorial real). En 5º-6º se muestra la lista de datos en bruto tal cual
+viene del JSON (`.tf-datos-lista`, caja con fondo gris) y las filas de la
+tabla se generan a partir de los valores distintos que el propio sistema
+detecta en esa lista — nunca inventa categorías, y nunca dibuja iconos ahí.
+En ambos casos la tabla lleva las columnas de conteo/frecuencia y el total
+completamente en blanco.
+
+---
+
+## 8octies. Reloj analógico
+
+```html
+<div class="reloj-bloque">
+  <svg width="110" height="110" viewBox="0 0 110 110">…esfera con números y, en modo "leer", agujas…</svg>
+  <span class="reloj-respuesta">___ : ___</span>
+</div>
+```
+Dos modos: **"leer"** dibuja las agujas en la hora indicada y deja un hueco
+para escribir la hora; **"dibujar"** deja la esfera vacía (solo números) para
+que el alumno dibuje las agujas él mismo — nunca se imprime la respuesta.
+
+---
+
+
 
 ```html
 <ol class="ejercicio-lista">
