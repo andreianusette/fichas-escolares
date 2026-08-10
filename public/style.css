@@ -1383,4 +1383,15 @@ ol.ejercicio-lista li {
   [contenteditable="true"] {
     outline: none !important;
   }
+
+  /* Fix 10/08/2026: el borde punteado de .ejercicio:hover y el tirador de
+     resize (ambos pensados solo para pantalla en modo edición) podían
+     colarse en la impresión si el ratón seguía posicionado sobre el
+     ejercicio al imprimir (:hover activo). Se resetean explícitamente
+     aquí, sin depender de que deje de aplicarse el :hover por sí solo. */
+  [contenteditable="true"] .ejercicio {
+    resize: none !important;
+    overflow: hidden !important;
+    outline: none !important;
+  }
 }
