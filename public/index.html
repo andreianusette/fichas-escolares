@@ -220,6 +220,70 @@
       bocadillo.focus();
     }
 
+    // ── Imagen propia del docente (10/08/2026) ──────────────────────────
+    // Mismo patrón que añadirBotonesPista: un botón "🖼️" por ejercicio,
+    // solo visible en modo edición al pasar el ratón, que abre el selector
+    // de archivos del sistema operativo. La imagen se lee en el propio
+    // navegador (FileReader → base64) y se inserta como <img>, sin pasar
+    // por el servidor ni guardarse en ningún sitio — coherente con que la
+    // ficha no se persiste. Se pierde si se recarga la página sin haber
+    // impreso/exportado antes, igual que el resto de ediciones en vivo.
+    const TAMANO_MAX_IMAGEN_MB = 4;
+
+    function añadirBotonesImagen(contenedor) {
+      contenedor.querySelectorAll('.ejercicio').forEach(ejercicio => {
+        if (ejercicio.querySelector('.imagen-personalizada') || ejercicio.querySelector('.btn-add-imagen')) return;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn-add-imagen';
+        boton.setAttribute('contenteditable', 'false');
+        boton.title = 'Añadir imagen propia';
+        boton.textContent = '🖼️';
+        boton.addEventListener('click', () => activarSelectorImagen(ejercicio, boton));
+        ejercicio.appendChild(boton);
+      });
+    }
+
+    function activarSelectorImagen(ejercicio, boton) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.style.display = 'none';
+
+      input.addEventListener('change', () => {
+        const archivo = input.files && input.files[0];
+        input.remove();
+        if (!archivo) return;
+
+        if (!archivo.type.startsWith('image/')) {
+          alert('Solo se pueden insertar archivos de imagen (JPG, PNG, etc.).');
+          return;
+        }
+        if (archivo.size > TAMANO_MAX_IMAGEN_MB * 1024 * 1024) {
+          alert(`Esa imagen pesa demasiado (máximo ${TAMANO_MAX_IMAGEN_MB} MB). Prueba con una foto más ligera o recortada.`);
+          return;
+        }
+
+        const lector = new FileReader();
+        lector.onload = () => insertarImagenPersonalizada(ejercicio, boton, lector.result);
+        lector.onerror = () => alert('No se ha podido leer la imagen. Inténtalo de nuevo.');
+        lector.readAsDataURL(archivo);
+      });
+
+      document.body.appendChild(input);
+      input.click();
+    }
+
+    function insertarImagenPersonalizada(ejercicio, boton, dataUrl) {
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.className = 'imagen-personalizada';
+      img.setAttribute('contenteditable', 'false');
+      img.alt = 'Imagen añadida por el docente';
+      ejercicio.appendChild(img);
+      boton.remove();
+    }
+
     document.getElementById('formFicha').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -254,6 +318,7 @@
           contenedor.setAttribute('contenteditable', 'true');
           protegerElementosEstructurales(contenedor);
           añadirBotonesPista(contenedor);
+          añadirBotonesImagen(contenedor);
           cambiarModoTinta();
         } else {
           contenedor.innerHTML = `<p class="error">⚠️ ${resultado.error || 'Hubo un problema al generar la ficha.'}</p>`;
