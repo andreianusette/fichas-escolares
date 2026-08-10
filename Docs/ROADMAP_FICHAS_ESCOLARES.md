@@ -245,6 +245,46 @@ técnica con ese piloto, y decidir con eso delante si se escala al resto.
 **Próximo paso**: decidir si se persigue la Opción C (y con qué piloto) o
 si de momento se queda en Opción A, antes de tocar código aquí.
 
+### Opción D — Imagen propia subida por el docente (10/08/2026)
+**Estado: 🔄 En curso — implementación iniciada en esta sesión**
+
+Cuarta opción, independiente de la A/B/C y compatible con ellas: el docente
+sube su propia imagen (foto de libro, dibujo escaneado, captura de pizarra
+digital) desde su ordenador y la inserta directamente en el hueco que deja
+al redimensionar un `.ejercicio` (ver Fase 3, mejora del 07/08/2026 —
+`resize: both` + botón de pista).
+
+- No depende del banco de ilustraciones (Opción C), que se desarrolla en
+  otro hilo aparte y aún no está listo para conectar — esta opción no
+  bloquea ni espera a ese trabajo.
+- **Sin backend ni persistencia**: la imagen se lee en el propio navegador
+  del docente (`FileReader` → `base64`) y se inserta como `<img>` dentro
+  del DOM. Coherente con la decisión ya tomada de que cada ficha se genera
+  al vuelo sin guardar nada en servidor (sección 9 del contexto original).
+  Igual que el resto de ediciones en vivo, se pierde si se recarga la
+  página sin haber impreso/exportado antes.
+- Mismo patrón técnico que el botón "+ Añadir pista" ya existente: un botón
+  por ejercicio, solo visible en modo edición y al pasar el ratón, oculto
+  en impresión.
+- Límite de tamaño de archivo (para no disparar el peso del HTML en
+  memoria) y validación de que el archivo sea realmente una imagen.
+- Valorado como diferencial competitivo real: la mayoría de generadores de
+  fichas con IA equivalentes producen una imagen plana no editable: aquí el
+  docente controla dónde y qué imagen añade, sobre una ficha que sigue
+  siendo pedagógicamente generada y editable.
+
+- [x] Botón "🖼️ Añadir imagen" por ejercicio (mismo patrón que el de pista).
+- [x] Selector de archivo, lectura a base64, inserción como `<img>`.
+- [x] Validación de tipo (`image/*`) y tamaño máximo.
+- [x] Oculto en impresión; imagen protegida de edición de texto accidental
+      (`contenteditable="false"` en el `<img>`, igual que SVGs y otras
+      estructuras clave).
+- [ ] Pendiente de validar con una prueba real (subir una imagen, imprimir
+      a PDF, comprobar que se ve bien en A4 y no rompe el maquetado).
+- [ ] Pendiente de decidir si se comprime/redimensiona la imagen con
+      `<canvas>` antes de insertarla (mejora de rendimiento, no bloqueante
+      para la primera versión).
+
 ---
 
 ## FASE 5 — Migrar el resto de asignaturas al patrón JSON + renderizador
