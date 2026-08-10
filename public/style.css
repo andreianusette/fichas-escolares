@@ -475,6 +475,56 @@ body {
   .btn-add-pista { display: none !important; }
 }
 
+/* ── Botón "🖼️ Añadir imagen" (10/08/2026) ──────────────────────────────
+   Mismo patrón que .btn-add-pista: solo visible en pantalla, al pasar el
+   ratón por un ejercicio en modo edición. Se coloca a la izquierda del
+   botón de pista (right: 24px en vez de -12px) para que no se solapen
+   cuando ambos están disponibles a la vez. */
+.btn-add-imagen {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: 24px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--calido-azul);
+  background: white;
+  color: var(--calido-azul);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+}
+
+.btn-add-imagen:hover {
+  background: var(--calido-azul);
+  color: white;
+}
+
+[contenteditable="true"] .ejercicio:hover .btn-add-imagen {
+  display: flex;
+}
+
+@media print {
+  .btn-add-imagen { display: none !important; }
+}
+
+/* Imagen insertada por el docente dentro de un ejercicio. max-width:100%
+   evita que una foto grande se salga del ancho del ejercicio o de la
+   página A4 al imprimir; height:auto mantiene su proporción original. */
+.imagen-personalizada {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: var(--radio-suave);
+  border: 1px solid #ddd;
+}
+
 .enunciado {
   display: flex;
   align-items: flex-start;
