@@ -152,10 +152,17 @@ function renderMultiplicacionVertical(datos) {
 }
 
 // Una división en columna clásica (caja): dividendo a la izquierda, divisor
-// arriba a la derecha y hueco de cociente debajo. El área de trabajo (restas
-// parciales) se deja en blanco para que el alumno la rellene. Admite
-// decimales en dividendo y/o divisor (se muestran con coma); el sistema no
-// calcula el resultado, solo dibuja la estructura.
+// arriba a la derecha y hueco de cociente debajo. El sistema no calcula el
+// resultado, solo dibuja la estructura. NO se dibuja ninguna caja para las
+// restas parciales (07/08/2026: eliminada por feedback — quedaba "agresiva"
+// para el alumno); el niño hace ese trabajo aparte, en su cuaderno o en el
+// espacio libre alrededor. Admite decimales en dividendo y/o divisor.
+// 07/08/2026 (3): rediseño de la caja — antes el "ángulo recto" se simulaba
+// con DOS trazos independientes (border-right del dividendo + <hr> bajo el
+// divisor), que nunca encajaban limpiamente en la esquina (quedaba como dos
+// segmentos sueltos, no un ángulo continuo — feedback con captura). Ahora
+// ".division-angulo" es UN SOLO elemento con border-left + border-bottom:
+// el navegador dibuja la esquina como una sola pieza, sin costura visible.
 function renderDivisionColumna(op) {
   const numeros = Array.isArray(op.numeros) ? op.numeros : [];
   if (numeros.length < 2) return '';
@@ -166,13 +173,13 @@ function renderDivisionColumna(op) {
   return `<div class="operacion-division-bloque">
     <div class="operacion-division">
       <div class="division-dividendo">${escapeHtml(dividendo)}</div>
-      <div class="division-caja">
-        <div class="division-divisor">${escapeHtml(divisor)}</div>
-        <hr class="division-linea-caja">
+      <div class="division-columna-derecha">
+        <div class="division-angulo">
+          <div class="division-divisor">${escapeHtml(divisor)}</div>
+        </div>
         <div class="division-cociente"></div>
       </div>
     </div>
-    <div class="division-trabajo"></div>
   </div>`;
 }
 
@@ -266,7 +273,14 @@ function renderProblema(datos, curso) {
     </div>`;
   }
 
-  return `<p>${texto}</p><div class="espacio-respuesta"></div>`;
+  // 4º-6º: formato libre, sin bloques guiados. Antes se dibujaba un recuadro
+  // ".espacio-respuesta" bajo el enunciado — feedback (07/08/2026): resultaba
+  // "agresivo"/tipo examen para ese tramo de edad. Ahora es solo espacio en
+  // blanco reservado (".espacio-libre", sin borde ni fondo): el enunciado
+  // más el hueco ya bastan, y como ".ejercicio" es redimensionable a mano
+  // (ver style.css, sección de edición), el propio docente puede agrandar
+  // ese hueco si el problema necesita más sitio para resolverse.
+  return `<p>${texto}</p><div class="espacio-libre"></div>`;
 }
 
 function renderTipoTest(datos) {
@@ -428,6 +442,159 @@ function renderRelojAnalogico(datos) {
   return `<div class="reloj-bloque">${svg}${respuesta}</div>`;
 }
 
+// ── Gráfico de barras ────────────────────────────────────────────────────
+// Dos modos, igual de espíritu que tabla_frecuencia (icónico vs numérico):
+// "leer": las barras ya están dibujadas a su altura real (proporcional al
+//   valor) — el ejercicio consiste en LEER el gráfico, no en construirlo.
+// "rellenar": las columnas se dejan en blanco (solo el contorno punteado) y
+//   se imprime la lista de datos aparte, para que el alumno dibuje él mismo
+//   cada barra a la altura correspondiente.
+// La escala (eje Y) se calcula sola si no se indica "escalaMax": se redondea
+// el valor máximo hacia arriba al múltiplo de 5 más cercano, con un mínimo
+// de 5, para que las líneas de cuadrícula caigan en números "redondos".
+// Parseo numérico defensivo: Claude en teoría siempre debe entregar "valor"
+// como número JSON puro, pero si alguna vez devuelve texto con símbolo "%",
+// espacios o coma decimal (ej. "35%", "12,5"), esto evita que se lea como
+// NaN → 0 silenciosamente (bug real detectado 07/08/2026: un gráfico de
+// quesitos con "valor": "0%" en todas las categorías se quedó sin dibujar
+// ninguna porción, porque Number("0%") es NaN y el fallback era 0 para
+// todas). Nunca sustituye a un prompt claro, pero es la última línea de
+// defensa antes de que el gráfico simplemente desaparezca sin explicación.
+function numeroDesdeJSON(valor) {
+  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
+  if (typeof valor === 'string') {
+    const limpio = valor.replace(',', '.').replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(limpio);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+function renderGraficoBarras(datos) {
+  const categorias = Array.isArray(datos.categorias) ? datos.categorias : [];
+  if (categorias.length === 0) return '';
+
+  const modoRellenar = datos.modo === 'rellenar';
+  const valores = categorias.map(c => numeroDesdeJSON(c.valor));
+  const valorMaximo = Math.max(...valores, 1);
+
+  let escalaMax = numeroDesdeJSON(datos.escalaMax);
+  if (escalaMax < valorMaximo) escalaMax = Math.max(5, Math.ceil(valorMaximo / 5) * 5);
+
+  const numLineas = 5;
+  const pasoValor = escalaMax / numLineas;
+
+  const anchoBarra = 58;
+  const espacioBarra = 32;
+  const altoGrafico = 210;
+  const margenIzq = 44;
+  const margenSup = 18;
+  const margenInfEtiquetas = 28;
+
+  const anchoTotal = margenIzq + espacioBarra + categorias.length * (anchoBarra + espacioBarra);
+  const altoTotal = margenSup + altoGrafico + margenInfEtiquetas;
+  const yEjeX = margenSup + altoGrafico;
+
+  let lineasGrid = '';
+  let etiquetasEje = '';
+  for (let i = 0; i <= numLineas; i++) {
+    const y = margenSup + altoGrafico - (i / numLineas) * altoGrafico;
+    const valorEtiqueta = Math.round(pasoValor * i);
+    if (i > 0) {
+      lineasGrid += `<line x1="${margenIzq}" y1="${y.toFixed(1)}" x2="${anchoTotal - 8}" y2="${y.toFixed(1)}" class="grafico-linea-guia"/>`;
+    }
+    etiquetasEje += `<text x="${margenIzq - 8}" y="${(y + 3.5).toFixed(1)}" font-size="12" text-anchor="end" font-family="Arial" fill="#64748b">${valorEtiqueta}</text>`;
+  }
+
+  let barras = '';
+  let etiquetasX = '';
+  let listaDatos = '';
+  categorias.forEach((c, i) => {
+    const x = margenIzq + espacioBarra + i * (anchoBarra + espacioBarra);
+    const valor = numeroDesdeJSON(c.valor);
+
+    if (modoRellenar) {
+      barras += `<rect x="${x}" y="${margenSup}" width="${anchoBarra}" height="${altoGrafico}" class="grafico-barra-hueco" rx="3"/>`;
+    } else {
+      const alturaBarra = escalaMax > 0 ? (valor / escalaMax) * altoGrafico : 0;
+      const yBarra = yEjeX - alturaBarra;
+      barras += `<rect x="${x}" y="${yBarra.toFixed(1)}" width="${anchoBarra}" height="${alturaBarra.toFixed(1)}" class="grafico-barra" rx="3"/>`;
+    }
+
+    etiquetasX += `<text x="${x + anchoBarra / 2}" y="${yEjeX + 18}" font-size="13" text-anchor="middle" font-family="Arial" class="grafico-etiqueta-x">${escapeHtml(c.etiqueta)}</text>`;
+  });
+
+  if (modoRellenar) {
+    listaDatos = `<p class="grafico-datos-lista">${categorias.map(c => `${escapeHtml(c.etiqueta)}: ${escapeHtml(c.valor)}`).join(' · ')}</p>`;
+  }
+
+  const ejeX = `<line x1="${margenIzq}" y1="${yEjeX}" x2="${anchoTotal - 8}" y2="${yEjeX}" class="grafico-eje"/>`;
+  const ejeY = `<line x1="${margenIzq}" y1="${margenSup}" x2="${margenIzq}" y2="${yEjeX}" class="grafico-eje"/>`;
+
+  const svg = `<svg width="${anchoTotal}" height="${altoTotal}" viewBox="0 0 ${anchoTotal} ${altoTotal}">
+    ${lineasGrid}${ejeY}${ejeX}${etiquetasEje}${barras}${etiquetasX}
+  </svg>`;
+
+  return `<div class="grafico-barras-bloque">${listaDatos}${svg}</div>`;
+}
+
+// ── Gráfico de quesitos (circular) ──────────────────────────────────────
+// Currículo real de 5º-6º, ligado a fracciones/porcentajes — Claude entrega
+// valores brutos (no hace falta que sumen 100 ni que ya sean porcentajes) y
+// el sistema calcula el ángulo y el porcentaje exacto de cada porción. El
+// porcentaje se imprime dentro de cada porción y en la leyenda porque leer
+// un ángulo a ojo no es fiable — el ejercicio pedagógico es interpretar el
+// gráfico, no adivinar proporciones.
+function polarACartesiano(cx, cy, r, anguloGrados) {
+  const anguloRad = (anguloGrados - 90) * (Math.PI / 180);
+  return { x: cx + r * Math.cos(anguloRad), y: cy + r * Math.sin(anguloRad) };
+}
+
+function trazarPorcionArco(cx, cy, r, anguloInicio, anguloFin) {
+  const inicio = polarACartesiano(cx, cy, r, anguloFin);
+  const fin = polarACartesiano(cx, cy, r, anguloInicio);
+  const arcoLargo = anguloFin - anguloInicio <= 180 ? '0' : '1';
+  return `M ${cx} ${cy} L ${inicio.x.toFixed(2)} ${inicio.y.toFixed(2)} A ${r} ${r} 0 ${arcoLargo} 0 ${fin.x.toFixed(2)} ${fin.y.toFixed(2)} Z`;
+}
+
+function renderGraficoQuesitos(datos) {
+  const categorias = Array.isArray(datos.categorias) ? datos.categorias : [];
+  if (categorias.length === 0) return '';
+
+  const total = categorias.reduce((suma, c) => suma + numeroDesdeJSON(c.valor), 0) || 1;
+  const cx = 120, cy = 120, r = 105;
+
+  let anguloActual = 0;
+  let porciones = '';
+  let leyenda = '';
+
+  categorias.forEach((c, i) => {
+    const valor = numeroDesdeJSON(c.valor);
+    const angulo = (valor / total) * 360;
+    const porcentaje = Math.round((valor / total) * 100);
+    const claseColor = `quesito-color-${(i % 6) + 1}`;
+
+    if (angulo > 0) {
+      const path = trazarPorcionArco(cx, cy, r, anguloActual, anguloActual + angulo);
+      porciones += `<path d="${path}" class="quesito-porcion ${claseColor}"/>`;
+
+      // Etiqueta de % dentro de la porción, solo si es lo bastante grande
+      // para que quepa legible (evita texto amontonado en porciones diminutas).
+      if (angulo > 18) {
+        const medio = polarACartesiano(cx, cy, r * 0.62, anguloActual + angulo / 2);
+        porciones += `<text x="${medio.x.toFixed(1)}" y="${medio.y.toFixed(1)}" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle" class="quesito-texto-porcentaje">${porcentaje}%</text>`;
+      }
+    }
+    anguloActual += angulo;
+
+    leyenda += `<div class="quesito-leyenda-item"><span class="quesito-leyenda-color ${claseColor}"></span>${escapeHtml(c.etiqueta)} — ${porcentaje}%</div>`;
+  });
+
+  const svg = `<svg width="240" height="240" viewBox="0 0 240 240">${porciones}</svg>`;
+
+  return `<div class="grafico-quesitos-bloque">${svg}<div class="quesito-leyenda">${leyenda}</div></div>`;
+}
+
 const RENDERERS_POR_TIPO = {
   operacion_vertical: (datos) => renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
@@ -440,7 +607,9 @@ const RENDERERS_POR_TIPO = {
   serie_numerica:       (datos) => renderSerieNumerica(datos),
   comparar_numeros:     (datos) => renderCompararNumeros(datos),
   tabla_frecuencia:     (datos, curso) => renderTablaFrecuencia(datos, curso),
-  reloj_analogico:      (datos) => renderRelojAnalogico(datos)
+  reloj_analogico:      (datos) => renderRelojAnalogico(datos),
+  grafico_barras:       (datos) => renderGraficoBarras(datos),
+  grafico_quesitos:     (datos) => renderGraficoQuesitos(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {

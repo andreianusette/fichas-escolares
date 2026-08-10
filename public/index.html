@@ -183,6 +183,43 @@
       });
     }
 
+    // ── Bocadillo de pista por ejercicio (07/08/2026) ───────────────────
+    // Añade un botón "+" a cada .ejercicio (solo visible al pasar el ratón,
+    // ver style.css) que inserta un .bocadillo-pista editable dentro del
+    // hueco que el docente haya dejado libre al redimensionar el ejercicio
+    // (resize: both, ver style.css). Un ejercicio solo ofrece el botón si
+    // todavía no tiene bocadillo — evita apilar varios sin querer.
+    function añadirBotonesPista(contenedor) {
+      contenedor.querySelectorAll('.ejercicio').forEach(ejercicio => {
+        if (ejercicio.querySelector('.bocadillo-pista') || ejercicio.querySelector('.btn-add-pista')) return;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn-add-pista';
+        boton.setAttribute('contenteditable', 'false');
+        boton.title = 'Añadir bocadillo de pista';
+        boton.textContent = '+';
+        boton.addEventListener('click', () => insertarBocadilloPista(ejercicio, boton));
+        ejercicio.appendChild(boton);
+      });
+    }
+
+    function insertarBocadilloPista(ejercicio, boton) {
+      const bocadillo = document.createElement('div');
+      bocadillo.className = 'bocadillo-pista';
+      bocadillo.setAttribute('contenteditable', 'true');
+      bocadillo.textContent = 'Recuerda: escribe aquí la pista para el alumno.';
+      ejercicio.appendChild(bocadillo);
+      boton.remove();
+      // Selecciona el texto de ejemplo para que el docente lo sobrescriba
+      // directamente al escribir, sin tener que borrarlo a mano primero.
+      const rango = document.createRange();
+      rango.selectNodeContents(bocadillo);
+      const seleccion = window.getSelection();
+      seleccion.removeAllRanges();
+      seleccion.addRange(rango);
+      bocadillo.focus();
+    }
+
     document.getElementById('formFicha').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -216,6 +253,7 @@
           contenedor.innerHTML = resultado.html;
           contenedor.setAttribute('contenteditable', 'true');
           protegerElementosEstructurales(contenedor);
+          añadirBotonesPista(contenedor);
           cambiarModoTinta();
         } else {
           contenedor.innerHTML = `<p class="error">⚠️ ${resultado.error || 'Hubo un problema al generar la ficha.'}</p>`;

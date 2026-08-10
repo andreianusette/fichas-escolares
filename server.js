@@ -156,7 +156,11 @@ function construirSystemPromptMatematicas(curso) {
       'operacion_vertical | multiplicacion_vertical | division_vertical |'
     );
   }
-  tiposDisponibles += ' | serie_numerica | comparar_numeros | tabla_frecuencia | reloj_analogico';
+  tiposDisponibles += ' | serie_numerica | comparar_numeros | tabla_frecuencia | reloj_analogico | grafico_barras';
+  const esConQuesitos = ['5º', '6º'].includes(curso);
+  if (esConQuesitos) {
+    tiposDisponibles += ' | grafico_quesitos';
+  }
 
   let bloqueOperacion = `
 - "operacion_vertical": SOLO sumas y restas en columna (nunca multiplicación
@@ -258,7 +262,42 @@ function construirSystemPromptMatematicas(curso) {
     "modo": "dibujar" → el sistema dibuja la esfera VACÍA (sin agujas) para que el alumno las
     dibuje él mismo a la hora que le pidas en el enunciado (usa esto cuando el enunciado sea
     del tipo "dibuja las agujas marcando las 3 y media").
-  * "hora": 0-11 (en formato 12h, sin am/pm). "minuto": 0-59, normalmente en pasos de 5.`;
+  * "hora": 0-11 (en formato 12h, sin am/pm). "minuto": 0-59, normalmente en pasos de 5.
+
+- "grafico_barras": gráfico de barras verticales.
+  { "categorias": [ { "etiqueta": "Lola", "valor": 5 }, { "etiqueta": "Rita", "valor": 7 } ],
+    "escalaMax": 10,
+    "modo": "leer" }
+  * "escalaMax" es OPCIONAL — si lo omites (o pones null), el sistema calcula una escala
+    redondeada razonable a partir del valor más alto. Solo indícalo si quieres una escala
+    concreta (ej. porque el enunciado menciona "hasta 20 votos").
+  * "modo": "leer" (el sistema DIBUJA las barras ya coloreadas a su altura real) o "rellenar"
+    (el sistema deja las columnas EN BLANCO y muestra la lista de datos aparte, para que el
+    alumno dibuje él mismo cada barra).
+    - Con "leer": el enunciado debe pedir INTERPRETAR el gráfico (¿cuál es el más votado?,
+      ¿cuántos tiene X?, ¿cuántos más tiene X que Y?...). NUNCA repitas los valores como texto
+      en el enunciado — el gráfico ya los representa, el alumno debe leerlos del dibujo.
+    - Con "rellenar": SÍ debes dar los valores en "categorias", porque son el dato de partida
+      (no la respuesta) — el enunciado debe pedir "completa/dibuja el gráfico con estos datos".
+  * Entre 3 y 6 categorías. "etiqueta" corta (una palabra o dos, ej. nombres, días, colores).
+  * "valor" y "escalaMax" DEBEN ser números JSON puros (ej. 12), nunca texto ni con símbolos
+    como "%" o unidades (mal: "12 libros" — bien: 12).${
+  esConQuesitos ? `
+
+- "grafico_quesitos": gráfico circular (de tarta/quesitos) — currículo de ${curso} ligado a
+  fracciones/porcentajes.
+  { "categorias": [ { "etiqueta": "Fútbol", "valor": 12 }, { "etiqueta": "Baloncesto", "valor": 8 } ] }
+  * "valor" es la cantidad bruta de cada categoría — NO hace falta que sumen 100 ni que ya sean
+    porcentajes. El sistema calcula el ángulo y el porcentaje exacto de cada porción y los
+    imprime dentro del gráfico y en la leyenda — nunca calcules tú los porcentajes.
+  * "valor" DEBE ser un número JSON puro (ej. 12), NUNCA un texto ni incluir el símbolo "%" ni
+    ninguna unidad (mal: "35%", "35 puntos" — bien: 35). Si el enunciado habla de repartir 24
+    horas del día, pon directamente las horas de cada categoría (ej. 8, 7, 1, 5, 2, 1) y deja
+    que el sistema calcule el porcentaje — nunca conviertas tú las horas a porcentaje antes.
+  * Entre 3 y 6 categorías. El enunciado debe pedir leer/interpretar el gráfico (¿qué porcentaje
+    representa X?, ¿cuál es la categoría mayoritaria?, ¿qué fracción del total es X?) — nunca
+    repitas los valores ya dados como si fueran nueva información.` : ''
+}`;
 
   let bloqueProblema;
   if (esConDibujos) {

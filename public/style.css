@@ -85,6 +85,27 @@
   --color-texto:      #1e293b;
   --fuente-titulo:    'Fredoka', cursive, sans-serif;
   --fuente-cuerpo:    'Andika', sans-serif;
+
+  /* ── Paleta cálida para la FICHA (07/08/2026) ────────────────────────
+     Antes la ficha reusaba los mismos azules fríos/corporativos del panel
+     de la app (--color-primario). Feedback del maestro de compañía: la
+     ficha se siente "examen de mayores", no cálida para 6-7 años. Estas
+     variables son solo para dentro de .ficha — el panel de la app (arriba)
+     no cambia, sigue con su identidad de marca seria/profesional. */
+  --calido-azul:        #4a90d9;
+  --calido-azul-fondo:  #e8f4ff;
+  --calido-naranja:     #f0954a;
+  --calido-naranja-fondo: #fff4e0;
+  --calido-rosa:        #e8768a;
+  --calido-rosa-fondo:  #ffe8ec;
+  --calido-verde:       #5cb85c;
+  --calido-verde-fondo: #eafaea;
+  --calido-morado:      #9b6fd9;
+  --calido-morado-fondo: #f3ebff;
+  --calido-texto:       #4a4a4a;
+
+  --radio-suave:  14px;
+  --radio-grande: 22px;
 }
 
 /* ==========================================================================
@@ -277,21 +298,21 @@ body {
 
 .ficha.curso-inicial {
   font-family: 'Andika', sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: 18px;
+  line-height: 1.8;
 }
 
 .ficha.curso-inicial .operacion-columna {
   font-family: 'Andika', sans-serif;
-  font-size: 22px;
+  font-size: 26px;
 }
 
 .ficha.curso-inicial .titulo-ficha {
-  font-size: 24px;
+  font-size: 30px;
 }
 
 .ficha.curso-inicial .enunciado {
-  font-size: 15px;
+  font-size: 18px;
 }
 
 /* ── Tipografía por curso, más allá del tamaño (05/08/2026) ──────────────
@@ -312,20 +333,20 @@ body {
    para los más pequeños. Va después de las reglas .curso-inicial para
    ganar en la cascada (misma especificidad, orden posterior). */
 .ficha.fuente-nunito.curso-inicial {
-  font-size: 17px;
-  line-height: 1.8;
+  font-size: 20px;
+  line-height: 1.85;
 }
 
 .ficha.fuente-nunito.curso-inicial .operacion-columna {
-  font-size: 27px;
+  font-size: 30px;
 }
 
 .ficha.fuente-nunito.curso-inicial .titulo-ficha {
-  font-size: 27px;
+  font-size: 32px;
 }
 
 .ficha.fuente-nunito.curso-inicial .enunciado {
-  font-size: 17px;
+  font-size: 20px;
 }
 
 .ficha.fuente-quicksand,
@@ -335,18 +356,18 @@ body {
 
 /* Cabecera */
 .cabecera {
-  border: 2px solid var(--color-primario);
-  border-radius: 10px;
-  padding: 10px 15px;
-  margin-bottom: 20px;
-  background: #f8fafc;
+  border: 3px solid var(--calido-azul);
+  border-radius: var(--radio-grande);
+  padding: 12px 18px;
+  margin-bottom: 22px;
+  background: var(--calido-azul-fondo);
   font-size: 14px;
 }
 
 .cabecera-centro {
   margin: 0 0 6px;
   font-weight: bold;
-  color: var(--color-primario);
+  color: var(--calido-azul);
   font-size: 15px;
 }
 
@@ -372,12 +393,12 @@ body {
 /* Título */
 .titulo-ficha {
   font-family: var(--fuente-titulo);
-  color: var(--color-primario);
+  color: var(--calido-azul);
   font-size: 22px;
   text-align: center;
   margin: 0 0 25px;
-  border-bottom: 2px solid var(--color-primario);
-  padding-bottom: 8px;
+  border-bottom: 4px solid var(--calido-naranja);
+  padding-bottom: 10px;
 }
 
 /* Ejercicio */
@@ -385,6 +406,73 @@ body {
   margin-bottom: 22px;
   page-break-inside: avoid;
   break-inside: avoid;
+}
+
+/* ── Redimensionado manual del ejercicio (07/08/2026) ────────────────────
+   Solo en pantalla (dentro de [contenteditable]) — nunca en @media print,
+   donde "resize" no tiene sentido y el layout debe volver a fluir en A4
+   normal. El docente arrastra la esquina inferior derecha para agrandar el
+   ejercicio y dejar hueco libre (p.ej. para insertar un bocadillo-pista o,
+   más adelante, una imagen). overflow:auto es obligatorio para que resize
+   funcione en Chrome/Firefox; no debería recortar contenido en uso normal
+   porque el contenido interno es fluido, pero si el docente lo encoge
+   mucho podría cortar visualmente — es una decisión consciente de UX, no
+   un bug, ya que el objetivo es dar control total del hueco al docente. */
+[contenteditable="true"] .ejercicio {
+  position: relative;
+  resize: both;
+  overflow: auto;
+  min-width: 220px;
+  min-height: 60px;
+  border-radius: var(--radio-suave);
+  transition: outline 0.15s;
+}
+
+[contenteditable="true"] .ejercicio:hover {
+  outline: 2px dashed var(--calido-azul);
+  outline-offset: 4px;
+}
+
+/* ── Botón "+ Añadir pista" (07/08/2026) ─────────────────────────────────
+   Solo visible en pantalla, al pasar el ratón por un ejercicio en modo
+   edición. Se marca contenteditable="false" para que no se comporte como
+   texto del contenido (igual que las protecciones ya existentes en
+   protegerElementosEstructurales). Un ejercicio ya no vuelve a mostrar el
+   botón una vez insertado el bocadillo, para no permitir varios apilados
+   sin querer — si el docente quiere quitarlo, borra el bocadillo a mano
+   (es contenteditable normal, seleccionable y borrable). */
+.btn-add-pista {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--calido-naranja);
+  background: white;
+  color: var(--calido-naranja);
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+}
+
+.btn-add-pista:hover {
+  background: var(--calido-naranja);
+  color: white;
+}
+
+[contenteditable="true"] .ejercicio:hover .btn-add-pista {
+  display: flex;
+}
+
+@media print {
+  .btn-add-pista { display: none !important; }
 }
 
 .enunciado {
@@ -400,14 +488,22 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--color-primario);
+  background: var(--calido-naranja);
+  border: 2.5px solid white;
+  box-shadow: 0 0 0 2px var(--calido-naranja);
   color: white;
   font-family: var(--fuente-titulo);
   font-weight: bold;
-  font-size: 16px;
+  font-size: 17px;
+}
+
+.ficha.curso-inicial .numero-ejercicio {
+  width: 40px;
+  height: 40px;
+  font-size: 19px;
 }
 
 .texto-enunciado {
@@ -429,30 +525,31 @@ body {
 .bloque-datos,
 .bloque-operacion,
 .bloque-resultado {
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: var(--radio-suave);
+  border: 2.5px solid transparent;
+  padding: 12px 16px;
   font-size: 14px;
   line-height: 1.5;
 }
 
 .bloque-enunciado {
-  background: #eff6ff;
-  border-left: 4px solid #3b82f6;
+  background: var(--calido-azul-fondo);
+  border-color: var(--calido-azul);
 }
 
 .bloque-datos {
-  background: #fefce8;
-  border-left: 4px solid #eab308;
+  background: var(--calido-naranja-fondo);
+  border-color: var(--calido-naranja);
 }
 
 .bloque-operacion {
-  background: #f0fdf4;
-  border-left: 4px solid #22c55e;
+  background: var(--calido-verde-fondo);
+  border-color: var(--calido-verde);
 }
 
 .bloque-resultado {
-  background: #fdf4ff;
-  border-left: 4px solid #a855f7;
+  background: var(--calido-morado-fondo);
+  border-color: var(--calido-morado);
 }
 
 .etiqueta-bloque {
@@ -678,6 +775,96 @@ body {
   font-weight: bold;
 }
 
+/* ── Gráfico de barras ─────────────────────────────────────────────────── */
+.grafico-barras-bloque {
+  margin: 10px 0;
+}
+
+.grafico-datos-lista {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin: 0 0 10px;
+  max-width: 480px;
+}
+
+.grafico-eje {
+  stroke: #334155;
+  stroke-width: 2;
+}
+
+.grafico-linea-guia {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.grafico-etiqueta-x {
+  fill: #334155;
+}
+
+.grafico-barra {
+  fill: var(--calido-azul-fondo);
+  stroke: var(--calido-azul);
+  stroke-width: 2;
+}
+
+.grafico-barra-hueco {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 4,4;
+}
+
+/* ── Gráfico de quesitos (circular) ──────────────────────────────────────
+   6 clases de color cíclicas (si hay más de 6 categorías, se repiten) —
+   mismo patrón que la paleta cálida general de la ficha. */
+.grafico-quesitos-bloque {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+.quesito-porcion {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.quesito-texto-porcentaje {
+  fill: white;
+}
+
+.quesito-color-1 { fill: var(--calido-azul); }
+.quesito-color-2 { fill: var(--calido-naranja); }
+.quesito-color-3 { fill: var(--calido-verde); }
+.quesito-color-4 { fill: var(--calido-morado); }
+.quesito-color-5 { fill: var(--calido-rosa); }
+.quesito-color-6 { fill: #e8c547; }
+
+.quesito-leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.quesito-leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quesito-leyenda-color {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
 /* ── Reloj analógico ──────────────────────────────────────────────────── */
 .reloj-bloque {
   display: inline-flex;
@@ -748,54 +935,73 @@ body {
 
 /* ── División en columna (caja clásica) ──────────────────────────────────
    Dividendo a la izquierda, separador vertical, divisor arriba a la
-   derecha y hueco de cociente debajo. El área de trabajo (restas
-   parciales) queda en blanco para que el alumno la complete a mano. */
+   derecha y hueco de cociente debajo. Sin caja de "trabajo" (restas
+   parciales) — se eliminó por feedback (07/08/2026): quedaba visualmente
+   agresiva para el alumno. "align-items: stretch" (antes: flex-start) es
+   el arreglo clave: hace que la línea vertical de ".division-dividendo"
+   ocupe SIEMPRE la altura real de la caja del divisor/cociente, en vez de
+   quedarse corta y verse descolgada cuando el cociente tiene varias cifras
+   o el número es más alto de lo normal. */
+/* ── División en columna (caja clásica) ──────────────────────────────────
+   Dividendo a la izquierda, separador vertical, divisor arriba a la
+   derecha y hueco de cociente debajo. Sin caja de "trabajo" (restas
+   parciales) — se eliminó por feedback (07/08/2026): quedaba visualmente
+   agresiva para el alumno.
+   07/08/2026 (2): "align-items: stretch" (probado antes) fue un error —
+   estiraba la línea vertical del dividendo para que llegara hasta abajo
+   del todo (divisor + raya + cociente), y precisamente ESO es lo que se
+   veía mal ("la barrita baja demasiado"). La línea vertical solo debe
+   cubrir la altura de su propia línea de texto (el dividendo), igual que
+   en la caja clásica de papel — por eso ahora es "flex-start" otra vez,
+   pero con "align-items: baseline" para que el dividendo quede alineado
+   arriba con el divisor en vez de descolgado o descentrado. */
 .operacion-division {
   display: inline-flex;
   align-items: flex-start;
   font-family: 'Courier New', monospace;
   font-size: 20px;
-  gap: 8px;
+  gap: 10px;
 }
 
 .operacion-division-bloque {
   display: inline-block;
   vertical-align: top;
+  align-self: flex-start;
 }
 
 .division-dividendo {
-  border-right: 2px solid #000;
-  padding-right: 10px;
+  padding-right: 12px;
+  padding-top: 2px;
   letter-spacing: 2px;
 }
 
-.division-caja {
-  min-width: 44px;
-  padding-left: 4px;
+.division-columna-derecha {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 07/08/2026 (3): el ángulo recto de una sola pieza — border-left
+   (vertical, separa dividendo de divisor) + border-bottom (horizontal,
+   separa divisor de cociente) EN EL MISMO elemento. Antes se simulaba con
+   dos trazos independientes (border-right del dividendo + <hr> aparte) que
+   no encajaban limpiamente en la esquina (feedback con captura: "dos
+   segmentos, no un ángulo"). Con un solo elemento, el navegador dibuja la
+   esquina de una pieza, sin costura. */
+.division-angulo {
+  border-left: 2.5px solid #000;
+  border-bottom: 2.5px solid #000;
+  padding: 0 10px 4px 10px;
+  min-width: 30px;
 }
 
 .division-divisor {
   text-align: center;
 }
 
-.division-linea-caja {
-  border: none;
-  border-top: 2px solid #000;
-  margin: 3px 0;
-}
-
 .division-cociente {
-  min-height: 22px;
-  border-bottom: 1.5px dashed #94a3b8;
-}
-
-.division-trabajo {
-  width: 100%;
-  margin: 10px 0 0;
-  min-height: 70px;
-  border: 1.5px dashed #cbd5e1;
-  border-radius: 6px;
-  box-sizing: border-box;
+  min-height: 34px;
+  min-width: 44px;
+  padding-left: 12px;
 }
 
 /* ==========================================================================
@@ -817,8 +1023,8 @@ body {
 
 /* Espacios de respuesta */
 .espacio-respuesta {
-  border: 1.5px solid #333;
-  border-radius: 4px;
+  border: 2px solid var(--calido-azul);
+  border-radius: var(--radio-suave);
   min-height: 40px;
   width: 100%;
   margin-top: 6px;
@@ -837,25 +1043,43 @@ body {
 .espacio-respuesta.alto { min-height: 80px; }
 .espacio-respuesta.bajo { min-height: 28px; }
 
+/* ── Espacio en blanco sin recuadro (07/08/2026) ─────────────────────────
+   Para problemas de 4º-6º (sin bloques guiados): reserva altura para que
+   el alumno resuelva, pero SIN borde ni fondo — a diferencia de
+   ".espacio-respuesta", que sí se pinta (cabecera, bloques guiados de
+   1º-3º). El docente puede agrandar aún más este hueco arrastrando la
+   esquina del ejercicio (ver [contenteditable] .ejercicio, resize:both). */
+.espacio-libre {
+  min-height: 70px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
 /* Tablas */
 .tabla-ejercicio {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 13px;
   margin-top: 8px;
+  border: 2px solid var(--calido-azul);
+  border-radius: var(--radio-suave);
+  overflow: hidden;
 }
 
 .tabla-ejercicio th {
-  background: #e8e8e8;
-  border: 1.5px solid #333;
-  padding: 5px 8px;
+  background: var(--calido-azul-fondo);
+  border-bottom: 2px solid var(--calido-azul);
+  padding: 6px 8px;
   text-align: center;
   font-weight: bold;
+  color: var(--calido-texto);
 }
 
 .tabla-ejercicio td {
-  border: 1.5px solid #333;
-  padding: 6px 8px;
+  border-top: 1px solid #dbeafe;
+  padding: 7px 8px;
   text-align: center;
 }
 
@@ -885,14 +1109,14 @@ body {
 
 /* Caja para dibujar */
 .caja-espacio-dibujo {
-  border: 2px dashed #94a3b8;
-  border-radius: 8px;
+  border: 2.5px dashed var(--calido-morado);
+  border-radius: var(--radio-grande);
   padding: 15px;
   text-align: center;
-  color: #64748b;
+  color: var(--calido-texto);
   font-size: 13px;
   margin: 10px 0;
-  background-color: #fafafa;
+  background-color: var(--calido-morado-fondo);
   min-height: 80px;
   display: flex;
   align-items: center;
@@ -919,6 +1143,76 @@ ol.ejercicio-lista {
 ol.ejercicio-lista li {
   font-size: 13px;
   margin-bottom: 8px;
+}
+
+/* ── Bocadillo de pista (07/08/2026) ─────────────────────────────────────
+   Elemento nuevo, puramente CSS (sin ilustración → sin riesgo de copyright):
+   caja tipo cómic con colita apuntando al ejercicio, para mensajes cortos
+   de ánimo/ayuda ("Recuerda: para restar saltamos hacia atrás"). Se coloca
+   dentro de ".ejercicio", normalmente flotando a la derecha del enunciado.
+   NO documentado aún en REFERENCIA_CLASES_HTML_FICHAS.md ni en el
+   SYSTEM_PROMPT — pendiente de decidir si Claude la genera él mismo (con
+   contenido corto) o si de momento es solo maquetado disponible. */
+.bocadillo-pista {
+  position: relative;
+  display: inline-block;
+  max-width: 260px;
+  background: var(--calido-naranja-fondo);
+  border: 2.5px solid var(--calido-naranja);
+  border-radius: var(--radio-grande);
+  padding: 10px 16px;
+  margin: 6px 0 14px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--calido-texto);
+}
+
+.bocadillo-pista::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 18px;
+  border: 10px solid transparent;
+  border-right-color: var(--calido-naranja);
+}
+
+.bocadillo-pista::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 21px;
+  border: 7px solid transparent;
+  border-right-color: var(--calido-naranja-fondo);
+}
+
+.ficha.curso-inicial .bocadillo-pista {
+  font-size: 15px;
+  max-width: 300px;
+}
+
+/* ── Hueco reservado para mascota/ilustración (07/08/2026) ───────────────
+   Placeholder de maquetación para la Fase 4 (banco propio de ilustraciones,
+   se trabaja en otro hilo — ver ROADMAP, Fase 4, Opción C). De momento NO
+   contiene ninguna imagen (evita cualquier problema de estilo/copyright
+   mientras no exista el banco propio): solo reserva el espacio y muestra un
+   icono geométrico genérico, para que cuando llegue la ilustración real
+   solo haga falta sustituir el contenido, sin rehacer el layout. */
+.mascota-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--calido-rosa-fondo);
+  border: 2.5px dashed var(--calido-rosa);
+  flex-shrink: 0;
+}
+
+.mascota-slot svg {
+  width: 32px;
+  height: 32px;
+  stroke: var(--calido-rosa);
 }
 
 /* Pie de página */
@@ -965,6 +1259,26 @@ ol.ejercicio-lista li {
 .ficha.modo-blanco-negro .bloque-resultado {
   background: white !important;
   border-left-color: black !important;
+}
+
+.ficha.modo-blanco-negro .grafico-barra {
+  fill: white !important;
+  stroke: black !important;
+}
+
+.ficha.modo-blanco-negro .quesito-porcion {
+  fill: white !important;
+  stroke: black !important;
+  stroke-width: 2 !important;
+}
+
+.ficha.modo-blanco-negro .quesito-texto-porcentaje {
+  fill: black !important;
+}
+
+.ficha.modo-blanco-negro .quesito-leyenda-color {
+  background: white !important;
+  border: 1.5px solid black !important;
 }
 
 /* ==========================================================================

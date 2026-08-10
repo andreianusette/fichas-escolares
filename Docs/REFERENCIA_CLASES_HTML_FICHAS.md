@@ -90,6 +90,14 @@ Es una caja vacía donde el alumno escribe a mano. A diferencia del
 `.hueco`, SÍ debe mantener un borde/recuadro visible (es intencionado:
 marca claramente la zona de escritura de un problema).
 
+**07/08/2026 — `.espacio-libre`**: variante SIN borde ni fondo, solo reserva
+altura en blanco (`<div class="espacio-libre"></div>`). Se usa en problemas
+de 4º-6º (formato libre, sin bloques guiados) en vez de `.espacio-respuesta`
+— feedback: el recuadro pintado resultaba "agresivo"/tipo examen para ese
+tramo de edad. El docente puede ampliar aún más ese hueco arrastrando la
+esquina del `.ejercicio` (ver sección de edición en `style.css`, el
+ejercicio es redimensionable a mano en pantalla).
+
 ---
 
 ## 7. Tablas de ejercicio
@@ -231,25 +239,40 @@ salto de línea automático).
   <div class="operacion-division-bloque">
     <div class="operacion-division">
       <div class="division-dividendo">864</div>
-      <div class="division-caja">
-        <div class="division-divisor">4</div>
-        <hr class="division-linea-caja">
+      <div class="division-columna-derecha">
+        <div class="division-angulo">
+          <div class="division-divisor">4</div>
+        </div>
         <div class="division-cociente"></div>
       </div>
     </div>
-    <div class="division-trabajo"></div>
   </div>
   <!-- varios .operacion-division-bloque más, si el ejercicio agrupa varias divisiones -->
 </div>
 ```
-Dividendo a la izquierda con borde vertical separador, divisor arriba a la
-derecha con línea horizontal debajo y hueco de cociente. Admite decimales en
-dividendo y/o divisor (se muestran con coma). `.operacion-division-bloque`
-envuelve la caja y `.division-trabajo` (área en blanco para las restas
-parciales, debajo de todo) para que ambas compartan el mismo ancho y se
-puedan agrupar varias divisiones lado a lado dentro de `.grid-operaciones`,
-igual que en multiplicación. El sistema no dibuja los pasos intermedios del
-algoritmo (serían el resultado, no la estructura).
+Dividendo a la izquierda, divisor arriba a la derecha dentro de
+`.division-angulo` (el ángulo recto: `border-left` + `border-bottom` **en el
+mismo elemento**, para que la esquina salga de una sola pieza y no como dos
+trazos sueltos), y `.division-cociente` debajo, sin línea, para que el
+alumno escriba el resultado. Admite decimales en dividendo y/o divisor (se
+muestran con coma). `.operacion-division-bloque` envuelve la caja para que
+se puedan agrupar varias divisiones lado a lado dentro de
+`.grid-operaciones`, igual que en multiplicación. El sistema no dibuja los
+pasos intermedios del algoritmo (serían el resultado, no la estructura).
+
+**Historial de esta caja (07/08/2026, tres iteraciones)**:
+1. Se eliminó `.division-trabajo` (área en blanco bajo la división, para
+   restas parciales) — resultaba visualmente agresiva.
+2. Se probó `.operacion-division { align-items: stretch }` para que la línea
+   vertical del dividendo llegara hasta abajo — pero eso mismo se vio mal
+   ("la barrita baja demasiado"): revertido a `flex-start`.
+3. **Rediseño final**: la esquina ya no se simula con dos trazos
+   independientes (antes: `border-right` en `.division-dividendo` + `<hr>`
+   aparte bajo el divisor, que no encajaban limpiamente). Ahora
+   `.division-angulo` es un único elemento con `border-left` +
+   `border-bottom`, así el navegador dibuja el ángulo recto de una sola
+   pieza (feedback con captura de pantalla: pedían "cerrar el ángulo de 90°,
+   no dos segmentos").
 
 ---
 
@@ -335,6 +358,75 @@ completamente en blanco.
 Dos modos: **"leer"** dibuja las agujas en la hora indicada y deja un hueco
 para escribir la hora; **"dibujar"** deja la esfera vacía (solo números) para
 que el alumno dibuje las agujas él mismo — nunca se imprime la respuesta.
+
+---
+
+## 8nonies. Gráfico de barras (07/08/2026)
+
+```html
+<!-- modo "leer": barras ya dibujadas a su altura real -->
+<div class="grafico-barras-bloque">
+  <svg width="…" height="…" viewBox="…">
+    <line class="grafico-eje" .../>          <!-- ejes X/Y -->
+    <line class="grafico-linea-guia" .../>   <!-- líneas de cuadrícula horizontales -->
+    <text>…</text>                            <!-- valores del eje Y -->
+    <rect class="grafico-barra" .../>         <!-- una por categoría, altura proporcional -->
+    <text class="grafico-etiqueta-x">…</text> <!-- nombre de categoría bajo cada barra -->
+  </svg>
+</div>
+
+<!-- modo "rellenar": columnas en blanco + lista de datos aparte -->
+<div class="grafico-barras-bloque">
+  <p class="grafico-datos-lista">Lunes: 3 · Martes: 6</p>
+  <svg>…<rect class="grafico-barra-hueco" .../>…</svg>
+</div>
+```
+Gráfico de barras verticales, dos modos según lo que pida el ejercicio:
+- **"leer"**: `.grafico-barra` — barra sólida, altura calculada en código a
+  partir del valor real y la escala del eje (nunca aproximada a ojo). Pensado
+  para que el alumno interprete el gráfico, no para que lo construya.
+- **"rellenar"**: `.grafico-barra-hueco` — solo el contorno punteado, sin
+  altura; `.grafico-datos-lista` muestra los datos de partida en texto plano
+  (igual que `.tf-datos-lista` en tabla de frecuencia) para que el alumno
+  dibuje cada barra él mismo.
+
+La escala del eje Y se calcula en código a partir del valor máximo (redondeo
+al múltiplo de 5 superior) salvo que se indique una escala fija. El color de
+`.grafico-barra` usa la paleta cálida (`--calido-azul`); en modo B/N pasa a
+blanco con contorno negro.
+
+---
+
+## 8decies. Gráfico de quesitos / circular (07/08/2026)
+
+```html
+<div class="grafico-quesitos-bloque">
+  <svg width="190" height="190" viewBox="0 0 190 190">
+    <path class="quesito-porcion quesito-color-1" d="…"/>
+    <text class="quesito-texto-porcentaje">40%</text>
+    <!-- una .quesito-porcion por categoría, con su color cíclico 1-6 -->
+  </svg>
+  <div class="quesito-leyenda">
+    <div class="quesito-leyenda-item">
+      <span class="quesito-leyenda-color quesito-color-1"></span>Fútbol — 40%
+    </div>
+    <!-- una .quesito-leyenda-item por categoría -->
+  </div>
+</div>
+```
+Gráfico circular, **solo disponible en 5º-6º** (currículo de
+fracciones/porcentajes). El ángulo y el porcentaje de cada porción se
+calculan en código a partir de los valores brutos que entrega Claude — nunca
+hace falta que sumen 100. El porcentaje se imprime dentro de la porción (si
+es lo bastante grande para caber legible) y siempre en la leyenda, porque
+leer un ángulo a ojo no es fiable: el ejercicio es interpretar el gráfico, no
+adivinar proporciones.
+
+`.quesito-color-1` a `.quesito-color-6` son la paleta cálida cíclica (si hay
+más de 6 categorías, se repiten los colores). En modo B/N todas las porciones
+pasan a blanco con contorno negro — la diferenciación entre categorías queda
+en el porcentaje impreso y la leyenda, no en el color (limitación conocida,
+inherente a un gráfico de tarta impreso sin color).
 
 ---
 

@@ -1,6 +1,9 @@
 # ROADMAP DEL PROYECTO — Generador de Fichas Escolares
 
-*Última actualización: decisión de foco — validación curso/asignatura en este hilo, banco de ilustraciones en otro hilo/IA (05/08/2026)*
+*Última actualización: nueva Fase 7 (maquetado/paginación) añadida como
+pendiente 💭 tras detectar fichas de 2-3 páginas con espacio en blanco;
+además de la decisión de foco — validación curso/asignatura en este hilo,
+banco de ilustraciones en otro hilo/IA (05/08/2026)*
 
 Este documento existe para tener una **meta clara por fases**, en vez de ir
 tomando decisiones sueltas según van surgiendo dudas en la marcha. Antes de
@@ -276,6 +279,42 @@ no se ha tocado en esta sesión:
 - [ ] Autenticación de usuarios, histórico de fichas (Supabase), despliegue
       (Railway) — pospuesto hasta tener más cursos y asignaturas validados.
 - [ ] Expansión a Secundaria/Bachillerato y a Latinoamérica — largo plazo.
+
+---
+
+## FASE 7 — Optimización de maquetado y paginación (💭 abierta, 07/08/2026)
+**Estado: 💭 Abierta — sin decidir alcance ni cuándo**
+
+Problema detectado probando fichas reales de varios cursos: algunas fichas
+ocupan 2-3 páginas al imprimir, con bastante espacio en blanco en la última
+página o entre ejercicios. Ya se corrigió un caso puntual (agrupar varias
+operaciones bajo un mismo ejercicio en vez de una por ejercicio, ver Fase 3,
+nota del 05/08/2026), pero el problema de fondo es más general: el
+maquetado actual coloca los ejercicios en flujo simple, uno debajo de otro,
+sin ningún mecanismo que intente aprovechar mejor la página (por ejemplo,
+distribuir en 2 columnas cuando el contenido es corto, o avisar/recolocar
+si un ejercicio se va a quedar solo en una página nueva dejando la anterior
+medio vacía).
+
+**No confundir con Fase 4** (diferenciación visual/banco de ilustraciones)
+— esto es un problema de aprovechamiento de espacio y coste de impresión
+(páginas de más), no de estética.
+
+Preguntas abiertas, sin decidir:
+- ¿Maquetado en columnas cuando el contenido de un curso/materia es corto,
+  en vez de una sola columna siempre?
+- ¿Debe el sistema calcular cuánto contenido "cabe" y ajustar cuántos
+  ejercicios genera Claude en consecuencia, en vez de generar un número fijo
+  y ver después cuántas páginas ocupa?
+- ¿Vale la pena un modo "denso" opcional para el docente (menos espaciado,
+  pensado para ahorrar papel) frente al modo actual (más aire, pensado para
+  que el alumno escriba cómodo)? Puede que ambos objetivos choquen y haya
+  que priorizar uno según el contexto de uso.
+
+**Próximo paso**: no tocar código todavía — reunir 4-5 fichas reales de
+distintos cursos/materias que se hayan quedado con mucho espacio en blanco,
+mirarlas juntas y decidir el enfoque antes de implementar nada (mismo
+criterio que se usó para decidir la Fase 4).
 
 ---
 
