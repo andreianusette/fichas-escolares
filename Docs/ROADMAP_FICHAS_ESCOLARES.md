@@ -109,6 +109,48 @@ mejoras visuales que no dependan del banco (CSS/SVG, Opción A) se pueden
 seguir pidiendo e implementando aquí mismo, curso a curso, según se vayan
 dando instrucciones.
 
+### Catálogo de iconos SVG ampliado de 9 a 84 (11/08/2026)
+**Estado: ✅ Completado y validado visualmente**
+
+Los iconos de conteo (1º-2º, ejercicio `conteo_svg`) solo cubrían 9 objetos.
+Se detectó además que 3 de los 9 originales (pelota, mariposa, pájaro) eran
+poco reconocibles — se rediseñaron primero (ver más abajo en esta misma
+sesión), y a partir de ahí se decidió ampliar todo el catálogo.
+
+- **Fuente**: 57 iconos adaptados de [Tabler Icons](https://tabler.io/icons)
+  (licencia MIT, uso libre — atribución no obligatoria pero documentada
+  aquí por si se despliega la app públicamente en el futuro). Se
+  seleccionaron por categoría (animales, comida, vehículos, formas
+  geométricas, naturaleza, objetos) y se convirtieron al estilo propio
+  (solo trazo negro, sin relleno, sin la caja de fondo invisible que trae
+  Tabler por defecto).
+- **18 animales dibujados a mano** desde cero (`conejo`, `elefante`, `leon`,
+  `vaca`, `oveja`, `pato`, `buho`, `tortuga`, `rana`, `abeja`, `mariquita`,
+  `cangrejo`, `caracol`, `pinguino`, `pulpo`, `ballena`, `gallina`, `oso`) —
+  Tabler no cubre bien la fauna clásica de fichas infantiles.
+- **Metodología de validación**: galería de auditoría visual a tamaño real
+  (60px, el mismo tamaño que en la ficha impresa), no solo a ojo sobre el
+  código. Varios iconos necesitaron 2-4 rediseños hasta leerse con
+  claridad: `elefante` (el más difícil — perfil de cuerpo completo no
+  funcionaba, se resolvió como retrato frontal simétrico con dos orejas
+  grandes y trompa colgando), `leon` (la melena de puntos apenas se veía;
+  se rehizo con mechones triangulares tipo corona), `ballena`, `tren`,
+  `caballo` y `cangrejo`. Dos ideas iniciales (`ardilla`, `delfin`) se
+  descartaron por no lograrse una silueta clara en varios intentos, y se
+  sustituyeron por `cangrejo` y `caracol`.
+- **Verificación final**: no solo iconos sueltos en galería, sino
+  renderizados varias veces seguidas dentro de un ejercicio real de
+  conteo (`conteo_svg` con `cantidad: 5`) — un icono puede leerse bien
+  aislado y volverse confuso al repetirse en fila; esa fue la prueba que
+  detectó que `elefante` y `cangrejo` necesitaban una ronda más de ajuste
+  incluso después de parecer correctos en la galería inicial.
+- El prompt de `server.js` no necesitó cambios: la lista de iconos
+  disponibles se inyecta dinámicamente (`ICONOS_DISPONIBLES.join(', ')`),
+  así que Claude ya tiene acceso automático a los 84 nombres.
+- [ ] Pendiente de confirmar en fichas reales generadas por el docente
+      (con su API key) que Claude elige bien los iconos nuevos según el
+      contexto/temática pedida en instrucciones especiales.
+
 | Curso | Estado |
 |-------|--------|
 | 1º | ⏳ Pendiente de revalidar con el motor JSON nuevo (validado antes con el sistema HTML viejo) |
@@ -246,44 +288,79 @@ técnica con ese piloto, y decidir con eso delante si se escala al resto.
 si de momento se queda en Opción A, antes de tocar código aquí.
 
 ### Opción D — Imagen propia subida por el docente (10/08/2026)
-**Estado: 🔄 En curso — implementación iniciada en esta sesión**
+**Estado: ✅ Validada en local (11/08/2026)**
 
 Cuarta opción, independiente de la A/B/C y compatible con ellas: el docente
 sube su propia imagen (foto de libro, dibujo escaneado, captura de pizarra
-digital) desde su ordenador y la inserta directamente en el hueco que deja
-al redimensionar un `.ejercicio` (ver Fase 3, mejora del 07/08/2026 —
-`resize: both` + botón de pista).
+digital) desde su ordenador.
 
+**Pivote de diseño (11/08/2026):** la primera implementación insertaba la
+imagen DENTRO de la caja del `.ejercicio` que la activaba. Probado en local,
+no era el resultado buscado — el docente quería un bloque totalmente
+independiente, libre sobre la página, sin atarse a la alineación de los
+ejercicios. Rehecho como bloque flotante:
+
+- La imagen es un `<div class="imagen-flotante">` colgado directamente de
+  `.ficha` (`position: absolute`), no de `.ejercicio`. `.ficha` pasa a tener
+  `position: relative` para servir de ancla.
+- Se sigue disparando desde el botón "🖼️" de un ejercicio concreto (mismo
+  patrón que el botón "+" de pista), pero solo como punto de partida
+  cómodo — el botón NO desaparece tras usarse, así que se pueden insertar
+  varias imágenes sueltas desde el mismo o distintos ejercicios.
+- **Arrastrable**: manija (⠿) visible en modo edición al pasar el ratón;
+  el docente la mueve a cualquier punto del A4. Movimiento limitado a los
+  límites de `.ficha` (no se puede "perder" fuera de la página).
+- **Redimensionable**: tirador nativo de esquina (`resize: both`), igual
+  que los ejercicios.
+- **Puede solaparse** con el texto de los ejercicios — z-index por encima,
+  el docente decide dónde colocarla con cuidado de no tapar lo importante.
+- Botón de borrado directo (×) en la esquina, sin depender de seleccionar
+  y pulsar Retroceso.
+- **Sin marco (11/08/2026)**: se quitaron el borde, el fondo blanco y la
+  sombra permanentes del bloque — si el docente sube un PNG con
+  transparencia real, se ve lo que hay debajo a través de las zonas
+  transparentes, en vez de quedar tapado por un fondo blanco opaco. Se
+  añadió en su lugar un contorno punteado *solo visible en pantalla, en
+  modo edición y al pasar el ratón* (para saber dónde está el límite de la
+  caja al arrastrar/redimensionar), oculto explícitamente en impresión.
 - No depende del banco de ilustraciones (Opción C), que se desarrolla en
   otro hilo aparte y aún no está listo para conectar — esta opción no
   bloquea ni espera a ese trabajo.
 - **Sin backend ni persistencia**: la imagen se lee en el propio navegador
-  del docente (`FileReader` → `base64`) y se inserta como `<img>` dentro
-  del DOM. Coherente con la decisión ya tomada de que cada ficha se genera
-  al vuelo sin guardar nada en servidor (sección 9 del contexto original).
-  Igual que el resto de ediciones en vivo, se pierde si se recarga la
-  página sin haber impreso/exportado antes.
-- Mismo patrón técnico que el botón "+ Añadir pista" ya existente: un botón
-  por ejercicio, solo visible en modo edición y al pasar el ratón, oculto
-  en impresión.
-- Límite de tamaño de archivo (para no disparar el peso del HTML en
-  memoria) y validación de que el archivo sea realmente una imagen.
+  del docente (`FileReader` → `base64`), sin pasar por el servidor.
+  Coherente con que cada ficha se genera al vuelo sin guardarse (sección 9
+  del contexto original). Se pierde si se recarga la página sin haber
+  impreso/exportado antes, igual que el resto de ediciones en vivo.
+- Límite de tamaño de archivo (4 MB) y validación de que el archivo sea
+  realmente una imagen.
 - Valorado como diferencial competitivo real: la mayoría de generadores de
-  fichas con IA equivalentes producen una imagen plana no editable: aquí el
-  docente controla dónde y qué imagen añade, sobre una ficha que sigue
-  siendo pedagógicamente generada y editable.
+  fichas con IA equivalentes producen una imagen plana no editable — aquí
+  el docente controla dónde y qué imagen añade, con transparencia real,
+  sobre una ficha que sigue siendo pedagógicamente generada y editable.
 
-- [x] Botón "🖼️ Añadir imagen" por ejercicio (mismo patrón que el de pista).
-- [x] Selector de archivo, lectura a base64, inserción como `<img>`.
+- [x] Botón "🖼️ Añadir imagen" por ejercicio, como punto de partida.
+- [x] Selector de archivo, lectura a base64, inserción como bloque
+      independiente (no dentro del ejercicio).
+- [x] Bloque flotante: `position: absolute` sobre `.ficha`, arrastrable
+      (manija ⠿) y redimensionable (tirador nativo).
+- [x] Botón de borrado directo.
 - [x] Validación de tipo (`image/*`) y tamaño máximo.
-- [x] Oculto en impresión; imagen protegida de edición de texto accidental
-      (`contenteditable="false"` en el `<img>`, igual que SVGs y otras
-      estructuras clave).
-- [ ] Pendiente de validar con una prueba real (subir una imagen, imprimir
-      a PDF, comprobar que se ve bien en A4 y no rompe el maquetado).
+- [x] Oculto en impresión (manija, botón de borrado, contorno de edición);
+      imagen protegida de edición de texto accidental
+      (`contenteditable="false"`, igual que SVGs y otras estructuras clave).
+- [x] Sin marco/fondo — transparencia real de PNG respetada, tanto en
+      pantalla como en impresión.
+- [x] Validado con prueba real del docente en su entorno local (11/08/2026):
+      arrastre, solape con texto, transparencia PNG e impresión a PDF,
+      todo con el resultado esperado.
 - [ ] Pendiente de decidir si se comprime/redimensiona la imagen con
-      `<canvas>` antes de insertarla (mejora de rendimiento, no bloqueante
-      para la primera versión).
+      `<canvas>` antes de insertarla (mejora de rendimiento con fotos muy
+      pesadas, no bloqueante — el límite de 4 MB ya cubre el caso general).
+- [ ] Pendiente de probar el caso de una ficha que ocupa más de una página
+      (2-3 páginas, ver Fase 7): al ser `position: absolute` con coordenadas
+      fijas respecto a `.ficha`, no se ha comprobado todavía si una imagen
+      colocada cerca del final de la página 1 se comporta bien si el salto
+      de página cae encima suyo.
 
 ---
 

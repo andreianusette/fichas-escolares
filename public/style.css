@@ -192,6 +192,75 @@ body {
   line-height: 1.4;
 }
 
+/* ── Selector de iconos del formulario (11/08/2026) ──────────────────────
+   Rejilla de checkboxes con vista previa visual, para que el docente elija
+   qué objetos usar en los ejercicios de conteo/operaciones ilustradas de
+   1º-2º antes de generar la ficha. Es del panel de configuración, no de la
+   ficha en sí, así que usa la paleta neutra del formulario (no los colores
+   cálidos de la ficha). */
+.rejilla-iconos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--color-borde, #e2e8f0);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 6px;
+  background: #fafafa;
+}
+
+.icono-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.icono-opcion:hover {
+  background: #f0f4ff;
+}
+
+.icono-opcion:has(.icono-checkbox:checked) {
+  background: #e8f0ff;
+  border-color: var(--color-primario);
+}
+
+.icono-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.icono-preview {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.icono-preview svg {
+  width: 100%;
+  height: 100%;
+}
+
+.icono-nombre {
+  font-size: 9px;
+  color: #475569;
+  text-align: center;
+  pointer-events: none;
+  line-height: 1.1;
+}
+
 #btnGenerar {
   width: 100%;
   background: var(--color-primario);
@@ -277,6 +346,7 @@ body {
    ========================================================================== */
 
 .ficha {
+  position: relative;
   width: 100%;
   max-width: 800px;
   min-height: 1000px;
@@ -308,7 +378,7 @@ body {
 }
 
 .ficha.curso-inicial .titulo-ficha {
-  font-size: 30px;
+  font-size: 24px;
 }
 
 .ficha.curso-inicial .enunciado {
@@ -342,7 +412,7 @@ body {
 }
 
 .ficha.fuente-nunito.curso-inicial .titulo-ficha {
-  font-size: 32px;
+  font-size: 26px;
 }
 
 .ficha.fuente-nunito.curso-inicial .enunciado {
@@ -390,13 +460,17 @@ body {
   border-bottom: 2px dashed #94a3b8;
 }
 
-/* Título */
+/* Título — 11/08/2026: se pidió más fino y más pequeño. Antes usaba el
+   peso por defecto de <h1> (bold=700, la variante Fredoka-Bold más gruesa
+   disponible); ahora fuerza 500 (Fredoka-Medium, la más fina que hay
+   cargada). Tamaños reducidos en todas las variantes de curso. */
 .titulo-ficha {
   font-family: var(--fuente-titulo);
+  font-weight: 500;
   color: var(--calido-azul);
-  font-size: 22px;
+  font-size: 19px;
   text-align: center;
-  margin: 0 0 25px;
+  margin: 0 0 22px;
   border-bottom: 4px solid var(--calido-naranja);
   padding-bottom: 10px;
 }
@@ -513,16 +587,109 @@ body {
   .btn-add-imagen { display: none !important; }
 }
 
-/* Imagen insertada por el docente dentro de un ejercicio. max-width:100%
-   evita que una foto grande se salga del ancho del ejercicio o de la
-   página A4 al imprimir; height:auto mantiene su proporción original. */
-.imagen-personalizada {
+/* ── Imagen flotante independiente (10/08/2026 v2) ───────────────────────
+   Corrige el primer intento (imagen encajada dentro de .ejercicio): ahora
+   es un bloque suelto, colgado directamente de .ficha vía position:absolute
+   (ver position:relative en .ficha), totalmente desligado de la alineación
+   de los ejercicios. El docente la arrastra con la manija (⠿) a cualquier
+   punto del A4 y la redimensiona con el tirador nativo de la esquina
+   (resize:both). Puede solaparse con el texto de los ejercicios — el
+   z-index la mantiene por encima. */
+.imagen-flotante {
+  position: absolute;
+  z-index: 15;
+  width: 220px;
+  min-width: 80px;
+  min-height: 60px;
+  resize: both;
+  overflow: hidden;
+  /* Sin borde, fondo ni sombra: así una imagen PNG con transparencia deja
+     ver de verdad lo que hay debajo (un ejercicio, por ejemplo), en vez de
+     quedar tapado por un fondo blanco opaco detrás del recorte del PNG. */
+}
+
+/* Contorno de referencia SOLO en modo edición y al pasar el ratón, para que
+   el docente sepa dónde está el borde de la caja al arrastrar/redimensionar
+   una imagen con transparencia (si no, sería invisible hasta soltar el
+   ratón). Nunca debe aparecer en la impresión. */
+[contenteditable="true"] .imagen-flotante:hover {
+  outline: 1.5px dashed var(--calido-azul);
+  outline-offset: 2px;
+}
+
+@media print {
+  [contenteditable="true"] .imagen-flotante:hover {
+    outline: none !important;
+  }
+}
+
+.imagen-flotante img {
   display: block;
-  max-width: 100%;
-  height: auto;
-  margin-top: 10px;
-  border-radius: var(--radio-suave);
-  border: 1px solid #ddd;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.manija-mover-imagen {
+  display: none;
+  position: absolute;
+  top: -13px;
+  left: -13px;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--calido-azul);
+  color: white;
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.manija-mover-imagen:active {
+  cursor: grabbing;
+}
+
+.btn-borrar-imagen {
+  display: none;
+  position: absolute;
+  top: -13px;
+  right: -13px;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: #dc2626;
+  color: white;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+[contenteditable="true"] .imagen-flotante:hover .manija-mover-imagen,
+[contenteditable="true"] .imagen-flotante:hover .btn-borrar-imagen {
+  display: flex;
+}
+
+@media print {
+  .manija-mover-imagen,
+  .btn-borrar-imagen {
+    display: none !important;
+  }
+  /* Mismo fix que en .ejercicio: sin esto, si el ratón queda posicionado
+     sobre la imagen al imprimir, el tirador de resize podría colarse. */
+  .imagen-flotante {
+    resize: none !important;
+    overflow: hidden !important;
+  }
 }
 
 .enunciado {
@@ -1184,9 +1351,14 @@ blockquote.texto-lectura {
   line-height: 1.6;
 }
 
-/* Lista de ejercicios */
+/* Lista de ejercicios (cálculo mental: "6 + 2 ="). Sin numeración propia
+   (list-style:none) — el ejercicio ya tiene su propio número en el círculo
+   naranja (ver .numero-ejercicio); numerar además cada línea (1, 2, 3...)
+   duplicaba la numeración y confundía al alumno (detectado en ficha real
+   de 1º, 11/08/2026). */
 ol.ejercicio-lista {
-  margin: 6px 0 0 18px;
+  list-style: none;
+  margin: 6px 0 0 0;
   padding: 0;
 }
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
-import { renderizarFichaMatematicas, ICONOS_DISPONIBLES } from './renderer-matematicas.js';
+import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG } from './renderer-matematicas.js';
 
 dotenv.config();
 
@@ -51,8 +51,10 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
      </div>
    </div>
 
-3. TÍTULO:
-   <h1 class="titulo-ficha">[Título descriptivo de la ficha]</h1>
+3. TÍTULO (breve, máximo 4-5 palabras — NO una frase larga tipo "Ficha de
+   Matemáticas: Números hasta 20, sumas y restas sin llevadas". No repitas
+   "Ficha" ni la materia, eso ya lo pone la cabecera):
+   <h1 class="titulo-ficha">[Título breve]</h1>
 
 4. CADA EJERCICIO en su propio contenedor:
    <div class="ejercicio">
@@ -136,9 +138,17 @@ const RANGOS_NUMERICOS_MATE = {
   '6º': 'hasta millones, fracciones, decimales, porcentajes, geometría, estadística simple.'
 };
 
-function construirSystemPromptMatematicas(curso) {
+function construirSystemPromptMatematicas(curso, iconosElegidos) {
   const rango = RANGOS_NUMERICOS_MATE[curso] || RANGOS_NUMERICOS_MATE['3º'];
-  const listaIconos = ICONOS_DISPONIBLES.join(', ');
+  // Si el docente eligió iconos concretos en el formulario, Claude SOLO
+  // puede usar esos — restringe la lista que se le pasa en el prompt en
+  // vez de dejarle elegir entre los 84. Importante: esto NO sustituye
+  // iconos después de generar (eso rompería la coherencia enunciado↔icono,
+  // ver instrucción más abajo) — se restringe ANTES, para que el propio
+  // Claude escriba el enunciado ya coherente con lo que puede usar.
+  const listaIconos = (iconosElegidos && iconosElegidos.length > 0)
+    ? iconosElegidos.join(', ')
+    : ICONOS_DISPONIBLES.join(', ');
   const esConDibujos = ['1º', '2º'].includes(curso);
   const esGuiado = ['1º', '2º', '3º'].includes(curso);
   const esMultDiv = ['4º', '5º', '6º'].includes(curso);
@@ -337,7 +347,7 @@ ni una sola palabra antes o después del objeto JSON.
 
 ESQUEMA EXACTO:
 {
-  "titulo": "string — título descriptivo de la ficha",
+  "titulo": "string — título CORTO, máximo 4-5 palabras (ej. 'Sumas y restas hasta el 20', NO una frase larga tipo 'Ficha de Matemáticas: Números hasta 20, sumas y restas sin llevadas'). No repitas la palabra 'Ficha' ni la materia, eso ya lo pone la cabecera.",
   "ejercicios": [
     {
       "enunciado": "string — instrucción del ejercicio, SIN 'Ejercicio N.' delante (lo añade el sistema).
@@ -414,13 +424,35 @@ RECUERDA: el título y los textos deben reflejar explícitamente la materia "${m
   `.trim();
 }
 
+// ─────────────────────────────────────────────────────────────────
+// GET /api/iconos
+// Devuelve el catálogo completo de iconos (nombre -> SVG) para que el
+// formulario pueda mostrar una vista previa visual antes de generar la
+// ficha (selector de iconos, 11/08/2026). No usa la API de Anthropic —
+// es una simple consulta al catálogo ya cargado en memoria, sin coste.
+// ─────────────────────────────────────────────────────────────────
+app.get('/api/iconos', (req, res) => {
+  res.json(ICONOS_SVG);
+});
+
 app.post('/api/generar-ficha', async (req, res) => {
   try {
-    const { materia, curso, comunidad, instrucciones, idioma, colegio, sumandos } = req.body;
+    const { materia, curso, comunidad, instrucciones, idioma, colegio, sumandos, iconosElegidos } = req.body;
 
     if (!materia || !curso) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: materia y curso.' });
     }
+
+    // Selector de iconos (11/08/2026): el docente puede elegir de antemano
+    // qué iconos usar en los ejercicios de conteo/operaciones ilustradas.
+    // Se valida contra el catálogo real (nunca confiar en lo que mande el
+    // navegador) — cualquier nombre que no exista en ICONOS_DISPONIBLES se
+    // descarta en silencio. Si no queda ninguno válido, se ignora la
+    // restricción y Claude vuelve a elegir libremente entre los 84 (mismo
+    // comportamiento que antes de esta función).
+    const iconosValidados = Array.isArray(iconosElegidos)
+      ? iconosElegidos.filter(nombre => ICONOS_DISPONIBLES.includes(nombre))
+      : [];
 
     // ═══════════════════════════════════════════════════════════
     // MATEMÁTICAS: pipeline nuevo (JSON pedagógico + renderizador).
@@ -431,7 +463,7 @@ app.post('/api/generar-ficha', async (req, res) => {
       if (!Number.isInteger(sumandosValidados) || sumandosValidados < 2) sumandosValidados = 2;
       if (sumandosValidados > 4) sumandosValidados = 4;
 
-      const systemPrompt = construirSystemPromptMatematicas(curso);
+      const systemPrompt = construirSystemPromptMatematicas(curso, iconosValidados);
       const userPrompt = construirPromptMatematicas({
         curso, comunidad, instrucciones, idioma, sumandos: sumandosValidados
       });

@@ -97,6 +97,14 @@
           <p class="campo-ayuda">Solo afecta a las sumas verticales. Las restas siempre son de 2 números.</p>
         </div>
 
+        <div class="campo" id="campoIconos" style="display:none;">
+          <label>Iconos para dibujos (opcional, solo 1º-2º):</label>
+          <p class="campo-ayuda">Elige uno o varios objetos. Si no eliges ninguno, la IA elegirá libremente entre los 84 disponibles. Una vez generada la ficha, los iconos no se pueden cambiar (para no perder coherencia con el enunciado).</p>
+          <div id="rejillaIconos" class="rejilla-iconos">
+            <p class="campo-ayuda">Cargando iconos...</p>
+          </div>
+        </div>
+
         <div class="campo">
           <label for="instrucciones">Instrucciones especiales:</label>
           <textarea id="instrucciones" name="instrucciones" rows="4"
@@ -142,6 +150,53 @@
     }
     document.getElementById('materia').addEventListener('change', actualizarVisibilidadSumandos);
     actualizarVisibilidadSumandos();
+
+    // ── Selector de iconos (11/08/2026) ─────────────────────────────────
+    // Solo tiene sentido cuando el backend va a pedirle a Claude iconos de
+    // conteo/operaciones ilustradas: eso ocurre únicamente en Matemáticas
+    // de 1º-2º (ver "esConDibujos" en server.js). El resto de combinaciones
+    // ocultan el campo para no confundir al docente con algo que no se usaría.
+    let iconosCache = null; // se rellena la primera vez que hace falta, para no pedirlo si nunca se usa
+
+    function actualizarVisibilidadIconos() {
+      const materia = document.getElementById('materia').value;
+      const curso = document.getElementById('curso').value;
+      const campoIconos = document.getElementById('campoIconos');
+      const aplica = materia === 'Matemáticas' && (curso === '1º' || curso === '2º');
+      campoIconos.style.display = aplica ? '' : 'none';
+      if (aplica && !iconosCache) cargarIconosDisponibles();
+    }
+
+    async function cargarIconosDisponibles() {
+      const rejilla = document.getElementById('rejillaIconos');
+      try {
+        const respuesta = await fetch('/api/iconos');
+        if (!respuesta.ok) throw new Error('Respuesta no válida');
+        iconosCache = await respuesta.json();
+
+        rejilla.innerHTML = '';
+        Object.keys(iconosCache).sort().forEach(nombre => {
+          const etiqueta = document.createElement('label');
+          etiqueta.className = 'icono-opcion';
+          etiqueta.innerHTML = `
+            <input type="checkbox" value="${nombre}" class="icono-checkbox">
+            <span class="icono-preview">${iconosCache[nombre]}</span>
+            <span class="icono-nombre">${nombre}</span>
+          `;
+          rejilla.appendChild(etiqueta);
+        });
+      } catch (error) {
+        rejilla.innerHTML = '<p class="campo-ayuda">No se pudieron cargar los iconos. La IA elegirá libremente.</p>';
+      }
+    }
+
+    document.getElementById('materia').addEventListener('change', actualizarVisibilidadIconos);
+    document.getElementById('curso').addEventListener('change', actualizarVisibilidadIconos);
+    actualizarVisibilidadIconos();
+
+    function obtenerIconosElegidos() {
+      return Array.from(document.querySelectorAll('.icono-checkbox:checked')).map(el => el.value);
+    }
 
     // Espera a que las fuentes @font-face (Andika/Nunito/Quicksand/Fredoka)
     // hayan terminado de cargar antes de imprimir. Sin esto, si se pulsa
@@ -220,31 +275,33 @@
       bocadillo.focus();
     }
 
-    // ── Imagen propia del docente (10/08/2026) ──────────────────────────
-    // Mismo patrón que añadirBotonesPista: un botón "🖼️" por ejercicio,
-    // solo visible en modo edición al pasar el ratón, que abre el selector
-    // de archivos del sistema operativo. La imagen se lee en el propio
-    // navegador (FileReader → base64) y se inserta como <img>, sin pasar
-    // por el servidor ni guardarse en ningún sitio — coherente con que la
-    // ficha no se persiste. Se pierde si se recarga la página sin haber
-    // impreso/exportado antes, igual que el resto de ediciones en vivo.
+    // ── Imagen propia del docente — bloque flotante (10/08/2026 v2) ─────
+    // Corrige el enfoque anterior (imagen encajada DENTRO de .ejercicio):
+    // ahora la imagen es un bloque `position: absolute` colgado directamente
+    // de .ficha (la "página" A4), totalmente independiente de la alineación
+    // de los ejercicios. Se inserta en un punto por defecto cerca del botón
+    // que la activó, y el docente la arrastra desde la manija (⠿) a donde
+    // quiera dentro de la página — puede solaparse con el texto sin
+    // problema, es responsabilidad del docente colocarla con cuidado.
+    // Redimensionable con el tirador nativo de la esquina (resize: both).
     const TAMANO_MAX_IMAGEN_MB = 4;
 
     function añadirBotonesImagen(contenedor) {
+      const ficha = contenedor.querySelector('.ficha') || contenedor;
       contenedor.querySelectorAll('.ejercicio').forEach(ejercicio => {
-        if (ejercicio.querySelector('.imagen-personalizada') || ejercicio.querySelector('.btn-add-imagen')) return;
+        if (ejercicio.querySelector('.btn-add-imagen')) return;
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'btn-add-imagen';
         boton.setAttribute('contenteditable', 'false');
-        boton.title = 'Añadir imagen propia';
+        boton.title = 'Añadir imagen suelta cerca de este ejercicio';
         boton.textContent = '🖼️';
-        boton.addEventListener('click', () => activarSelectorImagen(ejercicio, boton));
+        boton.addEventListener('click', () => activarSelectorImagen(ejercicio, ficha));
         ejercicio.appendChild(boton);
       });
     }
 
-    function activarSelectorImagen(ejercicio, boton) {
+    function activarSelectorImagen(ejercicioReferencia, ficha) {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -265,7 +322,7 @@
         }
 
         const lector = new FileReader();
-        lector.onload = () => insertarImagenPersonalizada(ejercicio, boton, lector.result);
+        lector.onload = () => insertarImagenFlotante(ficha, ejercicioReferencia, lector.result);
         lector.onerror = () => alert('No se ha podido leer la imagen. Inténtalo de nuevo.');
         lector.readAsDataURL(archivo);
       });
@@ -274,14 +331,77 @@
       input.click();
     }
 
-    function insertarImagenPersonalizada(ejercicio, boton, dataUrl) {
+    function insertarImagenFlotante(ficha, ejercicioReferencia, dataUrl) {
+      const bloque = document.createElement('div');
+      bloque.className = 'imagen-flotante';
+      bloque.setAttribute('contenteditable', 'false');
+
+      // Posición por defecto: cerca del ejercicio desde el que se pulsó el
+      // botón, ligeramente desplazada para que no quede justo debajo del
+      // botón. ejercicioReferencia.offsetTop/Left ya están medidos en el
+      // mismo sistema de coordenadas que usará el position:absolute (ambos
+      // relativos al padding-edge de .ficha), así que se mantienen
+      // alineados sin importar que .ficha cambie de padding al imprimir.
+      const left = Math.max(0, ejercicioReferencia.offsetLeft + 24);
+      const top = Math.max(0, ejercicioReferencia.offsetTop + 24);
+      bloque.style.left = left + 'px';
+      bloque.style.top = top + 'px';
+
+      const manija = document.createElement('div');
+      manija.className = 'manija-mover-imagen';
+      manija.setAttribute('contenteditable', 'false');
+      manija.title = 'Arrastrar para mover';
+      manija.textContent = '⠿';
+
+      const botonBorrar = document.createElement('button');
+      botonBorrar.type = 'button';
+      botonBorrar.className = 'btn-borrar-imagen';
+      botonBorrar.setAttribute('contenteditable', 'false');
+      botonBorrar.title = 'Eliminar imagen';
+      botonBorrar.textContent = '×';
+      botonBorrar.addEventListener('click', () => bloque.remove());
+
       const img = document.createElement('img');
       img.src = dataUrl;
-      img.className = 'imagen-personalizada';
-      img.setAttribute('contenteditable', 'false');
       img.alt = 'Imagen añadida por el docente';
-      ejercicio.appendChild(img);
-      boton.remove();
+
+      bloque.appendChild(manija);
+      bloque.appendChild(botonBorrar);
+      bloque.appendChild(img);
+      ficha.appendChild(bloque);
+
+      habilitarArrastreImagen(bloque, manija, ficha);
+    }
+
+    // Arrastre con el ratón desde la manija (⠿). Limitado a los límites de
+    // .ficha para que el docente no pueda "perder" la imagen fuera del A4
+    // por error. El redimensionado (esquina inferior derecha) lo gestiona
+    // el navegador de forma nativa vía CSS `resize: both`, sin JS.
+    function habilitarArrastreImagen(bloque, manija, ficha) {
+      manija.addEventListener('mousedown', (evento) => {
+        evento.preventDefault();
+        const inicioX = evento.clientX;
+        const inicioY = evento.clientY;
+        const inicioLeft = bloque.offsetLeft;
+        const inicioTop = bloque.offsetTop;
+
+        function alMover(e) {
+          const dx = e.clientX - inicioX;
+          const dy = e.clientY - inicioY;
+          const maxLeft = ficha.clientWidth - bloque.offsetWidth;
+          const maxTop = ficha.clientHeight - bloque.offsetHeight;
+          const nuevoLeft = Math.min(Math.max(0, inicioLeft + dx), Math.max(0, maxLeft));
+          const nuevoTop = Math.min(Math.max(0, inicioTop + dy), Math.max(0, maxTop));
+          bloque.style.left = nuevoLeft + 'px';
+          bloque.style.top = nuevoTop + 'px';
+        }
+        function alSoltar() {
+          document.removeEventListener('mousemove', alMover);
+          document.removeEventListener('mouseup', alSoltar);
+        }
+        document.addEventListener('mousemove', alMover);
+        document.addEventListener('mouseup', alSoltar);
+      });
     }
 
     document.getElementById('formFicha').addEventListener('submit', async (e) => {
@@ -295,13 +415,14 @@
       contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
 
       const datos = {
-        colegio:       document.getElementById('colegio').value,
-        idioma:        document.getElementById('idioma').value,
-        comunidad:     document.getElementById('comunidad').value,
-        curso:         document.getElementById('curso').value,
-        materia:       document.getElementById('materia').value,
-        sumandos:      document.getElementById('sumandos').value,
-        instrucciones: document.getElementById('instrucciones').value
+        colegio:        document.getElementById('colegio').value,
+        idioma:         document.getElementById('idioma').value,
+        comunidad:      document.getElementById('comunidad').value,
+        curso:          document.getElementById('curso').value,
+        materia:        document.getElementById('materia').value,
+        sumandos:       document.getElementById('sumandos').value,
+        instrucciones:  document.getElementById('instrucciones').value,
+        iconosElegidos: obtenerIconosElegidos()
       };
 
       try {
