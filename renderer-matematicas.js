@@ -106,6 +106,57 @@ export const ICONOS_DISPONIBLES = Object.keys(ICONOS);
 // de cada icono al docente (selector de iconos antes de generar, 11/08/2026).
 export const ICONOS_SVG = ICONOS;
 
+// ─────────────────────────────────────────────────────────────────
+// FIGURAS GEOMÉTRICAS (13/08/2026) — catálogo separado de ICONOS: aquí no
+// son "objetos para contar" sino figuras curriculares con propiedades
+// pedagógicas (lados/vértices en 2D, caras/aristas/vértices en 3D), usadas
+// por el tipo de ejercicio "figura_geometrica". Reutiliza el SVG de algunas
+// figuras que ya existían en ICONOS (mismo trazo, para que el estilo visual
+// sea coherente en toda la ficha) y añade las que faltaban.
+// ─────────────────────────────────────────────────────────────────
+const SVG_TRIANGULO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l9 17h-18z\"/></svg>";
+const SVG_ROMBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l9 9l-9 9l-9 -9z\"/></svg>";
+const SVG_TRAPECIO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 6h8l5 12h-18z\"/></svg>";
+const SVG_CUBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 9v10h10v-10z\"/><path d=\"M4 9l6 -6h10l-6 6z\"/><path d=\"M14 9l6 -6v10l-6 6z\"/></svg>";
+const SVG_PRISMA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6v15h10v-15z\"/><path d=\"M4 6l6 -4h10l-6 4z\"/><path d=\"M14 6l6 -4v15l-6 4z\"/></svg>";
+const SVG_PIRAMIDE = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 13l9 5l-9 5l-9 -5z\"/><path d=\"M12 2l-9 16\"/><path d=\"M12 2l9 16\"/><path d=\"M12 2l0 11\"/></svg>";
+const SVG_CONO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><ellipse cx=\"12\" cy=\"19\" rx=\"8\" ry=\"3\"/><path d=\"M12 2l-8 17\"/><path d=\"M12 2l8 17\"/></svg>";
+const SVG_CILINDRO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14\"/><path d=\"M20 5v14\"/><path d=\"M4 19a8 3 0 0 0 16 0\"/></svg>";
+const SVG_ESFERA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12a9 4 0 0 0 18 0\"/><path d=\"M3 12a9 4 0 0 1 18 0\"/></svg>";
+
+// Figuras planas: { nombre visible, lados, vértices, svg }.
+const FIGURAS_2D = {
+  triangulo:   { nombre: 'triángulo',  lados: 3, vertices: 3, svg: SVG_TRIANGULO },
+  cuadrado:    { nombre: 'cuadrado',   lados: 4, vertices: 4, svg: ICONOS.cuadrado },
+  rectangulo:  { nombre: 'rectángulo', lados: 4, vertices: 4, svg: ICONOS.rectangulo },
+  rombo:       { nombre: 'rombo',      lados: 4, vertices: 4, svg: SVG_ROMBO },
+  trapecio:    { nombre: 'trapecio',   lados: 4, vertices: 4, svg: SVG_TRAPECIO },
+  pentagono:   { nombre: 'pentágono',  lados: 5, vertices: 5, svg: ICONOS.pentagono },
+  hexagono:    { nombre: 'hexágono',   lados: 6, vertices: 6, svg: ICONOS.hexagono },
+  circulo:     { nombre: 'círculo',    lados: 0, vertices: 0, svg: ICONOS.circulo },
+  ovalo:       { nombre: 'óvalo',      lados: 0, vertices: 0, svg: ICONOS.ovalo }
+};
+
+// Cuerpos geométricos: { nombre visible, caras, aristas, vértices, svg }.
+// Valores simplificados al criterio habitual de Primaria (superficies
+// curvas cuentan como una "cara" — ej. la esfera tiene 1 cara, 0 aristas,
+// 0 vértices; el cono tiene 2 caras, 1 arista curva, 1 vértice).
+const FIGURAS_3D = {
+  cubo:     { nombre: 'cubo',              caras: 6, aristas: 12, vertices: 8, svg: SVG_CUBO },
+  prisma:   { nombre: 'prisma rectangular', caras: 6, aristas: 12, vertices: 8, svg: SVG_PRISMA },
+  piramide: { nombre: 'pirámide',          caras: 5, aristas: 8,  vertices: 5, svg: SVG_PIRAMIDE },
+  cono:     { nombre: 'cono',              caras: 2, aristas: 1,  vertices: 1, svg: SVG_CONO },
+  cilindro: { nombre: 'cilindro',          caras: 3, aristas: 2,  vertices: 0, svg: SVG_CILINDRO },
+  esfera:   { nombre: 'esfera',            caras: 1, aristas: 0,  vertices: 0, svg: SVG_ESFERA }
+};
+
+export const FIGURAS_2D_DISPONIBLES = Object.keys(FIGURAS_2D);
+export const FIGURAS_3D_DISPONIBLES = Object.keys(FIGURAS_3D);
+
+function buscarFigura(nombre) {
+  return FIGURAS_2D[nombre] || FIGURAS_3D[nombre] || null;
+}
+
 function escapeHtml(valor) {
   return String(valor ?? '')
     .replace(/&/g, '&amp;')
@@ -675,6 +726,306 @@ function renderGraficoQuesitos(datos) {
   return `<div class="grafico-quesitos-bloque">${svg}<div class="quesito-leyenda">${leyenda}</div></div>`;
 }
 
+// ── Restas con barritas (modelo de comparación de conjuntos) ────────────
+// Dos grupos de palotes, uno por término de la resta. El alumno tacha a
+// mano la misma cantidad de palotes en los dos grupos; lo que sobra sin
+// tachar en el grupo mayor es el resultado. El sistema NUNCA marca ningún
+// palote como tachado (eso sería resolver el ejercicio): en modo "tachar"
+// dibuja los palotes ya puestos, listos para tachar a mano; en modo
+// "dibujar" deja las dos cajas vacías (solo el número como referencia)
+// para que el alumno dibuje él mismo los palotes antes de tachar.
+function renderBarritas(cantidad) {
+  // Blindaje: más de 30 palotes deja de leerse bien en una caja de ficha.
+  const n = Math.max(0, Math.min(30, parseInt(cantidad, 10) || 0));
+  return '<span class="barrita"></span>'.repeat(n);
+}
+
+function renderRestaBarritas(datos) {
+  let minuendo = parseInt(datos.minuendo, 10);
+  let sustraendo = parseInt(datos.sustraendo, 10);
+  if (!Number.isInteger(minuendo)) minuendo = 0;
+  if (!Number.isInteger(sustraendo)) sustraendo = 0;
+  // Blindaje: el minuendo nunca puede ser menor que el sustraendo — si el
+  // JSON llega mal, se corrige aquí en vez de dibujar una resta imposible.
+  if (sustraendo > minuendo) { const tmp = minuendo; minuendo = sustraendo; sustraendo = tmp; }
+
+  const modoDibujar = datos.modo === 'dibujar';
+
+  const cajaGrupo = (numero) => modoDibujar
+    ? `<div class="resta-barritas-caja resta-barritas-caja-vacia"></div>`
+    : `<div class="resta-barritas-caja">${renderBarritas(numero)}</div>`;
+
+  return `<div class="resta-barritas-bloque">
+    <p class="resta-barritas-operacion">${minuendo} − ${sustraendo} = <span class="hueco hueco-corto"></span></p>
+    <div class="resta-barritas-grupos">
+      <div class="resta-barritas-grupo">
+        <span class="resta-barritas-numero">${minuendo}</span>
+        ${cajaGrupo(minuendo)}
+      </div>
+      <div class="resta-barritas-grupo">
+        <span class="resta-barritas-numero">${sustraendo}</span>
+        ${cajaGrupo(sustraendo)}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Recta numérica ───────────────────────────────────────────────────────
+// Recta horizontal de 0 a un máximo, con el número de partida ("a")
+// resaltado con una caja y los saltos de la operación marcados con arcos
+// discontinuos (hacia atrás en restas, hacia delante en sumas) — el mismo
+// recurso visual "saltamos hacia atrás/delante" de los libros de texto. El
+// sistema NUNCA marca ni escribe el resultado, solo deja un hueco.
+function renderRectaNumerica(datos) {
+  const op = datos.operacion || {};
+  const a = Math.max(0, Math.round(numeroDesdeJSON(op.a)));
+  const b = Math.max(0, Math.round(numeroDesdeJSON(op.b)));
+  const esResta = op.signo !== '+';
+
+  const destino = esResta ? a - b : a + b;
+
+  let rangoMax = parseInt(datos.rangoMax, 10);
+  if (!Number.isInteger(rangoMax) || rangoMax < 1) {
+    rangoMax = Math.max(a, destino) + 3;
+  }
+  // Blindaje: una recta con demasiadas marcas deja de leerse bien impresa.
+  rangoMax = Math.max(Math.max(a, destino), Math.min(rangoMax, 30));
+
+  const paso = 26;
+  const margen = 16;
+  const yLinea = 46;
+  const anchoTotal = margen * 2 + rangoMax * paso;
+  const altoTotal = 78;
+
+  let ticks = '';
+  let numeros = '';
+  for (let i = 0; i <= rangoMax; i++) {
+    const x = margen + i * paso;
+    ticks += `<line x1="${x}" y1="${yLinea - 5}" x2="${x}" y2="${yLinea + 5}" stroke="#334155" stroke-width="1.5"/>`;
+    numeros += `<text x="${x}" y="${yLinea + 22}" font-size="12" text-anchor="middle" font-family="Arial">${i}</text>`;
+  }
+  const lineaBase = `<line x1="${margen}" y1="${yLinea}" x2="${anchoTotal - margen}" y2="${yLinea}" stroke="#334155" stroke-width="2"/>`;
+
+  const xInicio = margen + a * paso;
+  const cajaInicio = `<rect x="${xInicio - 11}" y="${yLinea - 11}" width="22" height="22" fill="none" class="recta-numerica-caja-inicio" rx="4"/>`;
+
+  let saltos = '';
+  const desde = Math.min(a, destino);
+  const hasta = Math.max(a, destino);
+  for (let i = desde; i < hasta; i++) {
+    const x1 = margen + i * paso;
+    const x2 = margen + (i + 1) * paso;
+    const xMedio = (x1 + x2) / 2;
+    saltos += `<path d="M${x1} ${yLinea} Q${xMedio} ${(yLinea - 22).toFixed(1)} ${x2} ${yLinea}" fill="none" class="recta-numerica-salto"/>`;
+  }
+
+  const svg = `<svg width="${anchoTotal}" height="${altoTotal}" viewBox="0 0 ${anchoTotal} ${altoTotal}">
+    ${lineaBase}${ticks}${numeros}${saltos}${cajaInicio}
+  </svg>`;
+
+  return `<div class="recta-numerica-bloque">
+    <p class="recta-numerica-operacion">${a} ${esResta ? '−' : '+'} ${b} = <span class="hueco hueco-corto"></span></p>
+    <div class="recta-numerica-svg">${svg}</div>
+  </div>`;
+}
+
+// ── Rejilla numérica ─────────────────────────────────────────────────────
+// Cuadrícula de números en fila×columna (versión en rejilla de
+// "serie_numerica"): practica el conteo (de 1 en 1, de 2 en 2, de 10 en
+// 10...) o el reconocimiento de decenas. Mismo convenio que serie_numerica:
+// "numeros" es la lista completa, con "null" en las posiciones a rellenar
+// — el sistema solo la reparte en filas de "columnas" celdas, nunca decide
+// el patrón ni el contenido.
+function renderRejillaNumerica(datos) {
+  let columnas = parseInt(datos.columnas, 10);
+  if (!Number.isInteger(columnas) || columnas < 2) columnas = 10;
+  columnas = Math.min(columnas, 10);
+
+  const numeros = Array.isArray(datos.numeros) ? datos.numeros.slice(0, 120) : [];
+  if (numeros.length === 0) return '';
+
+  const celdas = numeros.map(n => {
+    const esHueco = n === null || n === undefined || n === '';
+    return `<span class="rn-celda${esHueco ? ' rn-hueco' : ''}">${esHueco ? '' : escapeHtml(n)}</span>`;
+  }).join('');
+
+  return `<div class="rejilla-numerica" style="grid-template-columns: repeat(${columnas}, 1fr);">${celdas}</div>`;
+}
+
+// ── Cuadro numérico ──────────────────────────────────────────────────────
+// Tabla de doble entrada para practicar sumas o restas: cabecera de filas y
+// columnas con números, celdas en blanco para que el alumno escriba el
+// resultado. En "resta" la operación de cada celda es SIEMPRE
+// columna − fila (nunca al revés) — las celdas donde eso daría negativo
+// (columna < fila) se bloquean visualmente en vez de dejarse como si
+// hubiera que rellenarlas. "ejemplo" (opcional) marca una celda concreta
+// que el sistema rellena ya resuelta, como modelo — el propio código
+// calcula ese resultado, nunca Claude.
+function renderCuadroNumerico(datos) {
+  const operacion = datos.operacion === 'suma' ? 'suma' : 'resta';
+  let filas = Array.isArray(datos.filas) ? datos.filas.map(n => parseInt(n, 10)).filter(Number.isInteger) : [];
+  let columnas = Array.isArray(datos.columnas) ? datos.columnas.map(n => parseInt(n, 10)).filter(Number.isInteger) : [];
+  // Blindaje de tamaño: una tabla demasiado grande no cabe bien en la ficha.
+  filas = filas.slice(0, 6);
+  columnas = columnas.slice(0, 8);
+  if (filas.length === 0 || columnas.length === 0) return '';
+
+  const simbolo = operacion === 'suma' ? '+' : '−';
+
+  const ejemploFila = datos.ejemplo ? parseInt(datos.ejemplo.fila, 10) : NaN;
+  const ejemploColumna = datos.ejemplo ? parseInt(datos.ejemplo.columna, 10) : NaN;
+  const hayEjemplo = Number.isInteger(ejemploFila) && Number.isInteger(ejemploColumna);
+
+  const cabeceraColumnas = columnas.map(c => `<th>${escapeHtml(c)}</th>`).join('');
+
+  const filasHtml = filas.map(f => {
+    const celdas = columnas.map(c => {
+      const esInvalida = operacion === 'resta' && c < f;
+      if (esInvalida) return `<td class="cn-celda cn-bloqueada"></td>`;
+
+      if (hayEjemplo && ejemploFila === f && ejemploColumna === c) {
+        const resultado = operacion === 'suma' ? f + c : c - f;
+        return `<td class="cn-celda cn-ejemplo">${resultado}</td>`;
+      }
+      return `<td class="cn-celda"></td>`;
+    }).join('');
+    return `<tr><th>${escapeHtml(f)}</th>${celdas}</tr>`;
+  }).join('');
+
+  return `<table class="cuadro-numerico">
+    <thead><tr><th class="cn-esquina">${simbolo}</th>${cabeceraColumnas}</tr></thead>
+    <tbody>${filasHtml}</tbody>
+  </table>`;
+}
+
+// ── Figuras geométricas (2D y 3D) ────────────────────────────────────────
+// Cuatro modos, cada uno con su propio "datos.modo":
+// "identificar"    → icono + hueco en blanco para que el alumno escriba el nombre.
+// "propiedades"    → icono CON su nombre + huecos para lados/vértices (2D) o
+//                     caras/aristas/vértices (3D), a contar por el alumno.
+// "clasificar"     → todas las figuras sueltas arriba + una caja en blanco
+//                     por cada grupo, para que el alumno reparta las figuras.
+// "perimetro_area" → una figura (cuadrado/rectángulo/triángulo) dibujada con
+//                     sus medidas, y huecos en blanco para perímetro y/o área
+//                     — el sistema nunca calcula ni imprime el resultado.
+function renderFiguraIdentificar(datos) {
+  const figuras = Array.isArray(datos.figuras) ? datos.figuras.slice(0, 8) : [];
+  const tarjetas = figuras.map(nombre => {
+    const fig = buscarFigura(nombre);
+    if (!fig) return '';
+    return `<div class="figura-geometrica-tarjeta">
+      <div class="figura-geometrica-icono">${fig.svg}</div>
+      <span class="hueco hueco-largo"></span>
+    </div>`;
+  }).join('');
+  return `<div class="figura-geometrica-grid">${tarjetas}</div>`;
+}
+
+function renderFiguraPropiedades(datos) {
+  const figuras = Array.isArray(datos.figuras) ? datos.figuras.slice(0, 6) : [];
+  const tarjetas = figuras.map(nombre => {
+    const fig = buscarFigura(nombre);
+    if (!fig) return '';
+    const es3d = !!FIGURAS_3D[nombre];
+    const filasProp = es3d
+      ? `<div class="fg-propiedad-fila"><span>Caras:</span><span class="hueco hueco-corto"></span></div>
+         <div class="fg-propiedad-fila"><span>Aristas:</span><span class="hueco hueco-corto"></span></div>
+         <div class="fg-propiedad-fila"><span>Vértices:</span><span class="hueco hueco-corto"></span></div>`
+      : `<div class="fg-propiedad-fila"><span>Lados:</span><span class="hueco hueco-corto"></span></div>
+         <div class="fg-propiedad-fila"><span>Vértices:</span><span class="hueco hueco-corto"></span></div>`;
+    return `<div class="figura-geometrica-tarjeta figura-geometrica-tarjeta-propiedades">
+      <div class="figura-geometrica-icono">${fig.svg}</div>
+      <p class="fg-nombre-figura">${escapeHtml(fig.nombre)}</p>
+      <div class="fg-propiedades">${filasProp}</div>
+    </div>`;
+  }).join('');
+  return `<div class="figura-geometrica-grid">${tarjetas}</div>`;
+}
+
+function renderFiguraClasificar(datos) {
+  const figuras = Array.isArray(datos.figuras) ? datos.figuras.slice(0, 10) : [];
+  const grupos = Array.isArray(datos.grupos) ? datos.grupos.slice(0, 4) : [];
+  if (figuras.length === 0 || grupos.length === 0) return '';
+
+  const iconos = figuras.map(nombre => {
+    const fig = buscarFigura(nombre);
+    return fig ? `<div class="fg-clasificar-icono">${fig.svg}</div>` : '';
+  }).join('');
+
+  const cajasGrupos = grupos.map(g => `
+    <div class="fg-clasificar-grupo">
+      <p class="fg-clasificar-titulo">${escapeHtml(g)}</p>
+      <div class="espacio-respuesta"></div>
+    </div>`).join('');
+
+  return `<div class="figura-geometrica-clasificar">
+    <div class="fg-clasificar-figuras">${iconos}</div>
+    <div class="fg-clasificar-grupos">${cajasGrupos}</div>
+  </div>`;
+}
+
+function formatMedida(valor, unidad) {
+  return `${numeroDesdeJSON(valor)} ${escapeHtml(unidad || 'cm')}`;
+}
+
+function renderFiguraPerimetroArea(datos) {
+  const figura = datos.figura;
+  const medidas = datos.medidas || {};
+  const unidad = datos.unidad || 'cm';
+  const pedir = Array.isArray(datos.pedir) ? datos.pedir : ['area'];
+
+  let svgFigura = '';
+  if (figura === 'cuadrado') {
+    const etiqueta = formatMedida(medidas.lado, unidad);
+    svgFigura = `<svg width="170" height="160" viewBox="0 0 170 160">
+      <rect x="25" y="10" width="120" height="120" fill="none" stroke="#000" stroke-width="2"/>
+      <text x="85" y="150" text-anchor="middle" font-size="15" font-family="Arial" class="fg-medida-texto">${etiqueta}</text>
+    </svg>`;
+  } else if (figura === 'rectangulo') {
+    const etiquetaBase = formatMedida(medidas.base, unidad);
+    const etiquetaAltura = formatMedida(medidas.altura, unidad);
+    svgFigura = `<svg width="220" height="160" viewBox="0 0 220 160">
+      <rect x="30" y="20" width="160" height="90" fill="none" stroke="#000" stroke-width="2"/>
+      <text x="110" y="130" text-anchor="middle" font-size="15" font-family="Arial" class="fg-medida-texto">${etiquetaBase}</text>
+      <text x="15" y="65" text-anchor="middle" font-size="15" font-family="Arial" class="fg-medida-texto" transform="rotate(-90 15 65)">${etiquetaAltura}</text>
+    </svg>`;
+  } else if (figura === 'triangulo') {
+    const etiquetaBase = formatMedida(medidas.base ?? medidas.lado, unidad);
+    let lineaAltura = '';
+    let etiquetaAltura = '';
+    if (medidas.altura !== undefined) {
+      etiquetaAltura = `<text x="122" y="65" font-size="14" font-family="Arial" class="fg-medida-texto">${formatMedida(medidas.altura, unidad)}</text>`;
+      lineaAltura = `<line x1="110" y1="20" x2="110" y2="110" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    }
+    svgFigura = `<svg width="220" height="140" viewBox="0 0 220 140">
+      <polygon points="110,20 20,110 200,110" fill="none" stroke="#000" stroke-width="2"/>
+      ${lineaAltura}${etiquetaAltura}
+      <text x="110" y="130" text-anchor="middle" font-size="15" font-family="Arial" class="fg-medida-texto">${etiquetaBase}</text>
+    </svg>`;
+  }
+  if (!svgFigura) return '';
+
+  const etiquetasRespuesta = { perimetro: 'Perímetro', area: 'Área' };
+  const filasRespuesta = pedir
+    .filter(p => etiquetasRespuesta[p])
+    .map(p => `<div class="fg-respuesta-fila"><span>${etiquetasRespuesta[p]} = </span><span class="hueco hueco-largo"></span></div>`)
+    .join('');
+  if (!filasRespuesta) return '';
+
+  return `<div class="figura-geometrica-medida">
+    <div class="fg-medida-svg">${svgFigura}</div>
+    <div class="fg-respuestas">${filasRespuesta}</div>
+  </div>`;
+}
+
+function renderFiguraGeometrica(datos) {
+  if (datos.modo === 'identificar') return renderFiguraIdentificar(datos);
+  if (datos.modo === 'propiedades') return renderFiguraPropiedades(datos);
+  if (datos.modo === 'clasificar') return renderFiguraClasificar(datos);
+  if (datos.modo === 'perimetro_area') return renderFiguraPerimetroArea(datos);
+  return '';
+}
+
 const RENDERERS_POR_TIPO = {
   operacion_vertical: (datos) => renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
@@ -689,7 +1040,12 @@ const RENDERERS_POR_TIPO = {
   tabla_frecuencia:     (datos, curso) => renderTablaFrecuencia(datos, curso),
   reloj_analogico:      (datos) => renderRelojAnalogico(datos),
   grafico_barras:       (datos) => renderGraficoBarras(datos),
-  grafico_quesitos:     (datos) => renderGraficoQuesitos(datos)
+  grafico_quesitos:     (datos) => renderGraficoQuesitos(datos),
+  resta_barritas:       (datos) => renderRestaBarritas(datos),
+  cuadro_numerico:      (datos) => renderCuadroNumerico(datos),
+  figura_geometrica:    (datos) => renderFiguraGeometrica(datos),
+  recta_numerica:       (datos) => renderRectaNumerica(datos),
+  rejilla_numerica:     (datos) => renderRejillaNumerica(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {

@@ -1097,6 +1097,290 @@ body {
   color: #475569;
 }
 
+/* ── Restas con barritas (13/08/2026) ─────────────────────────────────────
+   Modelo de comparación de conjuntos: dos grupos de palotes, uno por
+   término de la resta. El alumno tacha a mano la misma cantidad en ambos
+   grupos; lo que sobra sin tachar en el grupo mayor es el resultado. En
+   modo "dibujar" la caja queda vacía (contorno punteado) para que el
+   alumno dibuje él mismo los palotes. */
+.resta-barritas-bloque {
+  margin: 10px 0;
+}
+
+.resta-barritas-operacion {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.resta-barritas-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.resta-barritas-grupo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.resta-barritas-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 50%;
+  background: var(--calido-azul);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.resta-barritas-caja {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 3px;
+  max-width: 260px;
+  min-height: 40px;
+  padding: 8px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.resta-barritas-caja-vacia {
+  border: 2px dashed var(--calido-azul);
+  background: var(--calido-azul-fondo);
+  min-width: 140px;
+  min-height: 70px;
+}
+
+.barrita {
+  display: inline-block;
+  width: 5px;
+  height: 30px;
+  background: #000;
+  border-radius: 1px;
+}
+
+/* ── Recta numérica (13/08/2026) ──────────────────────────────────────────
+   Recta horizontal de 0 a un máximo, con el número de partida resaltado y
+   los saltos de la operación marcados con arcos discontinuos por encima de
+   la línea (hacia atrás en restas, hacia delante en sumas). */
+.recta-numerica-bloque {
+  margin: 10px 0;
+}
+
+.recta-numerica-operacion {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+.recta-numerica-svg {
+  overflow-x: auto;
+}
+
+.recta-numerica-caja-inicio {
+  stroke: var(--calido-naranja);
+  stroke-width: 2;
+}
+
+.recta-numerica-salto {
+  stroke: var(--calido-azul);
+  stroke-width: 1.8;
+  stroke-dasharray: 3,3;
+}
+
+/* ── Rejilla numérica (13/08/2026) ────────────────────────────────────────
+   Cuadrícula de números en fila×columna (versión en rejilla de
+   ".serie-numerica") para practicar el conteo o el reconocimiento de
+   decenas — mismo convenio de huecos que la serie: celdas en blanco donde
+   el alumno debe escribir el número que falta. */
+.rejilla-numerica {
+  display: grid;
+  gap: 3px;
+  max-width: 480px;
+  margin: 10px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 15px;
+}
+
+.rn-celda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.rn-hueco {
+  border-style: dashed;
+  border-color: var(--calido-azul);
+  background: var(--calido-azul-fondo);
+}
+
+/* ── Cuadro numérico (13/08/2026) ─────────────────────────────────────────
+   Tabla de doble entrada para practicar sumas o restas: cabecera de filas
+   y columnas con números, celdas en blanco para el resultado. Las celdas
+   inválidas (resta con columna < fila) se bloquean con trama diagonal. */
+.cuadro-numerico {
+  border-collapse: collapse;
+  font-size: 15px;
+  margin: 10px 0;
+}
+
+.cuadro-numerico th,
+.cuadro-numerico td {
+  border: 1px solid #cbd5e1;
+  width: 34px;
+  height: 30px;
+  text-align: center;
+  padding: 2px;
+}
+
+.cuadro-numerico thead th,
+.cuadro-numerico tbody th {
+  background: var(--calido-azul-fondo);
+  font-weight: bold;
+}
+
+.cn-esquina {
+  background: var(--calido-azul) !important;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.cn-ejemplo {
+  color: var(--calido-azul);
+  font-weight: bold;
+}
+
+.cn-bloqueada {
+  background-image: repeating-linear-gradient(
+    45deg, #e2e8f0, #e2e8f0 4px, #f8fafc 4px, #f8fafc 8px
+  );
+}
+
+/* ── Figuras geométricas (13/08/2026) ─────────────────────────────────────
+   Cuatro modos: identificar (icono + hueco para el nombre), propiedades
+   (icono con nombre + huecos de lados/vértices o caras/aristas/vértices),
+   clasificar (iconos sueltos + cajas de grupo) y perímetro/área (figura
+   con medidas + huecos de respuesta). */
+.figura-geometrica-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 10px 0;
+}
+
+.figura-geometrica-tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+}
+
+.figura-geometrica-icono svg {
+  width: 64px;
+  height: 64px;
+}
+
+.figura-geometrica-tarjeta-propiedades {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 130px;
+}
+
+.fg-nombre-figura {
+  margin: 2px 0 4px;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.fg-propiedades {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.fg-propiedad-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.figura-geometrica-clasificar {
+  margin: 10px 0;
+}
+
+.fg-clasificar-figuras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.fg-clasificar-icono svg {
+  width: 46px;
+  height: 46px;
+}
+
+.fg-clasificar-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fg-clasificar-grupo {
+  flex: 1;
+  min-width: 160px;
+}
+
+.fg-clasificar-titulo {
+  font-weight: bold;
+  margin: 0 0 4px;
+  color: var(--calido-azul);
+}
+
+.figura-geometrica-medida {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  margin: 10px 0;
+}
+
+.fg-medida-texto {
+  fill: var(--calido-texto);
+  font-weight: bold;
+}
+
+.fg-respuestas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.fg-respuesta-fila {
+  display: flex;
+  align-items: center;
+}
+
 /* ── Operaciones con decimales ───────────────────────────────────────────
    Alineación por coma decimal (no por longitud total del texto): grid de
    4 columnas (signo | entero | coma | decimal). Cada ".operacion-fila-decimal"
@@ -1501,6 +1785,61 @@ ol.ejercicio-lista li {
 .ficha.modo-blanco-negro .quesito-leyenda-color {
   background: white !important;
   border: 1.5px solid black !important;
+}
+
+.ficha.modo-blanco-negro .resta-barritas-numero {
+  background: white !important;
+  color: black !important;
+  border: 1.5px solid black !important;
+}
+
+.ficha.modo-blanco-negro .resta-barritas-caja-vacia {
+  border-color: black !important;
+  background: white !important;
+}
+
+.ficha.modo-blanco-negro .cuadro-numerico thead th,
+.ficha.modo-blanco-negro .cuadro-numerico tbody th {
+  background: white !important;
+}
+
+.ficha.modo-blanco-negro .cn-esquina {
+  background: white !important;
+  color: black !important;
+  border: 2px solid black !important;
+}
+
+.ficha.modo-blanco-negro .cn-ejemplo {
+  color: black !important;
+}
+
+.ficha.modo-blanco-negro .cn-bloqueada {
+  background-image: repeating-linear-gradient(
+    45deg, #ccc, #ccc 4px, white 4px, white 8px
+  ) !important;
+}
+
+.ficha.modo-blanco-negro .fg-clasificar-titulo {
+  color: black !important;
+}
+
+.ficha.modo-blanco-negro .fg-clasificar-figuras {
+  background: white !important;
+  border: 1.5px solid black !important;
+}
+
+.ficha.modo-blanco-negro .fg-medida-texto {
+  fill: black !important;
+}
+
+.ficha.modo-blanco-negro .recta-numerica-caja-inicio,
+.ficha.modo-blanco-negro .recta-numerica-salto {
+  stroke: black !important;
+}
+
+.ficha.modo-blanco-negro .rn-hueco {
+  border-color: black !important;
+  background: white !important;
 }
 
 /* ==========================================================================

@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
-import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG } from './renderer-matematicas.js';
+import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG, FIGURAS_2D_DISPONIBLES, FIGURAS_3D_DISPONIBLES } from './renderer-matematicas.js';
 
 dotenv.config();
 
@@ -172,6 +172,18 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
     tiposDisponibles += ' | grafico_quesitos';
   }
 
+  // Tipos nuevos (13/08/2026): restas con barritas (apoyo manipulativo,
+  // solo donde ya se usan dibujos), cuadro numérico (tabla de doble entrada,
+  // cursos guiados) y figura_geometrica (disponible en todos los cursos,
+  // pero con distinta dificultad — ver bloqueFiguraGeometrica más abajo).
+  if (esConDibujos) {
+    tiposDisponibles += ' | resta_barritas | recta_numerica';
+  }
+  if (esGuiado) {
+    tiposDisponibles += ' | cuadro_numerico | rejilla_numerica';
+  }
+  tiposDisponibles += ' | figura_geometrica';
+
   let bloqueOperacion = `
 - "operacion_vertical": SOLO sumas y restas en columna (nunca multiplicación
   ni división — para eso usa "multiplicacion_vertical" o "division_vertical").
@@ -309,6 +321,144 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
     repitas los valores ya dados como si fueran nueva información.` : ''
 }`;
 
+  // Restas con barritas (13/08/2026): alternativa manipulativa a
+  // "operacion_vertical" — dos grupos de palotes que el alumno tacha a mano.
+  const bloqueRestaBarritas = esConDibujos ? `
+
+- "resta_barritas": resta representada con dos grupos de palotes/barritas (modelo de
+  comparación de conjuntos: el alumno tacha a mano tantos palotes como el número menor en los
+  DOS grupos, y lo que sobra sin tachar en el grupo mayor es el resultado). Úsalo como
+  alternativa visual a "operacion_vertical" para practicar la resta con apoyo manipulativo, no
+  en columna.
+  { "minuendo": n, "sustraendo": m, "modo": "tachar" o "dibujar" }
+  * "minuendo" SIEMPRE mayor o igual que "sustraendo".
+  * "modo": "tachar" → el sistema dibuja ya los palotes en las dos cajas (el alumno solo
+    tacha). "dibujar" → el sistema deja las dos cajas vacías, con el número como referencia,
+    para que el alumno dibuje él mismo los palotes antes de tachar — es un paso más de
+    dificultad, úsalo cuando el docente pida explícitamente "que dibuje" o para variar.
+  * Usa números pequeños (hasta unos 20-25): con más cantidad los palotes dejan de leerse bien
+    en la caja de la ficha.` : '';
+
+  // Recta numérica (13/08/2026): apoyo visual clásico para sumas/restas de
+  // un solo paso — mismo curso que resta_barritas.
+  const bloqueRectaNumerica = esConDibujos ? `
+
+- "recta_numerica": recta numérica horizontal (de 0 a un máximo) con el número de partida
+  resaltado y los saltos de la operación marcados, para practicar sumas o restas SENCILLAS de
+  un solo paso.
+  { "operacion": { "a": n1, "signo": "+" o "-", "b": n2 }, "rangoMax": n (opcional) }
+  * Números pequeños, típicamente hasta 20 — con números grandes la recta deja de caber/leerse
+    bien impresa.
+  * "rangoMax" es OPCIONAL: si lo omites, el sistema calcula un rango con margen suficiente
+    para "a" y el resultado. Indícalo solo si quieres que varias rectas de la misma ficha
+    compartan exactamente el mismo rango (por ejemplo, todas de 0 a 19).
+  * El sistema dibuja la recta, resalta "a" y marca los saltos — nunca calcules ni escribas tú
+    el resultado, solo queda un hueco en blanco.` : '';
+
+  // Rejilla numérica (13/08/2026): cuadrícula de números en fila×columna
+  // (versión en rejilla de "serie_numerica") — mismos cursos que
+  // cuadro_numerico, pero es un tipo DISTINTO: esta es una secuencia de
+  // conteo (de 1 en 1, de 2 en 2...), no una tabla de sumar/restar.
+  // 13/08/2026 (aclaración del usuario): en 1º-2º "rejilla_numerica" debe ser
+  // sobre todo EL "cuadro numérico" clásico de conteo hasta 100 (cuadrícula
+  // 10×10, una decena por fila) — no una cuadrícula genérica de rango y paso
+  // libres. La versión genérica (cualquier rango/paso/columnas) sigue igual
+  // que antes para 3º, que el usuario confirmó que ya funciona bien.
+  const esRejillaClasica = ['1º', '2º'].includes(curso);
+  const notaRejillaEspecifica = esRejillaClasica ? `
+  * EN ${curso}, ÚSALO PRINCIPALMENTE como el "cuadro numérico" clásico de conteo hasta 100:
+    "columnas": 10 SIEMPRE, y "numeros" con EXACTAMENTE 100 números (10 filas × 10 columnas),
+    donde cada fila es una decena completa y consecutiva. Dos variantes válidas, elige una:
+    (a) empieza en 0 (fila 1: 0-9, fila 2: 10-19, ..., fila 10: 90-99), o
+    (b) empieza en 1 (fila 1: 1-10, fila 2: 11-20, ..., fila 10: 91-100).
+    Cada celda es la anterior + 1, siempre de izquierda a derecha y fila a fila.
+  * Número de huecos por fila en ${curso}: dificultad MODERADA por defecto — dos o tres huecos
+    por fila (de las 10 celdas). Si las instrucciones especiales del docente piden una ficha
+    "para empezar curso", "básica" o "de repaso inicial", deja menos huecos (uno o dos por
+    fila); si piden algo "avanzado", "de repaso final" o "más difícil", deja hasta cinco o seis
+    por fila. Nunca dejes una fila entera en blanco ni una fila entera sin ningún hueco.
+  * Reparte los huecos en columnas distintas de una fila a otra (no siempre en la misma
+    posición), para que el alumno cuente en vez de memorizar un patrón de columnas.` : `
+  * El patrón tiene que ser deducible SOLO con los números que sí aparecen: reparte las pistas
+    por toda la cuadrícula (no las agrupes todas al principio) y nunca dejes una fila entera en
+    blanco.
+  * "columnas" entre 5 y 10. El total de celdas (filas × columnas, es decir
+    "numeros".length) no debería superar 100.`;
+
+  const bloqueRejillaNumerica = esGuiado ? `
+
+- "rejilla_numerica": cuadrícula de números en fila×columna para practicar el conteo (de 1 en
+  1, de 2 en 2, de 10 en 10...) o el reconocimiento de decenas. Es la versión en cuadrícula de
+  "serie_numerica" — un tipo DISTINTO de "cuadro_numerico" (aquella es una tabla de sumar o
+  restar; esta es una secuencia de conteo).
+  { "columnas": n, "numeros": [1, null, 3, 4, ...] }
+  * "numeros" es la lista COMPLETA de la cuadrícula, en orden, fila a fila (cada fila tiene
+    "columnas" números). Usa "null" (JSON null, no el texto "null") en cada posición que el
+    alumno debe rellenar — igual que en "serie_numerica".
+${notaRejillaEspecifica}` : '';
+
+  // Cuadro numérico (13/08/2026): tabla de doble entrada para practicar
+  // sumas o restas — disponible en los cursos con formato guiado (1º-3º).
+  const bloqueCuadroNumerico = esGuiado ? `
+
+- "cuadro_numerico": tabla de doble entrada para practicar sumas o restas — cabecera de filas
+  y columnas con números, celdas en blanco para que el alumno escriba el resultado.
+  { "operacion": "suma" o "resta", "filas": [n1, n2, ...], "columnas": [n1, n2, ...],
+    "ejemplo": { "fila": n, "columna": n } }
+  * En "resta", la operación de CADA celda es SIEMPRE columna − fila (nunca al revés) — para
+    que todas las celdas den un resultado válido, usa columnas con números iguales o mayores
+    que el mayor valor de "filas" (si aun así alguna celda diera negativo, el sistema la
+    bloquea automáticamente en vez de dejarla en blanco, pero es mejor evitarlo eligiendo bien
+    los rangos).
+  * "ejemplo" es OPCIONAL: si lo incluyes, esa celda concreta (su "fila" y "columna" deben
+    existir en los arrays "filas"/"columnas") se rellena ya resuelta como modelo, para que el
+    alumno entienda el mecanismo antes de rellenar el resto — el sistema calcula ese resultado,
+    tú NUNCA escribas el número.
+  * Tamaño recomendado: 3-4 filas × 5-7 columnas. No uses tablas más grandes: no caben bien en
+    la ficha.` : '';
+
+  // Figuras geométricas (13/08/2026): disponible en todos los cursos, pero
+  // con dificultad graduada — figuras 3D solo a partir de 2º, y el modo
+  // "perimetro_area" solo donde ya se trabaja multiplicación/división
+  // (4º-6º, cuando el currículo real introduce fórmulas de área).
+  const esConFiguras3D = curso !== '1º';
+  const figurasDisponibles = esConFiguras3D
+    ? [...FIGURAS_2D_DISPONIBLES, ...FIGURAS_3D_DISPONIBLES].join(', ')
+    : FIGURAS_2D_DISPONIBLES.join(', ');
+  const bloqueFiguraGeometrica = `
+
+- "figura_geometrica": ejercicios de geometría (figuras planas 2D${esConFiguras3D ? ' y cuerpos geométricos 3D' : ''}).
+  Figuras disponibles (usa EXACTAMENTE estos nombres): ${figurasDisponibles}.
+  Cuatro modos posibles según lo que quieras trabajar — cada uno con su "datos":
+  - "identificar": { "modo": "identificar", "figuras": ["triangulo", "cuadrado", "circulo"] }
+    El sistema dibuja cada figura con un hueco debajo para que el alumno escriba su nombre —
+    NUNCA reveles el nombre en el enunciado ni en "datos". Entre 3 y 8 figuras.
+  - "propiedades": { "modo": "propiedades", "figuras": [...] }
+    El sistema dibuja cada figura YA CON SU NOMBRE (aquí sí, a diferencia de "identificar") y
+    deja en blanco sus propiedades numéricas (lados y vértices en figuras 2D; caras, aristas y
+    vértices en figuras 3D) para que el alumno las cuente sobre el dibujo. Entre 2 y 6 figuras.
+  - "clasificar": { "modo": "clasificar", "figuras": [...], "grupos": ["Polígonos", "Figuras curvas"] }
+    El sistema dibuja todas las figuras sueltas arriba (sin nombre) y una caja en blanco por
+    cada grupo (2-4 grupos) para que el alumno escriba en cada caja qué figuras pertenecen a
+    ese grupo. Tú decides el criterio de clasificación y lo explicas en el enunciado (por
+    número de lados, rectas/curvas, 2D/3D...) — los nombres de "grupos" deben ser coherentes
+    con ese criterio.${esConFiguras3D && ['4º', '5º', '6º'].includes(curso) ? `
+  - "perimetro_area": SOLO para "cuadrado", "rectangulo" o "triangulo" (no hay fórmula de área
+    para el resto de figuras en este sistema).
+    { "modo": "perimetro_area", "figura": "rectangulo", "unidad": "cm",
+      "medidas": { "base": 8, "altura": 5 }, "pedir": ["perimetro", "area"] }
+    * "medidas": para "cuadrado" usa { "lado": n }; para "rectangulo" usa { "base": n, "altura": n };
+      para "triangulo" usa { "base": n, "altura": n } (necesario para pedir "area") y añade
+      también "lado" solo si el triángulo es equilátero y quieres pedir "perimetro".
+    * "pedir": array con uno o los dos valores "perimetro", "area" — solo se piden los que
+      tengan sentido con las medidas dadas (para "perimetro" de un triángulo hace falta "lado").
+    * El sistema dibuja la figura con las medidas indicadas y deja SOLO huecos en blanco para
+      la respuesta — nunca calcules ni escribas tú el resultado.
+    * Rango numérico adecuado a ${curso}: ${rango}` : ''}
+  * COHERENCIA: el enunciado debe pedir explícitamente lo que el modo hace (ej. "Escribe el
+    nombre de cada figura", "Cuenta los lados y los vértices de cada figura", "Clasifica estas
+    figuras en...", "Calcula el perímetro y el área").`;
+
   let bloqueProblema;
   if (esConDibujos) {
     bloqueProblema = `
@@ -365,6 +515,11 @@ ${bloqueMultDiv}
 ${bloqueConteo}
 ${bloqueCalculoMental}
 ${bloqueTiposNuevos}
+${bloqueRestaBarritas}
+${bloqueRectaNumerica}
+${bloqueCuadroNumerico}
+${bloqueRejillaNumerica}
+${bloqueFiguraGeometrica}
 ${bloqueProblema}
 
 - "tipo_test": pregunta de opción múltiple (la pregunta va en "enunciado").

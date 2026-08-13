@@ -231,7 +231,7 @@
 
     // Bloquea SVGs y estructuras clave para que el maestro no las rompa al editar
     function protegerElementosEstructurales(contenedor) {
-      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-columna'].forEach(selector => {
+      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-columna', '.resta-barritas-caja-vacia'].forEach(selector => {
         contenedor.querySelectorAll(selector).forEach(el => {
           el.setAttribute('contenteditable', 'false');
         });

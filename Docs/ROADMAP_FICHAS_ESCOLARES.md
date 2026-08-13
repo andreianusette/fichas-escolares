@@ -225,6 +225,91 @@ los propios datos. 1º-4º mantienen la versión con iconos. Probado con ficha
 simulada de ambas variantes — ver `REFERENCIA_CLASES_HTML_FICHAS.md`,
 sección 8septies. **Pendiente**: confirmar con ficha real de 5º-6º.
 
+**13/08/2026 — tres tipos de ejercicio nuevos, a petición del usuario con fichas de Santillana
+como referencia de formato** (no se copió texto ni ilustraciones de Santillana — solo el
+patrón pedagógico general, que no es propiedad de nadie):
+- `resta_barritas` (1º-2º, dos modos): resta con modelo de comparación de conjuntos — dos
+  grupos de palotes que el alumno tacha a mano. Modo "tachar" (palotes ya dibujados) y modo
+  "dibujar" (cajas vacías, el alumno dibuja los palotes él mismo — un paso más de dificultad).
+- `cuadro_numerico` (1º-3º, suma o resta): tabla de doble entrada de la ficha de referencia
+  (`Resta para completar la tabla`). En resta, la operación de cada celda es siempre
+  columna − fila; las celdas que darían negativo se bloquean visualmente (trama diagonal) en
+  vez de dejarse en blanco como si hubiera que rellenarlas. Admite una celda "ejemplo"
+  opcional, resuelta por el propio código como modelo.
+- `figura_geometrica` (todos los cursos, cuatro modos — decisión de alcance con el usuario:
+  identificar, propiedades, clasificar y perímetro/área): catálogo nuevo de 9 figuras 2D
+  (triángulo, cuadrado, rectángulo, rombo, trapecio, pentágono, hexágono, círculo, óvalo) y 6
+  cuerpos 3D (cubo, prisma rectangular, pirámide, cono, cilindro, esfera) en
+  `renderer-matematicas.js`, independiente del catálogo `ICONOS` de conteo. Gradualidad por
+  curso: figuras 3D a partir de 2º (en 1º solo 2D); modo "perimetro_area" (con fórmulas de
+  área/perímetro) solo en 4º-6º, y limitado a cuadrado/rectángulo/triángulo.
+
+Documentación del contrato HTML/CSS en `REFERENCIA_CLASES_HTML_FICHAS.md`, secciones
+8undecies-8tredecies. Probado con JSON simulado (sin gastar llamada a la API) cubriendo los 3
+tipos y sus modos, y verificado visualmente con Playwright + captura de pantalla real (a
+tamaño de ficha completa), incluyendo el modo B/N — se detectó y corrigió ahí mismo un bug real
+(el símbolo de la esquina del cuadro numérico quedaba en blanco sobre blanco, ilegible, en modo
+B/N). **Pendiente** (igual que el resto de tipos nuevos de esta fase): confirmar con una ficha
+real generada por Claude, no solo con datos simulados a mano.
+
+- [ ] **Pendiente de rediseño — trazo de las 9 figuras 2D y, sobre todo, los 6 cuerpos 3D**
+      (`FIGURAS_2D`/`FIGURAS_3D` en `renderer-matematicas.js`): feedback del usuario nada más
+      verlas (13/08/2026), quedan "un poco raras" — mismo tipo de problema que ya pasó con
+      varios iconos del catálogo de conteo (`elefante`, `león`, `cangrejo`...), que necesitaron
+      2-4 rediseños hasta leerse con claridad a tamaño real (ver más arriba en esta misma fase).
+      El catálogo sigue el mismo patrón que `ICONOS_DISPONIBLES` (diccionario nombre → SVG), así
+      que redibujarlas más grandes/nítidas es un cambio de contenido, no de arquitectura — no
+      bloquea nada de lo ya implementado. No es tarea para el banco de ilustraciones de la Fase 4
+      (ese banco es para escenas/ilustraciones temáticas por asignatura, no para diagramas
+      curriculares que necesitan ser exactos en número de lados/caras/vértices): esto se resuelve
+      aquí mismo, iterando el SVG a mano igual que se hizo con los iconos de conteo.
+
+**13/08/2026 (misma sesión) — dos tipos de ejercicio más, a petición del usuario con 4 fichas
+de referencia adjuntadas** (recta numérica de una ficha de Santillana, y tres fichas de
+rejillas de conteo de otras fuentes — de nuevo, solo como referencia de formato, sin copiar
+texto ni ilustraciones):
+- `recta_numerica` (1º-2º): recta horizontal de 0 a un máximo, con el número de partida
+  resaltado en una caja y arcos discontinuos marcando los saltos de la operación (atrás en
+  restas, delante en sumas) — para sumas/restas sencillas de un solo paso.
+- `rejilla_numerica` (1º-3º): cuadrícula de números en fila×columna para practicar conteo (de
+  1 en 1, de 2 en 2, de 10 en 10...) — versión en rejilla de `serie_numerica`, con el mismo
+  convenio de huecos (`null` = casilla a rellenar). **Importante — no confundir con
+  `cuadro_numerico`** (añadido en la entrada anterior): aunque el usuario se refirió a ambos
+  como "cuadro numérico" en su petición original, son dos tipos distintos en el sistema —
+  `cuadro_numerico` es una tabla de sumar/restar con cabecera de fila y columna,
+  `rejilla_numerica` es una secuencia de conteo sin operación. Aclarado con el usuario.
+
+Documentación en `REFERENCIA_CLASES_HTML_FICHAS.md`, secciones 8quattuordecies-8quindecies.
+Probado con JSON simulado y verificado visualmente con Playwright (color y B/N) antes de
+darlo por bueno. **Pendiente** (igual que el resto de tipos de esta fase): confirmar con
+ficha real generada por Claude.
+
+- [ ] **Pendiente de implementar — renglones de trazo fino para 1º-2º** (13/08/2026, a partir
+      de una ficha de referencia del usuario): en 1º y 2º, los espacios donde el alumno escribe
+      a mano (resultado de problemas, respuestas cortas) deberían llevar un renglón guía fino de
+      fondo, no quedar en blanco liso — ayuda a los niños que todavía están aprendiendo a
+      escribir con letra de tamaño uniforme. El sistema YA TIENE el mecanismo CSS necesario:
+      `.espacio-respuesta.pauta` (usado hoy solo en Lengua, para dictado —
+      `repeating-linear-gradient` de líneas horizontales cada 27px). Probablemente sea cuestión
+      de aplicar esa misma clase (o una variante con el espaciado ajustado a la letra más grande
+      de `curso-inicial`) a `.bloque-resultado` y/o `.espacio-libre` cuando el curso sea 1º o 2º,
+      en vez de crear un mecanismo nuevo. No implementado todavía — queda anotado para abordarlo
+      en otra sesión.
+
+**13/08/2026 (misma sesión) — afinado `rejilla_numerica` para 1º-2º: debe ser el "cuadro
+numérico" clásico, no una cuadrícula libre** (aclaración del usuario tras ver la primera
+versión): en 1º-2º, "rejilla_numerica" ahora se instruye para generar SIEMPRE una cuadrícula
+10×10 fija (100 números, 10 columnas), con cada fila siendo una decena completa y consecutiva
+— variante 0-99 o variante 1-100, a elegir por Claude — en vez de rangos/columnas libres. La
+cantidad de huecos por fila se guía como "moderada por defecto" (2-3 de 10), con instrucción de
+bajar a 1-2 para fichas de inicio de curso y subir a 5-6 para fichas de repaso avanzado, si el
+docente lo pide en instrucciones especiales. **3º no cambia**: sigue con la versión libre
+(cualquier rango, paso y columnas) que el usuario confirmó que ya funcionaba bien. Cambio solo
+en el `SYSTEM_PROMPT` (`server.js`) — el renderizador y el CSS son los mismos de la entrada
+anterior. Probado con una cuadrícula 10×10 simulada (0-99, 2-3 huecos/fila) y verificado
+visualmente con Playwright antes de darlo por bueno. **Pendiente**: confirmar con ficha real
+de 1º y 2º generada por Claude.
+
 ---
 
 ## FASE 4 — Diferenciación visual por asignatura y curso

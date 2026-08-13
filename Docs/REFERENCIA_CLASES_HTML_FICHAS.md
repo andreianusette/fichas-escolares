@@ -430,6 +430,201 @@ inherente a un gráfico de tarta impreso sin color).
 
 ---
 
+## 8undecies. Restas con barritas (13/08/2026)
+
+```html
+<div class="resta-barritas-bloque">
+  <p class="resta-barritas-operacion">15 − 8 = <span class="hueco hueco-corto"></span></p>
+  <div class="resta-barritas-grupos">
+    <div class="resta-barritas-grupo">
+      <span class="resta-barritas-numero">15</span>
+      <div class="resta-barritas-caja">
+        <span class="barrita"></span><!-- ×15, modo "tachar" -->
+      </div>
+    </div>
+    <div class="resta-barritas-grupo">
+      <span class="resta-barritas-numero">8</span>
+      <div class="resta-barritas-caja">
+        <span class="barrita"></span><!-- ×8 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- modo "dibujar": la caja va vacía, con contorno punteado -->
+<div class="resta-barritas-caja resta-barritas-caja-vacia"></div>
+```
+
+Modelo de comparación de conjuntos (no de "tachar N de un montón de M"): dos
+grupos de palotes, uno por cada término de la resta. El alumno tacha a mano
+la misma cantidad en los dos grupos; lo que sobra sin tachar en el grupo
+mayor es el resultado. `.resta-barritas-caja-vacia` (modo "dibujar") está en
+la lista de elementos protegidos contra edición accidental en
+`public/index.html` (`protegerElementosEstructurales`), igual que
+`.caja-espacio-dibujo` — es una caja pensada para dibujar a mano, no para
+escribir texto encima.
+
+---
+
+## 8duodecies. Cuadro numérico (13/08/2026)
+
+```html
+<table class="cuadro-numerico">
+  <thead>
+    <tr>
+      <th class="cn-esquina">−</th>
+      <th>9</th><th>8</th><th>7</th><th>6</th><th>5</th><th>4</th><th>3</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>4</th>
+      <td class="cn-celda cn-ejemplo">5</td>
+      <td class="cn-celda"></td>
+      <!-- ... -->
+      <td class="cn-celda cn-bloqueada"></td><!-- columna(3) < fila(4): inválida -->
+    </tr>
+    <!-- ... -->
+  </tbody>
+</table>
+```
+
+Tabla de doble entrada para practicar sumas o restas. En restas, la
+operación de cada celda es SIEMPRE `columna − fila` (nunca al revés) —
+`renderCuadroNumerico()` en `renderer-matematicas.js` bloquea visualmente
+(`.cn-bloqueada`, trama diagonal) cualquier celda donde eso daría negativo,
+en vez de dejarla como si hubiera que rellenarla. `.cn-ejemplo` es una celda
+opcional ya resuelta como modelo — el resultado lo calcula el propio código
+a partir de `datos.ejemplo`, nunca Claude.
+
+---
+
+## 8tredecies. Figuras geométricas — 2D y 3D (13/08/2026)
+
+Cuatro modos, todos dentro del tipo de ejercicio `figura_geometrica`.
+
+**Identificar** (icono + hueco para el nombre, sin revelarlo):
+```html
+<div class="figura-geometrica-grid">
+  <div class="figura-geometrica-tarjeta">
+    <div class="figura-geometrica-icono"><svg>...</svg></div>
+    <span class="hueco hueco-largo"></span>
+  </div>
+  <!-- una tarjeta por figura -->
+</div>
+```
+
+**Propiedades** (icono CON su nombre + huecos de lados/vértices en 2D o
+caras/aristas/vértices en 3D):
+```html
+<div class="figura-geometrica-grid">
+  <div class="figura-geometrica-tarjeta figura-geometrica-tarjeta-propiedades">
+    <div class="figura-geometrica-icono"><svg>...</svg></div>
+    <p class="fg-nombre-figura">cubo</p>
+    <div class="fg-propiedades">
+      <div class="fg-propiedad-fila"><span>Caras:</span><span class="hueco hueco-corto"></span></div>
+      <div class="fg-propiedad-fila"><span>Aristas:</span><span class="hueco hueco-corto"></span></div>
+      <div class="fg-propiedad-fila"><span>Vértices:</span><span class="hueco hueco-corto"></span></div>
+    </div>
+  </div>
+</div>
+```
+
+**Clasificar** (figuras sueltas arriba, sin nombre, + una caja en blanco por
+grupo):
+```html
+<div class="figura-geometrica-clasificar">
+  <div class="fg-clasificar-figuras">
+    <div class="fg-clasificar-icono"><svg>...</svg></div>
+    <!-- una por figura -->
+  </div>
+  <div class="fg-clasificar-grupos">
+    <div class="fg-clasificar-grupo">
+      <p class="fg-clasificar-titulo">Polígonos</p>
+      <div class="espacio-respuesta"></div>
+    </div>
+    <!-- una por grupo -->
+  </div>
+</div>
+```
+
+**Perímetro y área** (solo `cuadrado` / `rectangulo` / `triangulo`, solo
+4º-6º): figura dibujada a medida con las etiquetas numéricas que llegan en
+`datos.medidas`, más huecos de respuesta — el sistema NUNCA calcula ni
+imprime el resultado, solo la estructura.
+```html
+<div class="figura-geometrica-medida">
+  <div class="fg-medida-svg"><svg>...rectángulo con "8 cm" / "5 cm"...</svg></div>
+  <div class="fg-respuestas">
+    <div class="fg-respuesta-fila"><span>Perímetro = </span><span class="hueco hueco-largo"></span></div>
+    <div class="fg-respuesta-fila"><span>Área = </span><span class="hueco hueco-largo"></span></div>
+  </div>
+</div>
+```
+
+El catálogo de figuras (`FIGURAS_2D` / `FIGURAS_3D` en
+`renderer-matematicas.js`) es independiente del catálogo `ICONOS` de conteo
+(objetos para contar en 1º-2º) — comparten estilo de trazo (silueteado,
+solo negro) pero significan cosas distintas: unos son "objetos para contar",
+estos son "figuras curriculares con propiedades" (lados/vértices, caras/
+aristas/vértices). Figuras 3D disponibles a partir de 2º (en 1º solo 2D);
+modo "perimetro_area" disponible solo en 4º-6º — ver `construirSystemPromptMatematicas()` en `server.js`.
+
+---
+
+## 8quattuordecies. Recta numérica (13/08/2026)
+
+```html
+<div class="recta-numerica-bloque">
+  <p class="recta-numerica-operacion">12 − 4 = <span class="hueco hueco-corto"></span></p>
+  <div class="recta-numerica-svg">
+    <svg>
+      <!-- línea base 0..rangoMax, una marca + número por entero -->
+      <rect class="recta-numerica-caja-inicio" .../>  <!-- resalta el número de partida -->
+      <path class="recta-numerica-salto" d="..."/>    <!-- un arco por cada salto, entre "a" y el destino -->
+    </svg>
+  </div>
+</div>
+```
+
+Recta horizontal de 0 a un máximo (`datos.rangoMax`, o calculado automáticamente con margen
+si se omite), con el número de partida (`datos.operacion.a`) resaltado con una caja
+(`.recta-numerica-caja-inicio`) y un arco discontinuo (`.recta-numerica-salto`) por cada salto
+de la operación — hacia atrás en restas, hacia delante en sumas. Solo para sumas/restas
+sencillas de un paso (1º-2º); el sistema nunca calcula ni imprime el resultado, solo deja el
+hueco de la ecuación en blanco.
+
+---
+
+## 8quindecies. Rejilla numérica (13/08/2026)
+
+```html
+<div class="rejilla-numerica" style="grid-template-columns: repeat(5, 1fr);">
+  <span class="rn-celda">2</span>
+  <span class="rn-celda">4</span>
+  <span class="rn-celda rn-hueco"></span>
+  <!-- ... el resto de celdas, en el mismo orden que "datos.numeros" ... -->
+</div>
+```
+
+Cuadrícula de números en fila×columna — la versión en rejilla de `.serie-numerica` (sección
+8quinquies): mismo convenio de huecos (`null` en el JSON → `.rn-hueco` en el HTML), pero
+distribuido en una cuadrícula de `datos.columnas` columnas en vez de una cadena con flechas.
+Se usa para practicar conteo (de 1 en 1, de 2 en 2, de 10 en 10...) o reconocimiento de
+decenas. **No confundir con `.cuadro-numerico`** (sección 8duodecies): aquella es una tabla de
+sumar/restar con cabecera de fila y columna; esta es una secuencia de conteo sin cabecera ni
+operación, solo números y huecos en el orden en que Claude los entrega.
+
+**Nota (13/08/2026, aclaración del usuario)**: en 1º-2º este tipo se usa sobre todo para el
+"cuadro numérico" clásico de conteo hasta 100 — cuadrícula 10×10 fija, una decena completa por
+fila (0-9/10-19/.../90-99, o 1-10/11-20/.../91-100), con 2-6 huecos por fila según la
+dificultad. Esa regla vive en el prompt (`construirSystemPromptMatematicas()` en `server.js`,
+bloque `notaRejillaEspecifica`), no en el renderizador — el HTML/CSS de esta sección no cambia,
+solo cambia qué `numeros`/`columnas` decide enviar Claude para 1º-2º frente a 3º (que sigue con
+la versión libre: cualquier rango, paso y número de columnas).
+
+---
+
 
 
 ```html
