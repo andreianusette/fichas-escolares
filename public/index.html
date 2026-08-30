@@ -106,7 +106,10 @@
         </div>
 
         <div class="campo">
-          <label for="instrucciones">Instrucciones especiales:</label>
+          <div class="campo-cabecera-instrucciones">
+            <label for="instrucciones">Instrucciones especiales:</label>
+            <button type="button" id="btnBorrarInstrucciones" class="btn-borrar-instrucciones" onclick="borrarInstrucciones()" title="Vaciar este campo para escribir una instrucción nueva">🗑️ Borrar</button>
+          </div>
           <textarea id="instrucciones" name="instrucciones" rows="4"
             placeholder="Aquí está la clave de la variedad. Ej: Temática de dinosaurios · solo 8 ejercicios · números hasta el 30 · incluye un problema con dibujo"></textarea>
           <p class="campo-ayuda">El docente puede pedir temática, nivel, número de ejercicios, formato... tiene prioridad máxima sobre todo lo demás.</p>
@@ -196,6 +199,16 @@
 
     function obtenerIconosElegidos() {
       return Array.from(document.querySelectorAll('.icono-checkbox:checked')).map(el => el.value);
+    }
+
+    // Vacía el campo de instrucciones especiales y le devuelve el foco.
+    // Pensado para cuando se generan varias fichas seguidas del mismo curso
+    // (misma asignatura o distinta) y hay que borrar a mano el texto anterior
+    // antes de escribir el siguiente.
+    function borrarInstrucciones() {
+      const campo = document.getElementById('instrucciones');
+      campo.value = '';
+      campo.focus();
     }
 
     // Espera a que las fuentes @font-face (Andika/Nunito/Quicksand/Fredoka)

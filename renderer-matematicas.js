@@ -323,20 +323,80 @@ function renderDivisionVertical(datos) {
   return `<div class="grid-operaciones">${items}</div>`;
 }
 
+// Umbral de objetos dibujables uno a uno en las operaciones ilustradas de
+// 1º-2º (operacion_vertical y problema) — por encima de esto los iconos
+// sueltos dejan de leerse bien en la ficha, así que se deja de dibujar en
+// vez de recortar o inventar una cantidad que no sea la real. Debe coincidir
+// con el tope interno de "renderIconos()" (máximo 10 repeticiones): un
+// umbral más alto aquí dibujaría silenciosamente menos objetos de los
+// reales en vez de no dibujar nada, que es justo el bug que este umbral
+// existe para evitar.
+const UMBRAL_ICONOS_OPERACION = 10;
+
 function renderOperacionVertical(datos) {
   const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones : [];
   if (operaciones.length === 0) return '';
 
   // Caso especial: una sola operación acompañada de iconos (solo 1º/2º).
-  if (operaciones.length === 1 && datos.svg && datos.svg.icono1 && datos.svg.icono2) {
+  if (operaciones.length === 1 && datos.svg && datos.svg.icono1) {
     const op = operaciones[0];
-    const signoVisual = op.signo === '-' ? '−' : '+';
+    const esResta = op.signo === '-';
+    let bloqueIconos = '';
+
+    if (esResta) {
+      // Modelo de resta por conteo (aclaración de una maestra real, 30/08/2026):
+      // se dibuja SOLO el minuendo, como un único conjunto de objetos — el
+      // alumno tacha a mano tantos como el sustraendo y cuenta los que quedan.
+      // NUNCA dos grupos separados con un signo "menos" en medio (ese formato,
+      // el que se usaba antes, sugiere combinar dos conjuntos — el modelo de
+      // LA SUMA, no el de la resta — y confundía a los niños).
+      // Blindaje: la cantidad dibujada es SIEMPRE el minuendo real de la propia
+      // operación (nunca "datos.svg.cantidad1" — no hace falta confiar en que
+      // Claude cuente bien). Por encima del umbral de objetos legibles, no se
+      // dibuja nada en vez de una cantidad recortada o inventada que no
+      // representaría el número real.
+      const numeros = Array.isArray(op.numeros) ? op.numeros : [];
+      const minuendo = Math.round(numeroDesdeJSON(numeros[0]));
+      if (Number.isInteger(minuendo) && minuendo >= 1 && minuendo <= UMBRAL_ICONOS_OPERACION) {
+        bloqueIconos = `<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:260px;">${renderIconos(datos.svg.icono1, minuendo)}</div>`;
+      }
+    } else {
+      // SUMAS (30/08/2026, cierre del bug de cantidad + caso de 3-4 sumandos):
+      // un grupo de iconos por cada sumando real de la operación — hasta 4,
+      // el mismo tope que "Sumandos por suma" en otro punto del sistema.
+      // Blindaje: la cantidad de CADA grupo se deriva SIEMPRE de
+      // "op.numeros" (nunca de "datos.svg.cantidadN" — el mismo criterio que
+      // ya se aplicaba a la resta, extendido aquí). El icono de cada grupo sí
+      // lo elige Claude ("icono1".."icono4"); si falta alguno de los
+      // intermedios se reutiliza "icono1" en su lugar, para no dejar un
+      // grupo sin dibujar por un despiste del icono sin que falte la
+      // cantidad real. Si CUALQUIER sumando supera el umbral de objetos
+      // legibles, no se dibuja NINGÚN grupo — mejor nada que un dibujo a
+      // medias que no represente bien la suma completa.
+      const numerosSuma = Array.isArray(op.numeros) ? op.numeros : [];
+      const cantidades = numerosSuma.slice(0, 4).map(n => Math.round(numeroDesdeJSON(n)));
+      const todasValidas = cantidades.length >= 2 && cantidades.every(
+        c => Number.isInteger(c) && c >= 1 && c <= UMBRAL_ICONOS_OPERACION
+      );
+      if (todasValidas) {
+        const grupos = cantidades.map((cantidad, i) => {
+          const iconoGrupo = datos.svg[`icono${i + 1}`] || datos.svg.icono1;
+          return `<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:260px;">${renderIconos(iconoGrupo, cantidad)}</div>`;
+        });
+        const conSignos = grupos
+          .map((g, i) => (i === 0 ? g : `<span style="font-size:24px; font-weight:bold; color:#555;">+</span>${g}`))
+          .join('');
+        bloqueIconos = `<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${conSignos}</div>`;
+      }
+    }
+
+    // Sin dibujo posible (resta por encima del umbral, o suma con algún
+    // sumando fuera de rango): se muestra solo la operación en columna,
+    // igual que en cursos sin dibujos, en vez de forzar un dibujo poco fiable.
+    if (!bloqueIconos) return renderOperacionColumna(op);
+
     return `<div style="display:flex; align-items:flex-start; gap:16px; margin:10px 0; flex-wrap:wrap;">
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:260px;">${renderIconos(datos.svg.icono1, datos.svg.cantidad1)}</div>
-        <span style="font-size:24px; font-weight:bold; color:#555;">${signoVisual}</span>
-        <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:260px;">${renderIconos(datos.svg.icono2, datos.svg.cantidad2)}</div>
-      </div>
+      ${bloqueIconos}
       ${renderOperacionColumna(op)}
     </div>`;
   }
@@ -378,13 +438,50 @@ function renderProblema(datos, curso) {
 
   // Base de dibujos: en 1º/2º el niño cuenta objetos, no lee números abstractos.
   let bloqueSvg = '';
-  if (esConDibujos && datos.svg && datos.svg.icono1 && datos.svg.icono2) {
-    const signoVisual = datos.svg.signo === '-' ? '−' : '+';
-    bloqueSvg = `<div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-top:8px; flex-wrap:wrap;">
-      <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center; max-width:260px;">${renderIconos(datos.svg.icono1, datos.svg.cantidad1)}</div>
-      <span style="font-size:22px; font-weight:bold; color:#555;">${signoVisual}</span>
-      <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center; max-width:260px;">${renderIconos(datos.svg.icono2, datos.svg.cantidad2)}</div>
-    </div>`;
+  if (esConDibujos && datos.svg && datos.svg.icono1) {
+    if (datos.svg.signo === '-') {
+      // Mismo modelo de resta por conteo que "operacion_vertical" (aclaración
+      // de una maestra real, 30/08/2026): un único conjunto de objetos —el
+      // minuendo— que el alumno tacha a mano; nunca dos grupos separados con
+      // un signo "menos" en medio (ese formato sugiere combinar dos
+      // conjuntos, el modelo de LA SUMA, no el de la resta). A diferencia de
+      // "operacion_vertical", aquí no hay ningún campo numérico aparte de
+      // "cantidad1" del que derivar el minuendo real (el problema es texto
+      // libre) — el blindaje se limita, pues, al umbral de tamaño: por
+      // encima de él, no se dibuja nada en vez de una cantidad recortada.
+      const minuendo = Math.round(numeroDesdeJSON(datos.svg.cantidad1));
+      if (Number.isInteger(minuendo) && minuendo >= 1 && minuendo <= UMBRAL_ICONOS_OPERACION) {
+        bloqueSvg = `<div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center; max-width:260px; margin:8px auto 0;">${renderIconos(datos.svg.icono1, minuendo)}</div>`;
+      }
+    } else {
+      // SUMAS (30/08/2026, cierre del bug de cantidad + caso de 3-4
+      // sumandos): a diferencia de "operacion_vertical", el problema es
+      // texto libre — no hay un array de números reales del que derivar las
+      // cantidades, así que se mantiene la dependencia de "cantidadN" que dé
+      // Claude, pero ahora hasta 4 grupos (icono1..icono4/cantidad1..
+      // cantidad4) en vez de 2 fijos, leídos en orden consecutivo desde
+      // "icono1". Mismo blindaje de umbral que en el resto: si CUALQUIER
+      // grupo sale inválido o por encima de lo legible, no se dibuja NINGUNO
+      // — mejor nada que un dibujo a medias o con una cantidad recortada.
+      const grupos = [];
+      for (let i = 1; i <= 4; i++) {
+        const icono = datos.svg[`icono${i}`];
+        if (!icono) break;
+        grupos.push({ icono, cantidad: Math.round(numeroDesdeJSON(datos.svg[`cantidad${i}`])) });
+      }
+      const todosValidos = grupos.length >= 2 && grupos.every(
+        g => Number.isInteger(g.cantidad) && g.cantidad >= 1 && g.cantidad <= UMBRAL_ICONOS_OPERACION
+      );
+      if (todosValidos) {
+        const bloques = grupos
+          .map((g, i) => {
+            const div = `<div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center; max-width:260px;">${renderIconos(g.icono, g.cantidad)}</div>`;
+            return i === 0 ? div : `<span style="font-size:22px; font-weight:bold; color:#555;">+</span>${div}`;
+          })
+          .join('');
+        bloqueSvg = `<div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-top:8px; flex-wrap:wrap;">${bloques}</div>`;
+      }
+    }
   }
 
   if (esGuiado) {
@@ -898,6 +995,79 @@ function renderCuadroNumerico(datos) {
   </table>`;
 }
 
+// ── Tabla de multiplicar (30/08/2026) ────────────────────────────────────
+// Practicar UNA tabla completa (×1 a ×10). Blindaje total: el ÚNICO dato que
+// llega de Claude es "tabla" — las 10 filas y sus resultados los calcula el
+// código, nunca se confía en que Claude enumere o multiplique bien. Se
+// reparte en dos columnas de 5 filas para que quepa cómodo en la ficha.
+function renderTablaMultiplicar(datos) {
+  let tabla = parseInt(datos.tabla, 10);
+  if (!Number.isInteger(tabla) || tabla < 1 || tabla > 10) tabla = 1;
+
+  const filaHtml = (factor) => `<div class="tm-fila">
+      <span class="tm-texto">${tabla} × ${factor} =</span>
+      <span class="hueco hueco-corto"></span>
+    </div>`;
+
+  const columnaIzquierda = [1, 2, 3, 4, 5].map(filaHtml).join('');
+  const columnaDerecha = [6, 7, 8, 9, 10].map(filaHtml).join('');
+
+  return `<div class="tabla-multiplicar-bloque">
+    <p class="tabla-multiplicar-titulo">Tabla del ${tabla}</p>
+    <div class="tabla-multiplicar-columnas">
+      <div class="tm-columna">${columnaIzquierda}</div>
+      <div class="tm-columna">${columnaDerecha}</div>
+    </div>
+  </div>`;
+}
+
+// ── Reparto (30/08/2026) ─────────────────────────────────────────────────
+// División como reparto manipulativo, sin algoritmo: el sistema dibuja
+// "total" objetos y "grupos" cajas vacías, y el alumno reparte a mano
+// (dibujando o escribiendo) cuántos tocan en cada caja. Blindaje: "total"
+// se ajusta al múltiplo de "grupos" más cercano si Claude manda un reparto
+// con resto (en 1º-2º todavía no se trabaja el resto de una división), y el
+// número de objetos se limita para que quepan bien dibujados en la ficha.
+function renderReparto(datos) {
+  let grupos = parseInt(datos.grupos, 10);
+  if (!Number.isInteger(grupos) || grupos < 2) grupos = 2;
+  grupos = Math.min(grupos, 6);
+
+  let total = parseInt(datos.total, 10);
+  if (!Number.isInteger(total) || total < grupos) total = grupos;
+  // Blindaje de tamaño: más de 30 objetos deja de leerse bien en el bloque
+  // de la ficha — se aplica ANTES de ajustar el múltiplo, para que ese
+  // ajuste sea siempre el último paso y nunca lo rompa un recorte posterior
+  // (si se recortara después, un total válido como 32/4 podría acabar en
+  // 30/4, que ya no es exacto).
+  total = Math.min(total, 30);
+  // Blindaje: reparto sin resto — si "total" no es múltiplo exacto de
+  // "grupos", se redondea al múltiplo más cercano (nunca por debajo de
+  // "grupos" ni por encima del límite de 30) en vez de dibujar un reparto
+  // que no cuadra.
+  const resto = total % grupos;
+  if (resto !== 0) {
+    const arriba = total + (grupos - resto);
+    const abajo = total - resto;
+    total = (arriba <= 30 && resto >= grupos / 2) ? arriba : abajo;
+  }
+  if (total < grupos) total = grupos;
+
+  const nombreIcono = ICONOS[datos.icono] ? datos.icono : 'estrella';
+  const svgIcono = ICONOS[nombreIcono];
+  const objetos = svgIcono.repeat(total);
+
+  const cajasGrupos = Array.from({ length: grupos }, () =>
+    `<div class="reparto-grupo-caja"></div>`
+  ).join('');
+
+  return `<div class="reparto-bloque">
+    <p class="reparto-operacion">${total} : ${grupos} = <span class="hueco hueco-corto"></span></p>
+    <div class="reparto-objetos">${objetos}</div>
+    <div class="reparto-grupos">${cajasGrupos}</div>
+  </div>`;
+}
+
 // ── Figuras geométricas (2D y 3D) ────────────────────────────────────────
 // Cuatro modos, cada uno con su propio "datos.modo":
 // "identificar"    → icono + hueco en blanco para que el alumno escriba el nombre.
@@ -1045,7 +1215,9 @@ const RENDERERS_POR_TIPO = {
   cuadro_numerico:      (datos) => renderCuadroNumerico(datos),
   figura_geometrica:    (datos) => renderFiguraGeometrica(datos),
   recta_numerica:       (datos) => renderRectaNumerica(datos),
-  rejilla_numerica:     (datos) => renderRejillaNumerica(datos)
+  rejilla_numerica:     (datos) => renderRejillaNumerica(datos),
+  tabla_multiplicar:    (datos) => renderTablaMultiplicar(datos),
+  reparto:              (datos) => renderReparto(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {
@@ -1124,13 +1296,17 @@ export function renderizarFichaMatematicas(datosFicha, contexto) {
   );
   const cuerpoEjercicios = ejercicios.map((ej, i) => renderEjercicio(ej, i, curso)).join('');
 
+  // Nombre del centro (30/08/2026): separado del cajón de Nombre/Fecha —
+  // antes iba dentro de ".cabecera", pegado a esos datos, y el docente pidió
+  // que quedara visualmente aparte (sin cajón propio, pero por encima). Va
+  // FUERA de ".cabecera" a propósito, como línea suelta antes del cajón.
   const lineaCentro = colegio
     ? `<p class="cabecera-centro">${escapeHtml(colegio)}</p>`
     : '';
 
   return `<div class="${claseFicha}">
+    ${lineaCentro}
     <div class="cabecera">
-      ${lineaCentro}
       <div class="cabecera-datos">
         <p><strong>Nombre:</strong> <span class="hueco-nombre"></span></p>
         <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>

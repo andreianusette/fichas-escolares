@@ -43,8 +43,11 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
    Si en los datos de la ficha se indica un "Centro educativo", añade una línea extra
    ARRIBA con el nombre del centro. Si NO se indica (está vacío), omite esa línea por
    completo — no escribas "Centro:" en blanco.
+   IMPORTANTE: "cabecera-centro" va FUERA de "cabecera" (línea suelta justo antes, sin
+   cajón propio) — nunca dentro de "cabecera-datos" ni del cajón de Nombre/Fecha, para que
+   quede visualmente separado de esos datos (30/08/2026, petición explícita del docente).
+   <p class="cabecera-centro">[Nombre del centro]</p> <!-- SOLO si hay centro, FUERA del div de abajo -->
    <div class="cabecera">
-     <p class="cabecera-centro">[Nombre del centro]</p> <!-- SOLO si hay centro -->
      <div class="cabecera-datos">
        <p><strong>Nombre:</strong> <span class="hueco-nombre"></span></p>
        <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
@@ -132,7 +135,7 @@ const PROMPTS_MATERIA = {
 const RANGOS_NUMERICOS_MATE = {
   '1º': 'números 0-50, sumas y restas SIN llevadas, resultados ≤20 en cálculo mental.',
   '2º': 'números 0-99, principalmente sin llevadas, llevadas simples muy graduales.',
-  '3º': 'números 0-999, sumas y restas CON llevadas, tablas del 1 al 5.',
+  '3º': 'números 0-999, sumas y restas CON llevadas, todas las tablas de multiplicar ya conocidas (memorizadas en 1º-2º) — a partir de aquí empieza el algoritmo formal en columna, multiplicador/divisor de 1 cifra.',
   '4º': 'hasta 9.999, multiplicaciones de 1 y 2 cifras, división exacta.',
   '5º': 'hasta 999.999, cuatro operaciones, fracciones sencillas, decimales.',
   '6º': 'hasta millones, fracciones, decimales, porcentajes, geometría, estadística simple.'
@@ -151,12 +154,16 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
     : ICONOS_DISPONIBLES.join(', ');
   const esConDibujos = ['1º', '2º'].includes(curso);
   const esGuiado = ['1º', '2º', '3º'].includes(curso);
-  const esMultDiv = ['4º', '5º', '6º'].includes(curso);
+  const esMultDiv = ['3º', '4º', '5º', '6º'].includes(curso);
 
   // La lista de tipos disponibles varía por curso: a partir de 3º ya no tiene
   // sentido ni mencionarle a Claude "conteo_svg" — así ni existe la tentación
-  // de usarlo donde no toca. Multiplicación/división en columna solo a partir
-  // de 4º, que es cuando el currículo las introduce (ver RANGOS_NUMERICOS_MATE).
+  // de usarlo donde no toca. Multiplicación/división en columna (algoritmo
+  // formal) solo a partir de 3º, que es cuando el currículo real las
+  // introduce (aclaración de una maestra, 30/08/2026 — antes decía 4º). En
+  // 1º-2º la multiplicación es memorización de tablas ("tabla_multiplicar")
+  // y la división es reparto manipulativo sin algoritmo ("reparto"), ver
+  // ambos bloques más abajo.
   let tiposDisponibles = esConDibujos
     ? 'operacion_vertical | conteo_svg | calculo_mental | problema | tipo_test | dibujo'
     : 'operacion_vertical | calculo_mental | problema | tipo_test | dibujo';
@@ -177,7 +184,7 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   // cursos guiados) y figura_geometrica (disponible en todos los cursos,
   // pero con distinta dificultad — ver bloqueFiguraGeometrica más abajo).
   if (esConDibujos) {
-    tiposDisponibles += ' | resta_barritas | recta_numerica';
+    tiposDisponibles += ' | resta_barritas | recta_numerica | tabla_multiplicar | reparto';
   }
   if (esGuiado) {
     tiposDisponibles += ' | cuadro_numerico | rejilla_numerica';
@@ -188,7 +195,7 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
 - "operacion_vertical": SOLO sumas y restas en columna (nunca multiplicación
   ni división — para eso usa "multiplicacion_vertical" o "division_vertical").
   { "operaciones": [ { "signo": "+" o "-", "numeros": [n1, n2, ...] } ]${esConDibujos ? `,
-    "svg": { "icono1": "...", "cantidad1": n, "icono2": "...", "cantidad2": n }` : ''},
+    "svg": { "icono1": "...", "icono2": "...", "icono3": "...", "icono4": "..." }` : ''},
     "columnasParalelas": 2 (o null) }
   * Rango numérico para este curso (${curso}): ${rango}
   * SUMAS: usa EXACTAMENTE el número de sumandos indicado en "Sumandos por suma".
@@ -199,9 +206,24 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
 
   if (esConDibujos) {
     bloqueOperacion += `
-  * OBLIGATORIO en ${curso}: incluye SIEMPRE "svg" (nunca null) representando los dos primeros
-    términos con objetos para contar — en ${curso} el niño cuenta objetos, no lee números
-    abstractos. Iconos disponibles (usa EXACTAMENTE estos nombres): ${listaIconos}.
+  * OBLIGATORIO en ${curso}: incluye SIEMPRE "svg" (nunca null) — su forma depende del signo
+    (aclaración de una maestra real de Primaria, 30/08/2026, sobre cómo se enseña de verdad la
+    resta con apoyo manipulativo). En NINGÚN caso (ni suma ni resta) tienes que dar "cantidadN":
+    el sistema calcula siempre la cantidad real él solo a partir de "numeros" — tú solo eliges
+    qué objeto se dibuja, nunca cuántos.
+    - SUMAS: un grupo de objetos por cada sumando — "icono1" para el primero, "icono2" para el
+      segundo, y "icono3"/"icono4" si hay más sumandos (mismo número de iconos que de sumandos en
+      "numeros"). El niño cuenta cada conjunto por separado y los combina. Si todos los grupos son
+      del mismo tipo de objeto puedes repetir el mismo nombre en cada campo.
+    - RESTAS: representa SOLO el minuendo (el primer número) como UN ÚNICO conjunto de objetos —
+      da solo "icono1" (ni "icono2"/"icono3"/"icono4"). El niño tacha a mano tantos objetos como
+      el sustraendo y cuenta los que quedan sin tachar — así es como se enseña de verdad la resta
+      con objetos, quitando de un mismo conjunto. NUNCA dibujes dos conjuntos separados con un
+      signo "menos" en medio: ese formato es el de la suma (combinar dos conjuntos) y aplicado a
+      una resta confunde al alumno sobre qué operación está haciendo — es un fallo conceptual, no
+      solo visual.
+    En ambos casos, en ${curso} el niño cuenta objetos, no lee números abstractos. Iconos
+    disponibles (usa EXACTAMENTE estos nombres): ${listaIconos}.
   * COHERENCIA enunciado↔icono: el icono elegido tiene que ser EXACTAMENTE lo que el enunciado
     dice que se cuenta — nunca un objeto distinto "parecido". Si el enunciado no menciona
     ninguno de estos objetos (${listaIconos}), reescribe el enunciado para que hable de uno de
@@ -355,6 +377,47 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   * El sistema dibuja la recta, resalta "a" y marca los saltos — nunca calcules ni escribas tú
     el resultado, solo queda un hueco en blanco.` : '';
 
+  // Tablas de multiplicar y reparto (30/08/2026): aclaración de una maestra
+  // real de Primaria — en 1º se dan las tablas del 1, 2, 3, 5 y 10 (las más
+  // fáciles); en 2º el resto de tablas (4, 6, 7, 8, 9). En ambos cursos es
+  // memorización de tabla completa, NUNCA multiplicación en columna (eso
+  // llega en 3º, ver "esMultDiv" más arriba). El reparto (división) se
+  // trabaja en 1º-2º como reparto manipulativo — objetos que se distribuyen
+  // a mano en grupos vacíos, SIN algoritmo de división en columna (eso
+  // también llega en 3º).
+  const bloqueTablaMultiplicar = esConDibujos ? `
+
+- "tabla_multiplicar": practicar UNA tabla de multiplicar completa (de la fila ×1 a la ×10).
+  { "tabla": n }
+  * "tabla": el número de la tabla a practicar.${curso === '1º' ? `
+    En ${curso}, usa SOLO una de estas tablas: 1, 2, 3, 5 o 10 (las que ya se trabajan en este
+    curso) — nunca otra.` : `
+    En ${curso}, cualquier tabla del 1 al 10 (todas se trabajan ya en este curso).`}
+  * El sistema genera él solo las 10 filas completas (tabla × 1 hasta tabla × 10) con el
+    resultado en blanco para que el alumno lo rellene — nunca escribas tú las filas ni los
+    resultados, "tabla" es el ÚNICO dato que necesitas dar.
+  * Como mucho UN ejercicio de este tipo por ficha (ya ocupa bastante espacio él solo).` : '';
+
+  const bloqueReparto = esConDibujos ? `
+
+- "reparto": división como reparto manipulativo (objetos que el alumno distribuye a mano en
+  grupos vacíos, dibujando o escribiendo cuántos tocan en cada uno) — SIN algoritmo de división
+  en columna (para eso usa "division_vertical", disponible a partir de 3º).
+  { "total": n, "grupos": g, "icono": "..." }
+  * "total": número de objetos a repartir. "grupos": número de grupos entre los que se reparten.
+  * "total" DEBE ser múltiplo exacto de "grupos" (reparto sin resto — en ${curso} todavía no se
+    trabaja el resto de una división). Por ejemplo, "total": 12, "grupos": 3 (4 en cada grupo).
+  * "icono": EXACTAMENTE uno de estos nombres: ${listaIconos} — coherente con lo que cuenta el
+    enunciado (mismo criterio de coherencia enunciado↔icono que en el resto de ejercicios).
+  * El sistema dibuja los "total" objetos arriba y "grupos" cajas vacías debajo para que el
+    alumno reparta a mano — nunca calcules tú cuántos tocan por grupo, ni lo escribas ni lo
+    reveles en el enunciado.${curso === '2º' ? `
+  * En ${curso} puedes enlazarlo con las tablas de multiplicar cuando tenga sentido (ej. "reparte
+    24 caramelos en 4 grupos iguales" conecta con la tabla del 4) — pero el dato que das sigue
+    siendo simplemente "total" y "grupos".` : ''}
+  * El enunciado debe pedir explícitamente repartir/distribuir en grupos (ej. "Reparte estas
+    12 pelotas en 3 grupos iguales. ¿Cuántas hay en cada grupo?").` : '';
+
   // Rejilla numérica (13/08/2026): cuadrícula de números en fila×columna
   // (versión en rejilla de "serie_numerica") — mismos cursos que
   // cuadro_numerico, pero es un tipo DISTINTO: esta es una secuencia de
@@ -465,12 +528,27 @@ ${notaRejillaEspecifica}` : '';
 - "problema": problema contextualizado con base de dibujos (OBLIGATORIO en ${curso}).
   { "texto": "enunciado del problema, lenguaje sencillo y adecuado al curso",
     "datosClave": ["dato 1", "dato 2"],
-    "svg": { "icono1": "...", "cantidad1": n, "signo": "+" o "-", "icono2": "...", "cantidad2": n } }
+    "svg": { "icono1": "...", "cantidad1": n, "signo": "+" o "-",
+              "icono2": "...", "cantidad2": n, "icono3": "...", "cantidad3": n,
+              "icono4": "...", "cantidad4": n } }
   * "datosClave": el sistema SOLO usa la CANTIDAD de elementos de esta lista para saber cuántas
     líneas en blanco dejar — nunca se imprime el texto. No es un resumen para el lector, es
     solo un contador; normalmente serán 2.
-  * "svg": OBLIGATORIO en ${curso} (nunca null). Ilustra con objetos los dos términos del
-    problema, igual que en las operaciones verticales — el niño cuenta los dibujos.
+  * "svg": OBLIGATORIO en ${curso} (nunca null). Igual que en las operaciones verticales, su forma
+    depende de "signo":
+    - Problema de SUMA ("signo": "+"): un conjunto por cada término que se suma en el enunciado —
+      "icono1"/"cantidad1", "icono2"/"cantidad2" y, si el problema suma 3 o 4 cantidades,
+      "icono3"/"cantidad3" y "icono4"/"cantidad4" también (deja sin rellenar los que no hagan
+      falta). A diferencia de "operacion_vertical", aquí SÍ tienes que dar cada "cantidadN" con el
+      número real de ese término — el problema es texto libre y el sistema no tiene otra forma de
+      saberlo, así que tiene que coincidir exactamente con lo que dice el enunciado.
+    - Problema de RESTA ("signo": "-"): UN ÚNICO conjunto de objetos — solo "icono1"/"cantidad1",
+      representando el minuendo (el total inicial, del que se quita algo). El niño tacha a mano
+      lo que el problema dice que se quita/pierde/reparte y cuenta lo que queda. NUNCA dibujes dos
+      conjuntos separados con un signo "menos" en medio (ese formato es el de la suma, no el de la
+      resta — mismo criterio que en "operacion_vertical", ver más arriba). Aquí sí debes dar
+      "cantidad1" con el número real del minuendo (a diferencia de "operacion_vertical", el
+      sistema no tiene aquí otra forma de saberlo).
   * COHERENCIA texto↔icono: igual que en las operaciones — el protagonista/objeto que se cuenta
     en "texto" tiene que ser uno de estos iconos (${listaIconos}), literalmente. Escribe el
     problema DESPUÉS de elegir el icono, no al revés — nunca ilustres "niños" o "juguetes" con
@@ -517,6 +595,8 @@ ${bloqueCalculoMental}
 ${bloqueTiposNuevos}
 ${bloqueRestaBarritas}
 ${bloqueRectaNumerica}
+${bloqueTablaMultiplicar}
+${bloqueReparto}
 ${bloqueCuadroNumerico}
 ${bloqueRejillaNumerica}
 ${bloqueFiguraGeometrica}

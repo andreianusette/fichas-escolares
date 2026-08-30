@@ -173,6 +173,36 @@ body {
   margin-bottom: 5px;
 }
 
+/* ── Botón "Borrar" del campo de instrucciones especiales (30/08/2026) ──
+   Al generar varias fichas seguidas del mismo curso hay que vaciar este
+   campo a mano cada vez; este botón lo vacía y le devuelve el foco. Es un
+   botón de texto discreto junto a la etiqueta, no compite visualmente con
+   "Generar Ficha". */
+.campo-cabecera-instrucciones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.campo-cabecera-instrucciones label { margin-bottom: 0; }
+
+.btn-borrar-instrucciones {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-borrar-instrucciones:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
 .campo select,
 .campo input,
 .campo textarea {
@@ -434,8 +464,11 @@ body {
   font-size: 14px;
 }
 
+/* Nombre del centro (30/08/2026): línea suelta ANTES de ".cabecera", no
+   dentro — el docente pidió que quedara separado visualmente del cajón de
+   Nombre/Fecha, sin cajón propio. El margen inferior hace ese hueco. */
 .cabecera-centro {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-weight: bold;
   color: var(--calido-azul);
   font-size: 15px;
@@ -1268,6 +1301,81 @@ body {
   );
 }
 
+/* ── Tabla de multiplicar (30/08/2026) ────────────────────────────────────
+   Practicar una tabla completa (×1 a ×10), repartida en dos columnas de 5
+   filas para que quepa cómoda en la ficha. Las filas y resultados en blanco
+   los genera siempre el código, nunca Claude. */
+.tabla-multiplicar-bloque {
+  margin: 10px 0;
+}
+
+.tabla-multiplicar-titulo {
+  font-weight: bold;
+  font-size: 16px;
+  margin: 0 0 8px;
+  color: var(--calido-azul);
+}
+
+.tabla-multiplicar-columnas {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.tm-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tm-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+}
+
+.tm-texto {
+  min-width: 70px;
+}
+
+/* ── Reparto (30/08/2026) ─────────────────────────────────────────────────
+   División como reparto manipulativo, sin algoritmo: "total" objetos para
+   contar arriba y "grupos" cajas vacías debajo, para que el alumno reparta
+   a mano dibujando o escribiendo cuántos tocan en cada una. */
+.reparto-bloque {
+  margin: 10px 0;
+}
+
+.reparto-operacion {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.reparto-objetos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 340px;
+  margin-bottom: 14px;
+}
+
+.reparto-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.reparto-grupo-caja {
+  border: 2px dashed var(--calido-azul);
+  background: var(--calido-azul-fondo);
+  border-radius: 8px;
+  min-width: 72px;
+  min-height: 60px;
+}
+
 /* ── Figuras geométricas (13/08/2026) ─────────────────────────────────────
    Cuatro modos: identificar (icono + hueco para el nombre), propiedades
    (icono con nombre + huecos de lados/vértices o caras/aristas/vértices),
@@ -1794,6 +1902,15 @@ ol.ejercicio-lista li {
 }
 
 .ficha.modo-blanco-negro .resta-barritas-caja-vacia {
+  border-color: black !important;
+  background: white !important;
+}
+
+.ficha.modo-blanco-negro .tabla-multiplicar-titulo {
+  color: black !important;
+}
+
+.ficha.modo-blanco-negro .reparto-grupo-caja {
   border-color: black !important;
   background: white !important;
 }

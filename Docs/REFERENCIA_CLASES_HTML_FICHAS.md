@@ -42,6 +42,28 @@ Es el contenedor raíz de toda la ficha.
 Va siempre al principio. Contiene los datos que el alumno rellena a mano
 (nombre, fecha) y los datos fijos de la ficha (curso, materia).
 
+**Actualización (30/08/2026) — nombre del centro, FUERA de `.cabecera`:**
+cuando el docente indica un "Centro educativo", el nombre se pinta como
+línea suelta **antes** de `.cabecera`, nunca dentro (ni dentro de
+`.cabecera-datos`, que en Matemáticas es el div real que envuelve el cajón
+de Nombre/Fecha) — a petición explícita de un docente, para que quede
+visualmente separado del cajón de Nombre/Fecha, sin cajón propio:
+
+```html
+<p class="cabecera-centro">CEIP Santa María Magdalena</p> <!-- solo si hay centro -->
+<div class="cabecera">
+  <div class="cabecera-datos">
+    <p><strong>Nombre:</strong> <span class="hueco-nombre"></span></p>
+    <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
+  </div>
+</div>
+```
+Si no hay centro, se omite la línea `.cabecera-centro` por completo (nunca
+"Centro:" en blanco). Blindado por código en Matemáticas
+(`renderizarFichaMatematicas()`); en las otras 5 asignaturas (pipeline
+legacy, HTML generado por Claude) es solo una instrucción del
+`SYSTEM_PROMPT`, no garantizado por código.
+
 ---
 
 ## 3. Título de la ficha
@@ -168,6 +190,61 @@ Distribución en columnas paralelas (cuando el docente pide "N columnas de X ope
 tener recuadro/borde alrededor. Solo se ven el número, el signo, la línea
 horizontal de resultado (`.linea-op`) y el hueco de resultado
 (`.resultado-hueco`, una raya de puntos bajo la línea, no una caja cerrada).
+
+---
+
+## 8bis0. Ilustración con objetos en operaciones de 1º-2º (`operacion_vertical` y `problema`)
+
+En 1º-2º (`esConDibujos`), una `operacion_vertical` de una sola operación y un
+`problema` llevan además un campo `datos.svg` que dibuja objetos para contar
+junto a la operación en columna / dentro del enunciado. El HTML que genera
+**depende del signo** — modelo corregido el 30/08/2026 tras una aclaración
+de una maestra real sobre cómo se enseña de verdad la resta con apoyo
+manipulativo:
+
+**Suma** (`signo: "+"`) — un conjunto por sumando, hasta 4 (actualizado
+30/08/2026, cierre de la Fase 3 — antes fijo en 2 conjuntos):
+```html
+<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+  <div style="...">${iconos del 1er sumando}</div>
+  <span style="...">+</span>
+  <div style="...">${iconos del 2º sumando}</div>
+  <span style="...">+</span>
+  <div style="...">${iconos del 3er sumando, si lo hay}</div>
+  <!-- hasta un 4º grupo, si "op.numeros" tiene 4 elementos -->
+</div>
+```
+
+**Resta** (`signo: "-"`) — UN ÚNICO conjunto de objetos, el minuendo (nunca
+dos conjuntos con un signo "menos" en medio — ese formato es el de la suma,
+combinar conjuntos, y aplicado a una resta enseña el concepto equivocado: la
+resta es *quitar de un mismo conjunto*, no comparar dos):
+```html
+<div style="...">${iconos del minuendo × la cantidad real}</div>
+```
+El alumno tacha a mano tantos objetos como el sustraendo y cuenta los que
+quedan sin tachar — el sistema nunca marca ni tacha nada por su cuenta.
+
+**Blindaje de cantidad exacta** — `renderOperacionVertical()` en
+`renderer-matematicas.js`: en `operacion_vertical`, la cantidad dibujada de
+CADA grupo (sea resta o suma) nunca sale de `datos.svg.cantidadN` — se
+calcula siempre a partir de los números reales de `datos.operaciones[0].
+numeros` (el minuendo para la resta, cada sumando en orden para la suma).
+Claude solo elige el nombre del icono de cada grupo (`icono1`..`icono4`;
+si falta alguno intermedio se reutiliza `icono1`), nunca la cantidad — así
+que a diferencia de versiones anteriores, `datos.svg.cantidadN` ya NO se
+usa nunca en este tipo, ni para sumas ni para restas (queda actualizado
+30/08/2026, cierre de la Fase 3).
+
+En `problema` (texto libre, sin array de números del que derivar nada) sí
+depende de que Claude informe cada `cantidad1`..`cantidad4` — no hay ahí
+ningún otro campo numérico del que derivarlo. En ambos tipos, y para cada
+grupo por separado, por encima de `UMBRAL_ICONOS_OPERACION` (10 objetos —
+el mismo tope interno de `renderIconos()`, para que nunca se dibuje
+silenciosamente una cantidad recortada) NO se dibuja NINGÚN grupo — mejor
+sin dibujo que un dibujo a medias o con una cantidad incorrecta; el
+ejercicio se queda solo con la operación en columna / el hueco de
+respuesta, sin icono.
 
 ---
 
@@ -622,6 +699,63 @@ dificultad. Esa regla vive en el prompt (`construirSystemPromptMatematicas()` en
 bloque `notaRejillaEspecifica`), no en el renderizador — el HTML/CSS de esta sección no cambia,
 solo cambia qué `numeros`/`columnas` decide enviar Claude para 1º-2º frente a 3º (que sigue con
 la versión libre: cualquier rango, paso y número de columnas).
+
+---
+
+## 8sedecies. Tabla de multiplicar (30/08/2026)
+
+```html
+<div class="tabla-multiplicar-bloque">
+  <p class="tabla-multiplicar-titulo">Tabla del 3</p>
+  <div class="tabla-multiplicar-columnas">
+    <div class="tm-columna">
+      <div class="tm-fila"><span class="tm-texto">3 × 1 =</span><span class="hueco hueco-corto"></span></div>
+      <!-- ... hasta 3 × 5 ... -->
+    </div>
+    <div class="tm-columna">
+      <div class="tm-fila"><span class="tm-texto">3 × 6 =</span><span class="hueco hueco-corto"></span></div>
+      <!-- ... hasta 3 × 10 ... -->
+    </div>
+  </div>
+</div>
+```
+
+Practicar UNA tabla de multiplicar completa (de ×1 a ×10), repartida en dos columnas de 5 filas
+para que quepa cómoda en la ficha. Blindaje total: el ÚNICO dato que llega de Claude es
+`datos.tabla` — las 10 filas (`N × 1` a `N × 10`) y sus resultados en blanco los genera siempre
+`renderTablaMultiplicar()` en `renderer-matematicas.js`, nunca se confía en que Claude enumere o
+multiplique bien. Disponible solo en 1º-2º (mismo curso que el resto de tipos con dibujos): en
+1º restringido por el prompt a las tablas del 1, 2, 3, 5 y 10 (las que ya se trabajan en ese
+curso, aclaración de una maestra real); en 2º cualquier tabla del 1 al 10. Esa restricción por
+curso vive solo en el prompt (`construirSystemPromptMatematicas()` en `server.js`), no hay
+blindaje de código que la fuerce — igual que la restricción de figuras 3D a partir de 2º.
+
+---
+
+## 8septendecies. Reparto (30/08/2026)
+
+```html
+<div class="reparto-bloque">
+  <p class="reparto-operacion">12 : 3 = <span class="hueco hueco-corto"></span></p>
+  <div class="reparto-objetos">
+    <svg>...</svg><!-- ×12, un icono por objeto a repartir -->
+  </div>
+  <div class="reparto-grupos">
+    <div class="reparto-grupo-caja"></div><!-- ×3, una caja vacía por grupo -->
+  </div>
+</div>
+```
+
+División como reparto manipulativo: el sistema dibuja `datos.total` objetos arriba
+(`.reparto-objetos`, mismos iconos silueteados que `conteo_svg`/`operacion_vertical`) y
+`datos.grupos` cajas vacías debajo (`.reparto-grupo-caja`, mismo estilo punteado que
+`.resta-barritas-caja-vacia`) para que el alumno reparta a mano — dibujando o escribiendo
+cuántos objetos tocan en cada caja. Deliberadamente SIN algoritmo de división en columna (para
+eso está `division_vertical`, disponible a partir de 3º) y SIN resto: `renderReparto()` en
+`renderer-matematicas.js` ajusta `datos.total` al múltiplo más cercano de `datos.grupos` si
+Claude manda un reparto que no cuadra exacto, en vez de dibujar una situación imposible de
+repartir sin sobras. Disponible en 1º-2º; el enunciado siempre debe pedir explícitamente
+repartir/distribuir en grupos.
 
 ---
 
