@@ -1,0 +1,51 @@
+Fuente: Escolar Ligada (EscolarLigada-Regular.ttf / .woff2)
+Tipo: fuente COMBINADA, construida por Claude para este proyecto el 05/09/2026
+a partir de dos fuentes ya presentes en public/fonts/, a petición del usuario
+y con el diseño final aprobado por la maestra (mayúsculas más gruesas que las
+minúsculas, para que los niños distingan claramente una de otra).
+
+Origen de cada parte:
+- Minúsculas (incluidas ñ y vocales acentuadas: á é í ó ú, ü): tomadas TAL
+  CUAL de "Little Days" (West Wind Fonts). Ver la licencia ya verificada en
+  public/fonts/little-days/LICENCIA.txt — uso personal y comercial libre,
+  confirmado en tres catálogos independientes (dafont, fontspace, blogfonts),
+  sin acceso al texto legal original del autor (bloqueado por la red de este
+  entorno). Si se necesita alguna vez una confirmación más formal para un
+  contrato o auditoría, ese sería el siguiente paso — ver detalle en el
+  LICENCIA.txt de Little Days.
+- Mayúsculas (incluidas Ñ y vocales acentuadas: Á É Í Ó Ú, Ü), dígitos y
+  puntuación básica (espacio, . , ; : ¿ ? ¡ ! ( ) - ' "): tomadas de
+  "Baloo 2 Regular" (peso wght=400, la instancia por defecto), descargada
+  directamente del repositorio oficial https://github.com/google/fonts
+  (carpeta ofl/baloo2), Copyright 2019 The Baloo 2 Project Authors
+  (https://github.com/EkType/Baloo2), licencia SIL Open Font License 1.1 —
+  el texto completo va adjunto en OFL-Baloo2.txt, en esta misma carpeta.
+
+Cómo se construyó (por si hay que rehacerlo o ampliarlo): con la librería
+fontTools (Python) — se copiaron los contornos de cada glifo de Baloo 2
+(decomponiendo los que son compuestos, como Ñ/Á/É) y se insertaron con
+nombres nuevos dentro del archivo de Little Days, remapeando el cmap para
+que cada carácter apunte al glifo correcto según mayúscula/minúscula. Ambas
+fuentes de origen comparten unitsPerEm=1000, así que no hizo falta reescalar
+ninguna coordenada. Se subió el ascenso vertical de la fuente resultante
+(hhea/OS2) a 860 unidades para que las mayúsculas acentuadas de Baloo 2 (que
+llegan a 820) no queden recortadas.
+
+Licencia de la fuente combinada resultante: la OFL exige que cualquier fuente
+que contenga glifos derivados de una fuente OFL se redistribuya también bajo
+OFL, conservando los avisos de copyright — por eso este archivo se distribuye
+igualmente bajo SIL Open Font License 1.1 (ver OFL-Baloo2.txt) en la parte
+que corresponde a Baloo 2. La parte de Little Days conserva el nivel de
+verificación ya descrito en su propio LICENCIA.txt (más informal que un OFL.txt
+oficial, pero ya evaluado y aceptado en este proyecto desde su instalación).
+
+Nombre interno: "Escolar Ligada" — provisional, se puede renombrar sin coste
+(solo está en la tabla "name" del propio archivo) si se os ocurre un nombre
+mejor para el catálogo del proyecto.
+
+Estado a 05/09/2026: fuente construida y colocada aquí, LISTA para usarse,
+pero SIN aplicar todavía a ningún ejercicio de producción. Cole Carreira
+sigue siendo la fuente en uso para el punteado de "trazo_letra" (unir
+puntitos); esta fuente combinada está pensada para el trazo continuo (no de
+puntitos) que se decidirá más adelante — ver ROADMAP_FICHAS_ESCOLARES.md,
+Fase 9, duodécima pasada.

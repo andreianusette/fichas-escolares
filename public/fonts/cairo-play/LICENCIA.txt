@@ -1,0 +1,29 @@
+Fuente: Cairo Play (CairoPlay-Regular.woff2 / CairoPlay-Bold.woff2, versión
+estática de estos dos pesos — convertidas desde los .ttf de la carpeta
+"static" del .zip original, que también incluye una versión variable con
+ejes de peso e inclinación, no usada aquí)
+Autor: The Cairo Project Authors (https://github.com/Gue3bara/Cairo)
+Origen: subida por el usuario el 05/09/2026 a public/fonts/ (cairo-play.zip),
+que SÍ incluye el OFL.txt oficial completo (copiado también aquí).
+
+Licencia: SIL Open Font License 1.1 — confirmada directamente en el OFL.txt
+oficial incluido en el .zip, y coincide con lo grabado en la tabla "name" del
+propio archivo ("Copyright 2009 The Cairo Project Authors"). "Cairo" es una
+familia muy conocida y ampliamente usada de Google Fonts; "Cairo Play" es su
+variante más desenfadada/redondeada. Verificación de la máxima confianza.
+
+Cobertura comprobada (fontTools): alfabeto árabe estándar completo, CON
+tablas GSUB/GPOS (unión de letras y ligaduras correctas) — y además
+cobertura LATINA completa, incluido el español (ñ, acentos, ¿¡). Es de las
+pocas fuentes candidatas que cubre los dos alfabetos a la vez en un único
+archivo, por si algún día interesa un diseño bilingüe árabe/español dentro
+de la misma ficha.
+
+Estilo: más neutro y "de lectura" que Aref Ruqaa Ink (menos caligráfico, más
+parecido a una fuente de texto corriente) — probablemente más adecuada que
+Aref Ruqaa Ink para el cuerpo de un ejercicio de lectoescritura infantil en
+árabe, dejando Aref Ruqaa Ink para títulos o algo más decorativo.
+
+Estado a 05/09/2026: instalada, disponible como font-family, SIN aplicar
+todavía a ningún ejercicio (la Fase 8 de traducción a árabe sigue sin
+empezar) — guardada para cuando se necesite. Ver ROADMAP_FICHAS_ESCOLARES.md.

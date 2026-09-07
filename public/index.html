@@ -115,6 +115,17 @@
           <p class="campo-ayuda">El docente puede pedir temática, nivel, número de ejercicios, formato... tiene prioridad máxima sobre todo lo demás.</p>
         </div>
 
+        <div class="campo campo-checkbox">
+          <label class="etiqueta-checkbox">
+            <input type="checkbox" id="fichaEnBlanco">
+            Ficha en blanco (sin ejercicios)
+          </label>
+          <p class="campo-ayuda">Genera solo la cabecera y el pie, sin gastar ninguna consulta a
+            la IA — para cuando prefieres pegar tú mismo una imagen de un ejercicio que ya
+            tienes (por ejemplo, un esquema de las partes de un volcán). Una vez generada,
+            aparecerá un botón "🖼️ Añadir imagen" en la propia ficha.</p>
+        </div>
+
         <button type="submit" id="btnGenerar">✨ Generar Ficha</button>
 
       </form>
@@ -244,7 +255,13 @@
 
     // Bloquea SVGs y estructuras clave para que el maestro no las rompa al editar
     function protegerElementosEstructurales(contenedor) {
-      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-columna', '.resta-barritas-caja-vacia'].forEach(selector => {
+      // '.trazo-letra-fuente-punteada' añadido el 05/09/2026 (séptima pasada):
+      // desde que la rejilla pequeña de "trazo_letra" pasó a ser texto real
+      // (fuente "Cole Carreira") en vez de <svg>, ya no está protegida por la
+      // regla genérica 'svg' de aquí abajo — sin este selector, el docente
+      // podría borrar o escribir encima de las letras punteadas sin querer
+      // al editar la ficha (antes era imposible, un <svg> no es texto).
+      ['svg', '.caja-espacio-dibujo', '.casilla-test', '.operacion-columna', '.resta-barritas-caja-vacia', '.trazo-letra-fuente-punteada'].forEach(selector => {
         contenedor.querySelectorAll(selector).forEach(el => {
           el.setAttribute('contenteditable', 'false');
         });
@@ -417,15 +434,39 @@
       });
     }
 
+    // ── Botón general "🖼️ Añadir imagen" (07/09/2026) ──────────────────────
+    // El mecanismo de imagen flotante ya existía (ver arriba), pero
+    // añadirBotonesImagen() solo cuelga un botón de CADA .ejercicio — una
+    // ficha en blanco no tiene ninguno. Reutiliza exactamente la misma
+    // activarSelectorImagen()/insertarImagenFlotante() de siempre (aceptan
+    // cualquier objeto con offsetLeft/offsetTop como "referencia", no hace
+    // falta que sea un .ejercicio real), solo que aquí el botón cuelga
+    // directamente de .ficha y se puede pulsar tantas veces como haga falta
+    // para ir añadiendo varias imágenes. Se añade solo si la ficha no tiene
+    // ya ejercicios propios (evita un botón redundante en una ficha normal,
+    // donde ya existe un botón por ejercicio).
+    function añadirBotonImagenGeneral(contenedor) {
+      const ficha = contenedor.querySelector('.ficha');
+      if (!ficha) return;
+      if (ficha.querySelector('.ejercicio')) return;
+      if (ficha.querySelector('.btn-add-imagen-general')) return;
+
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'btn-add-imagen-general';
+      boton.setAttribute('contenteditable', 'false');
+      boton.textContent = '🖼️ Añadir imagen';
+      const referencia = { offsetLeft: 20, offsetTop: 140 };
+      boton.addEventListener('click', () => activarSelectorImagen(referencia, ficha));
+      ficha.appendChild(boton);
+    }
+
     document.getElementById('formFicha').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const btn = document.getElementById('btnGenerar');
       const contenedor = document.getElementById('contenedorFicha');
-
-      btn.disabled = true;
-      btn.textContent = '⏳ Diseñando ficha...';
-      contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
+      const esFichaEnBlanco = document.getElementById('fichaEnBlanco').checked;
 
       const datos = {
         colegio:        document.getElementById('colegio').value,
@@ -437,6 +478,45 @@
         instrucciones:  document.getElementById('instrucciones').value,
         iconosElegidos: obtenerIconosElegidos()
       };
+
+      // Ficha en blanco (07/09/2026): no pasa por la IA en absoluto — un
+      // endpoint propio, instantáneo y sin coste, que solo devuelve la
+      // cabecera/pie con cero ejercicios (ver /api/ficha-en-blanco en
+      // server.js). El docente añade sus propias imágenes después con el
+      // botón "🖼️ Añadir imagen" (ver añadirBotonImagenGeneral más abajo).
+      if (esFichaEnBlanco) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Preparando ficha...';
+        contenedor.innerHTML = '<p class="cargando">Preparando la ficha en blanco...</p>';
+        try {
+          const respuesta = await fetch('/api/ficha-en-blanco', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+          });
+          const resultado = await respuesta.json();
+          if (resultado.html) {
+            contenedor.innerHTML = resultado.html;
+            contenedor.setAttribute('contenteditable', 'true');
+            protegerElementosEstructurales(contenedor);
+            añadirBotonImagenGeneral(contenedor);
+            cambiarModoTinta();
+          } else {
+            contenedor.innerHTML = `<p class="error">⚠️ ${resultado.error || 'Hubo un problema al generar la ficha.'}</p>`;
+          }
+        } catch (err) {
+          console.error(err);
+          contenedor.innerHTML = '<p class="error">⚠️ Error de conexión con el servidor.</p>';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '✨ Generar Ficha';
+        }
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Diseñando ficha...';
+      contenedor.innerHTML = '<p class="cargando">Generando contenido adaptado a LOMLOE...</p>';
 
       try {
         const respuesta = await fetch('/api/generar-ficha', {
@@ -453,6 +533,7 @@
           protegerElementosEstructurales(contenedor);
           añadirBotonesPista(contenedor);
           añadirBotonesImagen(contenedor);
+          añadirBotonImagenGeneral(contenedor);
           cambiarModoTinta();
         } else {
           contenedor.innerHTML = `<p class="error">⚠️ ${resultado.error || 'Hubo un problema al generar la ficha.'}</p>`;

@@ -1196,6 +1196,701 @@ function renderFiguraGeometrica(datos) {
   return '';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// AMPLIACIÓN CURRICULAR (07/09/2026): 14 tipos nuevos para cubrir los
+// sentidos de la medida, espacial, estocástico y algebraico del RD 157/2022
+// que todavía no tenían tipo de ejercicio propio (ver auditoría completa en
+// el ROADMAP, entrada del 07/09/2026). Mismo criterio de blindaje que el
+// resto del fichero: toda cantidad derivable la calcula el código, nunca se
+// confía en un dato redundante de Claude; y donde el resultado visual
+// depende de que algo "cuadre bien" (una figura reconocible, una paleta de
+// colores legible), se usa un catálogo cerrado en vez de coordenadas o
+// valores libres.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Dinero en euros (sentido numérico / educación financiera) ───────────
+// Catálogo cerrado de denominaciones reales del sistema monetario europeo.
+// Monedas: círculo. Billetes (a partir de 5€): rectángulo. Mismo trazo
+// negro que el resto de iconos, para que se lea bien en blanco y negro.
+const DENOMINACIONES_EURO = [0.01, 0.02, 0.05, 0.10, 0.20, 0.50, 1, 2, 5, 10, 20, 50];
+function formatoEuros(valor) {
+  if (valor < 1) return `${Math.round(valor * 100)}c`;
+  return `${valor % 1 === 0 ? valor : String(valor.toFixed(2)).replace('.', ',')}€`;
+}
+function svgMonedaEuro(valor) {
+  const texto = formatoEuros(valor);
+  return `<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="#000" stroke-width="2"/><circle cx="28" cy="28" r="19" fill="none" stroke="#000" stroke-width="1" stroke-dasharray="2,2"/><text x="28" y="33" text-anchor="middle" font-size="12" font-family="Arial" font-weight="bold">${texto}</text></svg>`;
+}
+function svgBilleteEuro(valor) {
+  const texto = formatoEuros(valor);
+  return `<svg width="90" height="52" viewBox="0 0 90 52"><rect x="2" y="2" width="86" height="48" rx="6" fill="none" stroke="#000" stroke-width="2"/><circle cx="22" cy="26" r="14" fill="none" stroke="#000" stroke-width="1.3"/><text x="60" y="31" text-anchor="middle" font-size="15" font-family="Arial" font-weight="bold">${texto}</text></svg>`;
+}
+function svgDinero(valor) {
+  return valor < 5 ? svgMonedaEuro(valor) : svgBilleteEuro(valor);
+}
+function renderDineroEuros(datos) {
+  const modo = datos.modo === 'cambio' ? 'cambio' : 'contar';
+  let monedas = Array.isArray(datos.monedas) ? datos.monedas : [];
+  // Blindaje: solo denominaciones reales, cantidad y nº de grupos acotados
+  // para que quepan bien dibujadas en la ficha.
+  monedas = monedas
+    .filter(m => DENOMINACIONES_EURO.includes(numeroDesdeJSON(m.valor)))
+    .slice(0, 6)
+    .map(m => ({ valor: numeroDesdeJSON(m.valor), cantidad: Math.max(1, Math.min(8, parseInt(m.cantidad, 10) || 1)) }));
+  if (monedas.length === 0) return '';
+
+  const grupos = monedas.map(m => `<div class="dinero-grupo">${svgDinero(m.valor).repeat(m.cantidad)}</div>`).join('');
+
+  if (modo === 'cambio') {
+    const precio = numeroDesdeJSON(datos.precio);
+    return `<div class="dinero-bloque">
+      <div class="dinero-pagado"><p class="dinero-etiqueta">Pagas con:</p><div class="dinero-grupos">${grupos}</div></div>
+      <p class="dinero-precio">Precio del artículo: <strong>${formatoEuros(precio)}</strong></p>
+      <p class="dinero-resultado">Cambio: <span class="hueco hueco-corto"></span> €</p>
+    </div>`;
+  }
+
+  return `<div class="dinero-bloque">
+    <div class="dinero-grupos">${grupos}</div>
+    <p class="dinero-resultado">Total: <span class="hueco hueco-corto"></span> €</p>
+  </div>`;
+}
+
+// ── Proporcionalidad simple (sentido numérico / razonamiento proporcional)
+// Tabla de dos magnitudes en proporción directa: se dan varios valores YA
+// dados de la magnitud A y se deja la magnitud B en blanco para que el
+// alumno aplique la razón del enunciado — el sistema nunca calcula ni
+// revela ningún valor de B.
+function renderProporcionalidad(datos) {
+  let valoresA = Array.isArray(datos.valoresA) ? datos.valoresA.slice(0, 6).map(numeroDesdeJSON) : [];
+  if (valoresA.length === 0) return '';
+  const magnitudA = escapeHtml(datos.magnitudA || 'A');
+  const magnitudB = escapeHtml(datos.magnitudB || 'B');
+
+  const filas = valoresA.map(v => `
+    <tr><td class="prop-celda">${v}</td><td class="prop-celda prop-hueco"></td></tr>`).join('');
+
+  return `<table class="tabla-proporcionalidad">
+    <thead><tr><th>${magnitudA}</th><th>${magnitudB}</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table>`;
+}
+
+// ── Conversión de unidades (sentido de la medida) ────────────────────────
+// Lista de conversiones a completar, con una tabla de equivalencia de
+// apoyo (decorativa) cuando el sistema reconoce el par de unidades.
+const EQUIVALENCIAS_UNIDADES = {
+  'm-cm': '1 m = 100 cm', 'cm-m': '1 m = 100 cm',
+  'km-m': '1 km = 1000 m', 'm-km': '1 km = 1000 m',
+  'kg-g': '1 kg = 1000 g', 'g-kg': '1 kg = 1000 g',
+  'l-ml': '1 l = 1000 ml', 'ml-l': '1 l = 1000 ml',
+  'h-min': '1 h = 60 min', 'min-h': '1 h = 60 min',
+  'min-s': '1 min = 60 s', 's-min': '1 min = 60 s',
+  'm-mm': '1 m = 1000 mm', 'mm-m': '1 m = 1000 mm',
+  'cm-mm': '1 cm = 10 mm', 'mm-cm': '1 cm = 10 mm'
+};
+function renderConversionUnidades(datos) {
+  const conversiones = Array.isArray(datos.conversiones) ? datos.conversiones.slice(0, 8) : [];
+  if (conversiones.length === 0) return '';
+
+  const claveEquiv = `${conversiones[0].unidadOrigen}-${conversiones[0].unidadDestino}`;
+  const ayuda = EQUIVALENCIAS_UNIDADES[claveEquiv]
+    ? `<p class="conversion-ayuda">Recuerda: ${EQUIVALENCIAS_UNIDADES[claveEquiv]}</p>` : '';
+
+  const filas = conversiones.map(c => `
+    <div class="conversion-fila">
+      <span>${numeroDesdeJSON(c.cantidad)} ${escapeHtml(c.unidadOrigen)}</span>
+      <span>=</span>
+      <span class="hueco hueco-corto"></span>
+      <span>${escapeHtml(c.unidadDestino)}</span>
+    </div>`).join('');
+
+  return `<div class="conversion-bloque">${ayuda}${filas}</div>`;
+}
+
+// ── Medir con regla (sentido de la medida) ───────────────────────────────
+// Segmentos dibujados a ESCALA FÍSICA REAL usando unidades CSS "cm" (no
+// píxeles): así, al imprimir en A4 a tamaño real, un segmento de "5cm" mide
+// 5 cm de verdad sobre el papel y el alumno puede medirlo con su propia
+// regla. La longitud siempre se deriva de "longitudCm", nunca de otro dato.
+function renderMedirConRegla(datos) {
+  let segmentos = Array.isArray(datos.segmentos) ? datos.segmentos.slice(0, 6) : [];
+  segmentos = segmentos.map(s => Math.max(1, Math.min(15, Math.round(numeroDesdeJSON(s.longitudCm)))));
+  if (segmentos.length === 0) return '';
+
+  const marcasRegla = Array.from({ length: 16 }, (_, i) =>
+    `<span class="regla-marca" style="left:${i}cm;">${i}</span>`).join('');
+
+  const filas = segmentos.map((cm, i) => `
+    <div class="regla-fila">
+      <span class="regla-etiqueta">${String.fromCharCode(65 + i)})</span>
+      <div class="regla-segmento" style="width:${cm}cm;"></div>
+      <span class="hueco hueco-corto"></span> cm
+    </div>`).join('');
+
+  return `<div class="regla-bloque">
+    <p class="regla-nota">Mide cada línea con tu regla:</p>
+    <div class="regla-guia"><div class="regla-linea"></div>${marcasRegla}</div>
+    ${filas}
+  </div>`;
+}
+
+// ── Ángulos (sentido espacial) ────────────────────────────────────────
+// Dos semirrectas desde un vértice (la primera siempre horizontal, a 0°) y
+// un arco de color entre ambas. "modo": "clasificar" deja un hueco para
+// escribir el tipo (agudo/recto/obtuso/llano); "transportador" añade una
+// escala de 0° a 180° superpuesta al vértice para practicar la medida.
+function svgAngulo(grados, conTransportador) {
+  const g = Math.max(5, Math.min(180, Math.round(numeroDesdeJSON(grados))));
+  const cx = 95, cy = 105, radio = 75;
+  const rad = (deg) => (deg * Math.PI) / 180;
+  const x2 = (cx + radio * Math.cos(rad(g))).toFixed(1);
+  const y2 = (cy - radio * Math.sin(rad(g))).toFixed(1);
+  const arco = `<path d="M${(cx + 26).toFixed(1)} ${cy} A26 26 0 0 0 ${(cx + 26 * Math.cos(rad(g))).toFixed(1)} ${(cy - 26 * Math.sin(rad(g))).toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="1.6"/>`;
+
+  let escala = '';
+  if (conTransportador) {
+    for (let d = 0; d <= 180; d += 10) {
+      const grande = d % 30 === 0;
+      const r1 = radio + 4, r2 = grande ? radio + 12 : radio + 8;
+      const xa = (cx + r1 * Math.cos(rad(d))).toFixed(1), ya = (cy - r1 * Math.sin(rad(d))).toFixed(1);
+      const xb = (cx + r2 * Math.cos(rad(d))).toFixed(1), yb = (cy - r2 * Math.sin(rad(d))).toFixed(1);
+      escala += `<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="#64748b" stroke-width="1"/>`;
+      if (grande) {
+        const xt = (cx + (r2 + 10) * Math.cos(rad(d))).toFixed(1), yt = (cy - (r2 + 10) * Math.sin(rad(d))).toFixed(1);
+        escala += `<text x="${xt}" y="${yt}" font-size="8" text-anchor="middle" font-family="Arial" fill="#64748b">${d}</text>`;
+      }
+    }
+    escala += `<path d="M${(cx - radio - 14).toFixed(1)} ${cy} A${radio + 14} ${radio + 14} 0 0 0 ${(cx + radio + 14).toFixed(1)} ${cy}" fill="none" stroke="#94a3b8" stroke-width="1"/>`;
+  }
+
+  return `<svg width="195" height="115" viewBox="0 0 195 115">
+    ${escala}
+    <line x1="${cx}" y1="${cy}" x2="${cx + radio}" y2="${cy}" stroke="#000" stroke-width="2"/>
+    <line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="2"/>
+    ${arco}
+    <circle cx="${cx}" cy="${cy}" r="2.5" fill="#000"/>
+  </svg>`;
+}
+function renderAngulos(datos) {
+  const angulos = Array.isArray(datos.angulos) ? datos.angulos.slice(0, 4) : [];
+  if (angulos.length === 0) return '';
+  const modo = datos.modo === 'transportador' ? 'transportador' : 'clasificar';
+
+  const tarjetas = angulos.map(a => {
+    const svg = svgAngulo(a.grados, modo === 'transportador');
+    const respuesta = modo === 'transportador'
+      ? `<p class="angulo-respuesta">Mide: <span class="hueco hueco-corto"></span>°</p>`
+      : `<p class="angulo-respuesta">Tipo: <span class="hueco hueco-corto"></span></p>`;
+    return `<div class="angulo-tarjeta">${svg}${respuesta}</div>`;
+  }).join('');
+
+  return `<div class="angulos-grid">${tarjetas}</div>`;
+}
+
+// ── Simetría (sentido espacial) ──────────────────────────────────────
+// Catálogo cerrado de figuras en cuadrícula (ya dibujada solo la MITAD):
+// una lista fija de celdas ocupadas en un grid de 5 columnas × 6 filas.
+// El alumno completa a mano la mitad simétrica sobre la cuadrícula en
+// blanco — el sistema NUNCA dibuja esa mitad (sería darle la respuesta ya
+// hecha). Coordenadas libres mandadas por Claude no garantizan una figura
+// reconocible al reflejarla, así que — igual criterio que "figura
+// geométrica" o "conecta los puntos" — el dibujo en sí es un catálogo
+// cerrado; Claude solo elige qué plantilla y qué eje usar.
+const PATRONES_SIMETRIA = {
+  corazon: [[0, 3], [0, 4], [1, 2], [1, 3], [2, 2], [3, 2], [4, 1], [4, 2], [5, 0], [5, 1]],
+  casa: [[0, 4], [1, 3], [1, 4], [2, 2], [2, 3], [2, 4], [3, 2], [3, 3], [3, 4], [4, 2], [4, 3], [4, 4], [5, 2], [5, 3], [5, 4]],
+  flecha: [[0, 4], [1, 3], [1, 4], [2, 2], [2, 3], [2, 4], [3, 4], [4, 4], [5, 4]],
+  copa: [[0, 2], [0, 3], [0, 4], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4], [4, 1], [4, 2], [4, 3], [4, 4], [5, 1], [5, 2], [5, 3], [5, 4]]
+};
+export const PATRONES_SIMETRIA_DISPONIBLES = Object.keys(PATRONES_SIMETRIA);
+const CELDA_SIMETRIA_PX = 22;
+function renderSimetria(datos) {
+  const nombre = PATRONES_SIMETRIA[datos.figura] ? datos.figura : 'corazon';
+  const patron = PATRONES_SIMETRIA[nombre];
+  const columnas = 5, filas = 6;
+  const eje = datos.eje === 'horizontal' ? 'horizontal' : 'vertical';
+
+  const celdas = [];
+  for (let f = 0; f < filas; f++) {
+    for (let c = 0; c < columnas; c++) {
+      celdas.push({ f, c, ocupada: patron.some(([pf, pc]) => pf === f && pc === c) });
+    }
+  }
+  const mitadOriginal = celdas.map(({ f, c, ocupada }) =>
+    `<rect x="${c * CELDA_SIMETRIA_PX}" y="${f * CELDA_SIMETRIA_PX}" width="${CELDA_SIMETRIA_PX}" height="${CELDA_SIMETRIA_PX}" class="${ocupada ? 'simetria-celda-llena' : 'simetria-celda-vacia'}"/>`
+  ).join('');
+  const mitadEspejo = celdas.map(({ f, c }) =>
+    `<rect x="${c * CELDA_SIMETRIA_PX}" y="${f * CELDA_SIMETRIA_PX}" width="${CELDA_SIMETRIA_PX}" height="${CELDA_SIMETRIA_PX}" class="simetria-celda-vacia"/>`
+  ).join('');
+
+  const anchoGrid = columnas * CELDA_SIMETRIA_PX, altoGrid = filas * CELDA_SIMETRIA_PX;
+  let svg;
+  if (eje === 'vertical') {
+    const anchoTotal = anchoGrid * 2 + 4;
+    svg = `<svg width="${anchoTotal}" height="${altoGrid}" viewBox="0 0 ${anchoTotal} ${altoGrid}">
+      <g>${mitadOriginal}</g>
+      <g transform="translate(${anchoGrid + 4},0)">${mitadEspejo}</g>
+      <line x1="${anchoGrid + 2}" y1="0" x2="${anchoGrid + 2}" y2="${altoGrid}" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+    </svg>`;
+  } else {
+    const altoTotal = altoGrid * 2 + 4;
+    svg = `<svg width="${anchoGrid}" height="${altoTotal}" viewBox="0 0 ${anchoGrid} ${altoTotal}">
+      <g>${mitadOriginal}</g>
+      <g transform="translate(0,${altoGrid + 4})">${mitadEspejo}</g>
+      <line x1="0" y1="${altoGrid + 2}" x2="${anchoGrid}" y2="${altoGrid + 2}" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+    </svg>`;
+  }
+  return `<div class="simetria-bloque">${svg}</div>`;
+}
+
+// ── Coordenadas (sentido espacial / localización) ────────────────────
+// Primer cuadrante, 0-10 en cada eje. "localizar": el sistema dibuja los
+// puntos y el alumno escribe sus coordenadas. "representar": el plano
+// queda en blanco y solo se imprime la lista — el sistema nunca dibuja
+// los puntos en ese modo, sería resolverlo por el alumno.
+function renderCoordenadas(datos) {
+  let puntos = Array.isArray(datos.puntos) ? datos.puntos.slice(0, 8) : [];
+  puntos = puntos.map(p => ({
+    x: Math.max(0, Math.min(10, Math.round(numeroDesdeJSON(p.x)))),
+    y: Math.max(0, Math.min(10, Math.round(numeroDesdeJSON(p.y)))),
+    etiqueta: escapeHtml(p.etiqueta || '')
+  }));
+  if (puntos.length === 0) return '';
+  const modo = datos.modo === 'representar' ? 'representar' : 'localizar';
+
+  const paso = 24, margen = 24, n = 10, tam = margen + n * paso;
+  let lineas = '';
+  for (let i = 0; i <= n; i++) {
+    const p = margen + i * paso;
+    lineas += `<line x1="${margen}" y1="${p}" x2="${tam}" y2="${p}" stroke="#e2e8f0" stroke-width="1"/>`;
+    lineas += `<line x1="${p}" y1="${margen}" x2="${p}" y2="${tam}" stroke="#e2e8f0" stroke-width="1"/>`;
+    if (i % 2 === 0) {
+      lineas += `<text x="${margen - 8}" y="${tam - (p - margen) + 4}" font-size="8" text-anchor="end" font-family="Arial">${i}</text>`;
+      lineas += `<text x="${p}" y="${tam + 12}" font-size="8" text-anchor="middle" font-family="Arial">${i}</text>`;
+    }
+  }
+  const ejes = `<line x1="${margen}" y1="${tam}" x2="${tam}" y2="${tam}" stroke="#000" stroke-width="1.5"/>
+    <line x1="${margen}" y1="${margen}" x2="${margen}" y2="${tam}" stroke="#000" stroke-width="1.5"/>`;
+
+  const marcasPuntos = modo === 'localizar' ? puntos.map(p => {
+    const cx = margen + p.x * paso, cy = tam - p.y * paso;
+    return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#dc2626"/><text x="${cx + 6}" y="${cy - 6}" font-size="11" font-family="Arial" font-weight="bold">${p.etiqueta}</text>`;
+  }).join('') : '';
+
+  const svg = `<svg width="${tam + 16}" height="${tam + 20}" viewBox="0 0 ${tam + 16} ${tam + 20}">${lineas}${ejes}${marcasPuntos}</svg>`;
+
+  const listaHuecos = modo === 'localizar'
+    ? `<div class="coordenadas-lista">${puntos.map(p => `<p>${p.etiqueta}: ( <span class="hueco hueco-corto"></span> , <span class="hueco hueco-corto"></span> )</p>`).join('')}</div>`
+    : `<div class="coordenadas-lista">${puntos.map(p => `<p>${p.etiqueta}: (${p.x}, ${p.y})</p>`).join('')}</div>`;
+
+  return `<div class="coordenadas-bloque">${svg}${listaHuecos}</div>`;
+}
+
+// ── Probabilidad (sentido estocástico) ───────────────────────────────
+// Solo cualitativo (seguro/posible/imposible, o ranking por probabilidad)
+// — no hay ninguna cantidad numérica que blindar, así que los iconos de
+// apoyo son puramente decorativos, de un catálogo cerrado fijo.
+const ICONOS_PROBABILIDAD = {
+  dado: '<svg width="46" height="46" viewBox="0 0 46 46"><rect x="3" y="3" width="40" height="40" rx="6" fill="none" stroke="#000" stroke-width="2"/><circle cx="14" cy="14" r="3" fill="#000"/><circle cx="32" cy="14" r="3" fill="#000"/><circle cx="23" cy="23" r="3" fill="#000"/><circle cx="14" cy="32" r="3" fill="#000"/><circle cx="32" cy="32" r="3" fill="#000"/></svg>',
+  moneda: '<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#000" stroke-width="2"/><path d="M15,23 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0" fill="none" stroke="#000" stroke-width="1.3"/></svg>',
+  ruleta: '<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#000" stroke-width="2"/><line x1="23" y1="4" x2="23" y2="42" stroke="#000" stroke-width="1.3"/><line x1="4" y1="23" x2="42" y2="23" stroke="#000" stroke-width="1.3"/></svg>'
+};
+export const ICONOS_PROBABILIDAD_DISPONIBLES = Object.keys(ICONOS_PROBABILIDAD);
+function renderProbabilidad(datos) {
+  const modo = datos.modo === 'ordenar' ? 'ordenar' : 'clasificar';
+  const sucesos = Array.isArray(datos.sucesos) ? datos.sucesos.slice(0, 6) : [];
+  if (sucesos.length === 0) return '';
+
+  const filas = sucesos.map(s => {
+    const icono = ICONOS_PROBABILIDAD[s.icono] || '';
+    const texto = escapeHtml(s.texto);
+    if (modo === 'ordenar') {
+      return `<div class="probabilidad-fila">
+        ${icono}<span class="probabilidad-texto">${texto}</span>
+        <span class="probabilidad-orden hueco hueco-corto"></span>
+      </div>`;
+    }
+    return `<div class="probabilidad-fila">
+      ${icono}<span class="probabilidad-texto">${texto}</span>
+      <span class="probabilidad-opciones">
+        <span class="opcion-item"><span class="casilla-test"></span> Seguro</span>
+        <span class="opcion-item"><span class="casilla-test"></span> Posible</span>
+        <span class="opcion-item"><span class="casilla-test"></span> Imposible</span>
+      </span>
+    </div>`;
+  }).join('');
+
+  return `<div class="probabilidad-bloque">${filas}</div>`;
+}
+
+// ── Medidas de centralización (sentido estocástico) ──────────────────
+// Media, moda y/o mediana a partir de una lista de datos — mismo espíritu
+// que la tabla de frecuencias numérica: se imprimen los datos en bruto y
+// se deja un hueco por cada medida pedida, sin calcular ni insinuar nada.
+function renderMedidasCentralizacion(datos) {
+  const registros = Array.isArray(datos.registros) ? datos.registros : [];
+  if (registros.length === 0) return '';
+  const pedir = Array.isArray(datos.pedir) && datos.pedir.length > 0 ? datos.pedir : ['media'];
+  const etiquetas = { media: 'Media', moda: 'Moda', mediana: 'Mediana' };
+
+  const listaHtml = registros.map(v => escapeHtml(v)).join(', ');
+  const filasRespuesta = pedir
+    .filter(p => etiquetas[p])
+    .map(p => `<div class="mc-respuesta-fila"><span>${etiquetas[p]} = </span><span class="hueco hueco-largo"></span></div>`)
+    .join('');
+  if (!filasRespuesta) return '';
+
+  return `<div class="medidas-centralizacion-bloque">
+    <p class="mc-datos-lista">Datos: ${listaHtml}</p>
+    <div class="mc-respuestas">${filasRespuesta}</div>
+  </div>`;
+}
+
+// ── Ecuación sencilla (sentido algebraico / modelo matemático) ──────────
+// Operación con un hueco en CUALQUIERA de sus tres posiciones (primer
+// término, segundo término o resultado) — no siempre en el resultado, a
+// diferencia de "calculo_mental". Blindaje: el número que se IMPRIME en
+// la posición "resultado" (cuando no es ella la incógnita) lo calcula
+// SIEMPRE el propio código a partir de "a", "signo" y "b" — nunca se
+// confía en que el "resultado" que mande Claude sea correcto.
+function calcularResultadoEcuacion(a, signo, b) {
+  if (signo === '-') return a - b;
+  if (signo === '×') return a * b;
+  return a + b;
+}
+function renderEcuacionSencilla(datos) {
+  const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones.slice(0, 8) : [];
+  if (operaciones.length === 0) return '';
+
+  const filas = operaciones.map(op => {
+    const a = Math.round(numeroDesdeJSON(op.a));
+    const b = Math.round(numeroDesdeJSON(op.b));
+    const signo = op.signo === '-' ? '-' : (op.signo === '×' || op.signo === '*' ? '×' : '+');
+    const resultado = calcularResultadoEcuacion(a, signo, b);
+    const posicion = ['a', 'b', 'resultado'].includes(op.posicionIncognita) ? op.posicionIncognita : 'resultado';
+
+    const celda = (valor, esIncognita) => esIncognita
+      ? `<span class="hueco hueco-corto ecuacion-hueco"></span>`
+      : `<span class="ecuacion-numero">${valor}</span>`;
+
+    return `<div class="ecuacion-fila">
+      ${celda(a, posicion === 'a')}
+      <span class="ecuacion-signo">${signo}</span>
+      ${celda(b, posicion === 'b')}
+      <span class="ecuacion-signo">=</span>
+      ${celda(resultado, posicion === 'resultado')}
+    </div>`;
+  }).join('');
+
+  return `<div class="ecuacion-sencilla-bloque">${filas}</div>`;
+}
+
+// ── Crucigrama numérico (backlog Twinkl, 30/08/2026) ─────────────────
+// Cada pista es una operación cuyo resultado se escribe dígito a dígito,
+// en horizontal o vertical, dentro de una rejilla. El sistema NUNCA
+// calcula ni conoce las respuestas — solo dibuja la rejilla (celdas
+// activas en blanco, el resto bloqueadas) a partir de la posición/
+// longitud de cada palabra, y la lista de pistas debajo. Blindaje de
+// tamaño y de límites de la rejilla (máximo 10×10).
+function renderCrucigrama(datos) {
+  let palabras = Array.isArray(datos.palabras) ? datos.palabras.slice(0, 12) : [];
+  const pistas = Array.isArray(datos.pistas) ? datos.pistas : [];
+  if (palabras.length === 0) return '';
+
+  palabras = palabras
+    .map(p => ({
+      numero: parseInt(p.numero, 10) || 0,
+      direccion: p.direccion === 'v' ? 'v' : 'h',
+      fila: Math.max(0, parseInt(p.fila, 10) || 0),
+      columna: Math.max(0, parseInt(p.columna, 10) || 0),
+      longitud: Math.max(1, Math.min(8, parseInt(p.longitud, 10) || 1))
+    }))
+    .filter(p => p.fila < 10 && p.columna < 10);
+  if (palabras.length === 0) return '';
+
+  let maxFila = 0, maxColumna = 0;
+  const celdasActivas = new Map();
+  for (const p of palabras) {
+    for (let i = 0; i < p.longitud; i++) {
+      const f = p.direccion === 'v' ? p.fila + i : p.fila;
+      const c = p.direccion === 'h' ? p.columna + i : p.columna;
+      if (f > 9 || c > 9) continue;
+      maxFila = Math.max(maxFila, f);
+      maxColumna = Math.max(maxColumna, c);
+      const clave = `${f},${c}`;
+      if (i === 0 && p.numero) celdasActivas.set(clave, p.numero);
+      else if (!celdasActivas.has(clave)) celdasActivas.set(clave, null);
+    }
+  }
+
+  const CELDA_CRUCIGRAMA = 30;
+  let svgCeldas = '';
+  for (let f = 0; f <= maxFila; f++) {
+    for (let c = 0; c <= maxColumna; c++) {
+      const clave = `${f},${c}`;
+      const activa = celdasActivas.has(clave);
+      const x = c * CELDA_CRUCIGRAMA, y = f * CELDA_CRUCIGRAMA;
+      svgCeldas += `<rect x="${x}" y="${y}" width="${CELDA_CRUCIGRAMA}" height="${CELDA_CRUCIGRAMA}" class="${activa ? 'crucigrama-celda-activa' : 'crucigrama-celda-bloqueada'}"/>`;
+      const numeroClave = celdasActivas.get(clave);
+      if (numeroClave) svgCeldas += `<text x="${x + 3}" y="${y + 10}" font-size="8" font-family="Arial">${numeroClave}</text>`;
+    }
+  }
+  const ancho = (maxColumna + 1) * CELDA_CRUCIGRAMA, alto = (maxFila + 1) * CELDA_CRUCIGRAMA;
+  const svg = `<svg width="${ancho}" height="${alto}" viewBox="0 0 ${ancho} ${alto}">${svgCeldas}</svg>`;
+
+  const pistasHorizontales = pistas.filter(p => p.direccion === 'h');
+  const pistasVerticales = pistas.filter(p => p.direccion === 'v');
+  const listaPistas = (lista, titulo) => lista.length === 0 ? '' : `
+    <div class="crucigrama-lista-pistas">
+      <p class="crucigrama-titulo-pistas">${titulo}</p>
+      <ul>${lista.map(p => `<li>${escapeHtml(p.numero)}. ${escapeHtml(p.texto)}</li>`).join('')}</ul>
+    </div>`;
+
+  return `<div class="crucigrama-bloque">
+    <div class="crucigrama-grid">${svg}</div>
+    <div class="crucigrama-pistas">
+      ${listaPistas(pistasHorizontales, 'Horizontales')}
+      ${listaPistas(pistasVerticales, 'Verticales')}
+    </div>
+  </div>`;
+}
+
+// ── Colorea según el resultado (backlog Twinkl, 30/08/2026) ─────────
+// Mosaico de casillas con una operación cada una; el alumno resuelve y
+// colorea según el color de la leyenda que corresponda al rango del
+// resultado. Blindaje de color: la paleta la elige SIEMPRE el sistema (un
+// color fijo por posición de la leyenda) — nunca un color libre mandado
+// por Claude, para no arriesgar una paleta ilegible o inconsistente.
+const PALETA_COLOREAR = ['#fde68a', '#a7f3d0', '#bfdbfe', '#fbcfe8', '#fecaca', '#ddd6fe', '#fdba74', '#c7d2fe'];
+function renderColoreaPorOperacion(datos) {
+  const celdas = Array.isArray(datos.celdas) ? datos.celdas.slice(0, 30) : [];
+  const leyenda = Array.isArray(datos.leyenda) ? datos.leyenda.slice(0, 8) : [];
+  if (celdas.length === 0 || leyenda.length === 0) return '';
+
+  const mosaico = celdas.map(c => `<div class="colorea-celda">${escapeHtml(c.operacion)}</div>`).join('');
+
+  const leyendaHtml = leyenda.map((l, i) => `
+    <div class="colorea-leyenda-item">
+      <span class="colorea-leyenda-color" style="background:${PALETA_COLOREAR[i % PALETA_COLOREAR.length]}"></span>
+      <span>${escapeHtml(l.rangoMin)}–${escapeHtml(l.rangoMax)}: ${escapeHtml(l.etiqueta || '')}</span>
+    </div>`).join('');
+
+  return `<div class="colorea-por-operacion-bloque">
+    <div class="colorea-mosaico">${mosaico}</div>
+    <div class="colorea-leyenda">${leyendaHtml}</div>
+  </div>`;
+}
+
+// ── Conecta los puntos (backlog Twinkl, 30/08/2026) ──────────────────
+// Catálogo cerrado de plantillas de dibujo (coordenadas fijas dentro de un
+// lienzo también fijo) — mismo criterio que "simetria": coordenadas libres
+// de un modelo de lenguaje no garantizan un dibujo reconocible al
+// conectarlas, así que el dibujo final lo decide el propio sistema, nunca
+// Claude. Claude solo elige qué plantilla usar y el paso de conteo.
+const PLANTILLAS_CONECTA_PUNTOS = {
+  estrella: [[100, 10], [123, 70], [190, 72], [138, 112], [157, 178], [100, 140], [43, 178], [62, 112], [10, 72], [77, 70]],
+  casa: [[20, 120], [20, 60], [100, 10], [180, 60], [180, 120], [130, 120], [130, 170], [70, 170], [70, 120]],
+  pez: [[10, 80], [60, 40], [130, 40], [170, 20], [190, 80], [170, 140], [130, 120], [60, 120]],
+  cometa: [[100, 10], [160, 70], [100, 190], [40, 70]],
+  barco: [[30, 140], [30, 80], [100, 20], [100, 80], [170, 80], [150, 140]]
+};
+export const PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES = Object.keys(PLANTILLAS_CONECTA_PUNTOS);
+function renderConectaLosPuntos(datos) {
+  const plantilla = PLANTILLAS_CONECTA_PUNTOS[datos.plantilla] ? datos.plantilla : 'estrella';
+  const puntos = PLANTILLAS_CONECTA_PUNTOS[plantilla];
+  let paso = parseInt(datos.paso, 10);
+  if (!Number.isInteger(paso) || paso < 1) paso = 1;
+  paso = Math.min(paso, 10);
+  let inicio = parseInt(datos.inicio, 10);
+  if (!Number.isInteger(inicio) || inicio < 0) inicio = paso;
+
+  const marcas = puntos.map(([x, y], i) => {
+    const numero = inicio + i * paso;
+    return `<circle cx="${x}" cy="${y}" r="2.5" fill="#000"/><text x="${x + 6}" y="${y - 6}" font-size="11" font-family="Arial">${numero}</text>`;
+  }).join('');
+
+  return `<div class="conecta-puntos-bloque">
+    <svg width="200" height="200" viewBox="0 0 200 200">${marcas}</svg>
+  </div>`;
+}
+
+// ── Número del día / formación del número (backlog Twinkl, 30/08/2026) ──
+// Valor posicional: el número a trazar, un marco de diez (ten-frame) con
+// tantos círculos rellenos como el número (hasta 20, con dos marcos), y
+// opcionalmente un conteo con iconos. Blindaje: el número de círculos
+// rellenos se deriva SIEMPRE de "numero" (nunca de un campo aparte) y se
+// acota a 0-20 (más allá deja de caber en dos marcos de diez).
+function svgMarcoDiez(rellenos) {
+  const celdas = Array.from({ length: 10 }, (_, i) => {
+    const fila = Math.floor(i / 5), col = i % 5;
+    const x = 4 + col * 26, y = 4 + fila * 26;
+    const lleno = i < rellenos;
+    return `<rect x="${x}" y="${y}" width="22" height="22" rx="3" class="${lleno ? 'marco-diez-lleno' : 'marco-diez-vacio'}"/>`;
+  }).join('');
+  return `<svg width="138" height="56" viewBox="0 0 138 56">${celdas}</svg>`;
+}
+function renderNumeroDelDia(datos) {
+  let numero = parseInt(datos.numero, 10);
+  if (!Number.isInteger(numero) || numero < 0) numero = 0;
+  numero = Math.min(numero, 20);
+
+  const primerMarco = Math.min(numero, 10);
+  const segundoMarco = numero > 10 ? svgMarcoDiez(numero - 10) : '';
+
+  const iconoHtml = datos.icono && ICONOS[datos.icono]
+    ? `<div class="numero-dia-iconos">${renderIconos(datos.icono, Math.min(numero, 10))}</div>`
+    : '';
+
+  return `<div class="numero-dia-bloque">
+    <p class="numero-dia-trazar">${numero}</p>
+    <div class="numero-dia-marcos">
+      ${svgMarcoDiez(primerMarco)}
+      ${segundoMarco}
+    </div>
+    ${iconoHtml}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SEGUNDA AMPLIACIÓN — SENTIDO DE LA MEDIDA (07/09/2026, misma sesión)
+// Los dos candidatos que quedaron anotados como "posible ampliación
+// futura" tras la primera tanda de 14 tipos: el usuario pidió abordarlos
+// ya para poder enseñárselo todo junto a la maestra antes de que empiece
+// el curso. Mismo criterio de blindaje que el resto del fichero.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Pesar con balanza (sentido de la medida — masa) ──────────────────
+// Balanza de dos platillos, dibujada SIEMPRE nivelada (nunca inclinada
+// hacia un lado): en "modo pesas" eso representa el equilibrio real (el
+// peso del objeto es la suma de las pesas, que el alumno calcula); en
+// "modo comparar" es deliberado — el sistema no sabe cuál pesa más
+// realmente, así que nunca inclina la balanza como pista, el alumno
+// decide por sí mismo a partir del enunciado y escribe <, > o =.
+const DENOMINACIONES_PESO_G = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+function formatoPeso(valorGramos) {
+  if (valorGramos >= 1000 && valorGramos % 1000 === 0) return `${valorGramos / 1000} kg`;
+  return `${valorGramos} g`;
+}
+function svgPesa(valorGramos) {
+  const texto = formatoPeso(valorGramos);
+  return `<svg width="52" height="52" viewBox="0 0 50 50"><path d="M14,44 L10,20 Q10,14 16,14 L34,14 Q40,14 40,20 L36,44 Z" fill="none" stroke="#000" stroke-width="2"/><circle cx="25" cy="8" r="5" fill="none" stroke="#000" stroke-width="2"/><line x1="25" y1="13" x2="25" y2="14" stroke="#000" stroke-width="2"/><text x="25" y="34" text-anchor="middle" font-size="9.5" font-family="Arial" font-weight="bold">${texto}</text></svg>`;
+}
+function svgArmazonBalanza() {
+  return `<svg class="balanza-svg" width="280" height="70" viewBox="0 0 280 70">
+    <line x1="140" y1="6" x2="140" y2="24" stroke="#000" stroke-width="3"/>
+    <polygon points="140,24 122,52 158,52" fill="none" stroke="#000" stroke-width="2.5"/>
+    <line x1="20" y1="6" x2="260" y2="6" stroke="#000" stroke-width="3"/>
+    <line x1="20" y1="6" x2="20" y2="30" stroke="#000" stroke-width="1.3"/>
+    <line x1="260" y1="6" x2="260" y2="30" stroke="#000" stroke-width="1.3"/>
+    <ellipse cx="20" cy="34" rx="36" ry="7" fill="none" stroke="#000" stroke-width="1.3"/>
+    <ellipse cx="260" cy="34" rx="36" ry="7" fill="none" stroke="#000" stroke-width="1.3"/>
+  </svg>`;
+}
+function renderPesarConBalanza(datos) {
+  const modo = datos.modo === 'comparar' ? 'comparar' : 'pesas';
+
+  if (modo === 'comparar') {
+    const izq = datos.izquierda || {};
+    const der = datos.derecha || {};
+    const cantIzq = Math.max(1, Math.min(10, parseInt(izq.cantidad, 10) || 1));
+    const cantDer = Math.max(1, Math.min(10, parseInt(der.cantidad, 10) || 1));
+    const contenidoIzq = renderIconos(izq.icono, cantIzq);
+    const contenidoDer = renderIconos(der.icono, cantDer);
+    return `<div class="balanza-bloque">
+      <div class="balanza-armazon">
+        ${svgArmazonBalanza()}
+        <div class="balanza-platillo balanza-platillo-izq">${contenidoIzq}</div>
+        <div class="balanza-platillo balanza-platillo-der">${contenidoDer}</div>
+      </div>
+      <p class="balanza-respuesta">
+        <span class="balanza-lado-nombre">Izquierda</span>
+        <span class="hueco hueco-corto"></span>
+        <span class="balanza-lado-nombre">Derecha</span>
+      </p>
+    </div>`;
+  }
+
+  // modo "pesas": objeto de peso desconocido en un platillo, pesas
+  // conocidas en el otro — el alumno suma las pesas para saber cuánto
+  // pesa el objeto. Blindaje de denominaciones: solo valores reales de un
+  // juego de pesas, igual criterio que "dinero_euros" con las monedas.
+  const objeto = datos.objeto || {};
+  let pesas = Array.isArray(datos.pesas) ? datos.pesas : [];
+  pesas = pesas
+    .filter(p => DENOMINACIONES_PESO_G.includes(parseInt(p.valor, 10)))
+    .slice(0, 6)
+    .map(p => ({ valor: parseInt(p.valor, 10), cantidad: Math.max(1, Math.min(6, parseInt(p.cantidad, 10) || 1)) }));
+  if (pesas.length === 0) return '';
+
+  const cantObjeto = Math.max(1, Math.min(4, parseInt(objeto.cantidad, 10) || 1));
+  const contenidoObjeto = renderIconos(objeto.icono, cantObjeto);
+  const contenidoPesas = pesas.map(p => svgPesa(p.valor).repeat(p.cantidad)).join('');
+
+  return `<div class="balanza-bloque">
+    <div class="balanza-armazon">
+      ${svgArmazonBalanza()}
+      <div class="balanza-platillo balanza-platillo-izq">${contenidoObjeto}</div>
+      <div class="balanza-platillo balanza-platillo-der">${contenidoPesas}</div>
+    </div>
+    <p class="balanza-respuesta-pesas">Peso: <span class="hueco hueco-corto"></span></p>
+  </div>`;
+}
+
+// ── Medir capacidad (sentido de la medida — capacidad/volumen) ───────
+// Recipientes graduados con el líquido dibujado a su nivel real (mismo
+// espíritu que "grafico_barras" en modo "leer": el dibujo representa el
+// dato real y el ejercicio consiste en LEERLO o COMPARARLO, no en
+// adivinarlo). La altura del relleno se deriva SIEMPRE de
+// "nivelActual"/"capacidadMax" por código, nunca de otro dato.
+function svgRecipiente(capacidadMax, nivelActual, alto) {
+  const max = Math.max(1, numeroDesdeJSON(capacidadMax));
+  const nivel = Math.max(0, Math.min(max, numeroDesdeJSON(nivelActual)));
+  const ancho = 60;
+  const pctLleno = nivel / max;
+  const alturaFluido = alto * pctLleno;
+
+  const pasos = 4;
+  let marcas = '';
+  for (let i = 0; i <= pasos; i++) {
+    const y = alto - (alto * i / pasos);
+    const valorMarca = Math.round(max * i / pasos);
+    marcas += `<line x1="${ancho}" y1="${y.toFixed(1)}" x2="${ancho + 6}" y2="${y.toFixed(1)}" stroke="#000" stroke-width="1.2"/>`;
+    marcas += `<text x="${ancho + 9}" y="${(y + 3).toFixed(1)}" font-size="8" font-family="Arial">${valorMarca}</text>`;
+  }
+
+  return `<svg width="${ancho + 34}" height="${alto + 6}" viewBox="0 0 ${ancho + 34} ${alto + 6}">
+    <rect x="0" y="${(alto - alturaFluido).toFixed(1)}" width="${ancho}" height="${alturaFluido.toFixed(1)}" class="capacidad-fluido"/>
+    <rect x="0" y="0" width="${ancho}" height="${alto}" fill="none" stroke="#000" stroke-width="2"/>
+    ${marcas}
+  </svg>`;
+}
+function renderMedirCapacidad(datos) {
+  const modo = datos.modo === 'comparar' ? 'comparar' : 'leer';
+  const unidad = escapeHtml(datos.unidad || 'ml');
+
+  if (modo === 'comparar') {
+    const izq = datos.izquierda || {};
+    const der = datos.derecha || {};
+    return `<div class="capacidad-bloque capacidad-comparar">
+      <div class="capacidad-recipiente">${svgRecipiente(izq.capacidadMax, izq.nivelActual, 130)}</div>
+      <p class="capacidad-hueco-comparar"><span class="hueco hueco-corto"></span></p>
+      <div class="capacidad-recipiente">${svgRecipiente(der.capacidadMax, der.nivelActual, 130)}</div>
+    </div>`;
+  }
+
+  const recipientes = Array.isArray(datos.recipientes) ? datos.recipientes.slice(0, 4) : [];
+  if (recipientes.length === 0) return '';
+  const tarjetas = recipientes.map((r, i) => `
+    <div class="capacidad-tarjeta">
+      <span class="capacidad-etiqueta">${String.fromCharCode(65 + i)})</span>
+      ${svgRecipiente(r.capacidadMax, r.nivelActual, 130)}
+      <p class="capacidad-respuesta">Contiene: <span class="hueco hueco-corto"></span> ${unidad}</p>
+    </div>`).join('');
+
+  return `<div class="capacidad-bloque">${tarjetas}</div>`;
+}
+
 const RENDERERS_POR_TIPO = {
   operacion_vertical: (datos) => renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
@@ -1217,7 +1912,23 @@ const RENDERERS_POR_TIPO = {
   recta_numerica:       (datos) => renderRectaNumerica(datos),
   rejilla_numerica:     (datos) => renderRejillaNumerica(datos),
   tabla_multiplicar:    (datos) => renderTablaMultiplicar(datos),
-  reparto:              (datos) => renderReparto(datos)
+  reparto:              (datos) => renderReparto(datos),
+  dinero_euros:            (datos) => renderDineroEuros(datos),
+  proporcionalidad:        (datos) => renderProporcionalidad(datos),
+  conversion_unidades:     (datos) => renderConversionUnidades(datos),
+  medir_con_regla:         (datos) => renderMedirConRegla(datos),
+  angulos:                 (datos) => renderAngulos(datos),
+  simetria:                (datos) => renderSimetria(datos),
+  coordenadas:              (datos) => renderCoordenadas(datos),
+  probabilidad:             (datos) => renderProbabilidad(datos),
+  medidas_centralizacion:   (datos) => renderMedidasCentralizacion(datos),
+  ecuacion_sencilla:        (datos) => renderEcuacionSencilla(datos),
+  crucigrama:               (datos) => renderCrucigrama(datos),
+  colorea_por_operacion:    (datos) => renderColoreaPorOperacion(datos),
+  conecta_los_puntos:       (datos) => renderConectaLosPuntos(datos),
+  numero_del_dia:           (datos) => renderNumeroDelDia(datos),
+  pesar_con_balanza:        (datos) => renderPesarConBalanza(datos),
+  medir_capacidad:          (datos) => renderMedirCapacidad(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {

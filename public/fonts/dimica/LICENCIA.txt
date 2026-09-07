@@ -1,0 +1,26 @@
+Fuente: Dimica (Dimica-Light.woff2, convertida desde Dimica-Light.otf)
+Autor: Dimka Fonts
+Origen del archivo: subida por el usuario el 05/09/2026 a public/fonts/ (dimica.zip);
+el .zip original NO incluye ningún fichero de licencia (OFL.txt/readme).
+
+Licencia verificada por Claude (05/09/2026), con dos fuentes que coinciden:
+- La propia tabla "name" grabada dentro del archivo dice explícitamente:
+  "SIL Open Font License (OFL)", con enlace a https://scripts.sil.org/OFL,
+  y copyright a nombre de "Dimka Fonts".
+- El catálogo OFICIAL del propio autor (https://v3.dimka.com/fonts/) confirma
+  que todas sus fuentes están bajo Open Font License, "libres para uso
+  personal y comercial" — texto citado: "So far they are all free for both
+  personal and commercial use."
+
+Conclusión: verificación fuerte — coincide lo que dice el propio archivo con
+lo que dice la web oficial del autor (no solo un catálogo de terceros como
+dafont). Libre para uso personal y comercial.
+
+Cobertura comprobada (fontTools): alfabeto español completo (incluida ñ/Ñ,
+vocales acentuadas, ¿¡) — sin huecos.
+
+Estado a 05/09/2026: instalada, disponible como font-family, SIN aplicar
+todavía a ningún ejercicio de producción. El usuario la ha traído como
+candidata para cursos más avanzados de Primaria (la maestra pidió variar de
+tipografía conforme el niño avanza de curso) — pendiente de decidir en qué
+curso/ejercicio se usaría. Ver ROADMAP_FICHAS_ESCOLARES.md, Fase 9.

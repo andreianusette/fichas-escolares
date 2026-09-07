@@ -1,7 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
-import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG, FIGURAS_2D_DISPONIBLES, FIGURAS_3D_DISPONIBLES } from './renderer-matematicas.js';
+import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG, FIGURAS_2D_DISPONIBLES, FIGURAS_3D_DISPONIBLES, PATRONES_SIMETRIA_DISPONIBLES, ICONOS_PROBABILIDAD_DISPONIBLES, PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES } from './renderer-matematicas.js';
+import { renderizarFichaLengua, LETRAS_TRAZO_DISPONIBLES } from './renderer-lengua.js';
 
 dotenv.config();
 
@@ -20,11 +21,16 @@ if (!apiKey) {
 const anthropic = new Anthropic({ apiKey });
 
 // ─────────────────────────────────────────────
-// SYSTEM PROMPT "LEGACY" — Lengua, Conocimiento del Medio, Educación Física,
-// Música e Inglés. Estas asignaturas siguen generando HTML directamente
-// (todavía no migradas al pipeline JSON + renderizador). Matemáticas YA NO
-// usa este prompt: tiene el suyo propio más abajo, mucho más corto porque
-// no necesita explicar reglas de maquetado HTML — eso ahora es código.
+// SYSTEM PROMPT "LEGACY" — Conocimiento del Medio, Educación Física, Música
+// e Inglés. Estas asignaturas siguen generando HTML directamente (todavía
+// no migradas al pipeline JSON + renderizador). Matemáticas y, desde el
+// 04/09/2026, Lengua Castellana YA NO usan este prompt: cada una tiene el
+// suyo propio más abajo — más corto porque no necesita explicar reglas de
+// maquetado HTML para lo que ya está tipado, eso lo garantiza el código.
+// Criterio de migración (ver Fase 5 y Fase 9 del ROADMAP): cada asignatura
+// pasa a JSON + renderizador conforme se desarrolla contenido propio para
+// ella con precisión que Claude no puede garantizar generando HTML libre
+// cada vez — no hace falta migrarlas todas de golpe.
 // ─────────────────────────────────────────────
 const SYSTEM_PROMPT = `
 Eres un experto en diseño de materiales didácticos para Educación Primaria en España,
@@ -99,14 +105,8 @@ REGLAS DE SALIDA (NO NEGOCIABLES)
     Esto permite que el CSS aplique automáticamente la tipografía adecuada a cada etapa.
 `;
 
-// Instrucciones específicas por asignatura (pipeline legacy — sin Matemáticas)
+// Instrucciones específicas por asignatura (pipeline legacy — sin Matemáticas ni Lengua)
 const PROMPTS_MATERIA = {
-  'Lengua Castellana': `
-    - Para escritura o redacción usa: <div class="espacio-respuesta pauta"></div>
-    - Textos de lectura comprensiva en: <blockquote class="texto-lectura">...</blockquote>
-    - Ejercicios típicos: dictado preparatorio, huecos gramaticales, ordenar palabras,
-      sinónimos/antónimos, tipos de oraciones, signos de puntuación.
-  `,
   'Conocimiento del Medio': `
     - Combina Ciencias Naturales y Sociales según indiquen las instrucciones.
     - Usa esquemas para completar, preguntas cortas y tablas de clasificación.
@@ -190,6 +190,50 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
     tiposDisponibles += ' | cuadro_numerico | rejilla_numerica';
   }
   tiposDisponibles += ' | figura_geometrica';
+
+  // ── Ampliación curricular (07/09/2026) — 14 tipos nuevos, gating por curso
+  // según cuándo el RD 157/2022 introduce de verdad cada saber. Ver
+  // auditoría completa en el ROADMAP (entrada del 07/09/2026).
+  const esConDineroEuros = true; // todos los cursos
+  const esConProporcionalidad = ['5º', '6º'].includes(curso);
+  const esConConversionUnidades = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConMedirRegla = true; // todos los cursos
+  const esConAngulos = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConTransportador = ['5º', '6º'].includes(curso);
+  const esConSimetria = ['2º', '3º', '4º', '5º', '6º'].includes(curso);
+  const esConCoordenadas = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConProbabilidad = true; // todos los cursos (modo "clasificar")
+  const esConProbabilidadOrdenar = ['4º', '5º', '6º'].includes(curso);
+  const esConMedidasCentralizacion = ['5º', '6º'].includes(curso);
+  const esConEcuacionSencilla = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConCrucigrama = ['2º', '3º', '4º', '5º', '6º'].includes(curso);
+  const esConColoreaPorOperacion = ['1º', '2º', '3º', '4º'].includes(curso);
+  const esConConectaLosPuntos = ['1º', '2º', '3º'].includes(curso);
+  const esConNumeroDelDia = ['1º', '2º'].includes(curso);
+  // Segunda ampliación (07/09/2026, misma sesión): los dos candidatos de
+  // "sentido de la medida" que quedaron pendientes de la primera tanda —
+  // mismo criterio "todos los cursos" que dinero_euros/medir_con_regla, ver
+  // esos dos bloques para la justificación (la dificultad real la regula
+  // Claude a través del rango numérico del curso, no el gating del tipo).
+  const esConPesarConBalanza = true; // todos los cursos
+  const esConMedirCapacidad = true; // todos los cursos
+
+  if (esConDineroEuros) tiposDisponibles += ' | dinero_euros';
+  if (esConProporcionalidad) tiposDisponibles += ' | proporcionalidad';
+  if (esConConversionUnidades) tiposDisponibles += ' | conversion_unidades';
+  if (esConMedirRegla) tiposDisponibles += ' | medir_con_regla';
+  if (esConAngulos) tiposDisponibles += ' | angulos';
+  if (esConSimetria) tiposDisponibles += ' | simetria';
+  if (esConCoordenadas) tiposDisponibles += ' | coordenadas';
+  if (esConProbabilidad) tiposDisponibles += ' | probabilidad';
+  if (esConMedidasCentralizacion) tiposDisponibles += ' | medidas_centralizacion';
+  if (esConEcuacionSencilla) tiposDisponibles += ' | ecuacion_sencilla';
+  if (esConCrucigrama) tiposDisponibles += ' | crucigrama';
+  if (esConColoreaPorOperacion) tiposDisponibles += ' | colorea_por_operacion';
+  if (esConConectaLosPuntos) tiposDisponibles += ' | conecta_los_puntos';
+  if (esConNumeroDelDia) tiposDisponibles += ' | numero_del_dia';
+  if (esConPesarConBalanza) tiposDisponibles += ' | pesar_con_balanza';
+  if (esConMedirCapacidad) tiposDisponibles += ' | medir_capacidad';
 
   let bloqueOperacion = `
 - "operacion_vertical": SOLO sumas y restas en columna (nunca multiplicación
@@ -522,6 +566,245 @@ ${notaRejillaEspecifica}` : '';
     nombre de cada figura", "Cuenta los lados y los vértices de cada figura", "Clasifica estas
     figuras en...", "Calcula el perímetro y el área").`;
 
+  // ── Bloques de documentación de los 14 tipos nuevos (07/09/2026) ────────
+  const bloqueDineroEuros = esConDineroEuros ? `
+
+- "dinero_euros": monedas y billetes de euro (educación financiera).
+  { "modo": "contar" o "cambio",
+    "monedas": [ { "valor": n, "cantidad": n } ],
+    "precio": n }
+  * "valor" DEBE ser EXACTAMENTE una de estas denominaciones reales (número JSON, nunca texto):
+    0.01, 0.02, 0.05, 0.10, 0.20, 0.50, 1, 2, 5, 10, 20, 50. El sistema dibuja monedas (hasta
+    2€) o billetes (5€ en adelante) — tú no decides cuál, se deduce del valor. Cualquier otro
+    valor se ignora sin dibujarse, así que no inventes denominaciones que no existen.
+  * "cantidad" por denominación: entre 1 y 8. Máximo 6 denominaciones distintas por ejercicio.
+  * "modo": "contar" → el sistema dibuja las monedas/billetes de "monedas" y deja un hueco para
+    que el alumno escriba el total — NUNCA calcules ni escribas tú el total.
+    "modo": "cambio" → "monedas" representa CON QUÉ paga el comprador y "precio" es el precio
+    del artículo (número JSON, puede llevar decimales, ej. 6.5) — el sistema muestra ambos datos
+    y deja un hueco para el cambio, que el alumno calcula. NUNCA calcules ni escribas tú el
+    cambio.` : '';
+
+  const bloqueProporcionalidad = esConProporcionalidad ? `
+
+- "proporcionalidad": tabla de dos magnitudes en proporción directa (razonamiento proporcional).
+  { "magnitudA": "Tazas de harina", "magnitudB": "Huevos", "valoresA": [1, 2, 3, 4] }
+  * "valoresA": entre 2 y 6 valores de la primera magnitud (los que tú decidas, coherentes con
+    la razón que expliques en el enunciado — ej. "cada tarta necesita 2 huevos por cada taza de
+    harina"). El sistema dibuja una tabla con esos valores en la columna A y la columna B
+    completamente en blanco — NUNCA calcules ni escribas tú ningún valor de la magnitud B, ni
+    siquiera como pista.
+  * El enunciado debe dar la razón de proporcionalidad explícitamente (ej. "por cada", "cada...
+    necesita...") para que el alumno pueda completar la tabla.` : '';
+
+  const bloqueConversionUnidades = esConConversionUnidades ? `
+
+- "conversion_unidades": conversiones entre unidades del sistema métrico (longitud, masa,
+  capacidad o tiempo).
+  { "conversiones": [ { "cantidad": n, "unidadOrigen": "m", "unidadDestino": "cm" } ] }
+  * Entre 3 y 8 conversiones por ejercicio, TODAS con el MISMO par de unidades (no mezcles
+    m→cm con kg→g en el mismo ejercicio — crea ejercicios separados para cada par).
+  * Pares de unidades recomendados (el sistema muestra una tabla de equivalencia de apoyo
+    automáticamente para estos pares, en cualquier orden): m↔cm, m↔mm, cm↔mm, km↔m, kg↔g,
+    l↔ml, h↔min, min↔s. Puedes usar otros pares si el curso lo justifica, pero sin tabla de
+    apoyo visual.
+  * "cantidad" DEBE ser un número JSON puro. El sistema deja SIEMPRE el resultado en blanco —
+    nunca calcules ni escribas tú la conversión.` : '';
+
+  const bloqueMedirConRegla = esConMedirRegla ? `
+
+- "medir_con_regla": segmentos para medir con una regla real, impresos A ESCALA FÍSICA exacta
+  (1 cm en la ficha impresa = 1 cm real).
+  { "segmentos": [ { "longitudCm": n } ] }
+  * Entre 1 y 6 segmentos por ejercicio. "longitudCm": número entre 1 y 15 (puede llevar
+    decimales, ej. 7.5, en cursos con decimales) — el sistema dibuja cada línea exactamente a
+    esa longitud y una regla de apoyo graduada de 0 a 15 cm encima. NUNCA escribas tú la medida
+    en el enunciado (sería dársela resuelta) — el alumno la mide físicamente con su regla.
+  * El enunciado debe pedir explícitamente medir con la regla (ej. "Mide cada línea con tu regla
+    y anota su longitud en centímetros").` : '';
+
+  const bloqueAngulos = esConAngulos ? `
+
+- "angulos": ángulos dibujados con dos semirrectas desde un vértice.
+  { "modo": "clasificar"${esConTransportador ? ' o "transportador"' : ''}, "angulos": [ { "grados": n } ] }
+  * Entre 1 y 4 ángulos por ejercicio. "grados": número entre 5 y 180.
+  * "modo": "clasificar" → el sistema dibuja el ángulo y deja un hueco para que el alumno
+    escriba su tipo (agudo, recto, obtuso o llano) — NUNCA reveles el tipo en el enunciado ni
+    en "datos".${esConTransportador ? `
+    "modo": "transportador" → el sistema AÑADE una escala de 0° a 180° superpuesta al vértice
+    (como un transportador real) y deja un hueco para que el alumno escriba los grados exactos
+    — úsalo solo cuando el enunciado pida medir con transportador, no para clasificar.
+  * Usa grados "limpios" y fáciles de leer sobre la escala (múltiplos de 5 o 10) cuando el modo
+    sea "transportador".` : ''}` : '';
+
+  const bloqueSimetria = esConSimetria ? `
+
+- "simetria": completar una figura simétrica sobre una cuadrícula (mitad ya dibujada).
+  { "figura": "corazon", "eje": "vertical" o "horizontal" }
+  * "figura": EXACTAMENTE uno de estos nombres del catálogo cerrado: ${PATRONES_SIMETRIA_DISPONIBLES.join(', ')}.
+    El sistema dibuja SIEMPRE la mitad de esa figura sobre una cuadrícula — nunca dibujes tú la
+    otra mitad ni la describas, es lo que el alumno tiene que completar a mano.
+  * "eje": "vertical" (mitad izquierda dibujada, cuadrícula vacía a la derecha) u "horizontal"
+    (mitad superior dibujada, cuadrícula vacía debajo).
+  * El enunciado debe pedir "completa el dibujo simétrico" o equivalente.` : '';
+
+  const bloqueCoordenadas = esConCoordenadas ? `
+
+- "coordenadas": plano de primer cuadrante (ejes X e Y de 0 a 10).
+  { "modo": "localizar" o "representar", "puntos": [ { "x": n, "y": n, "etiqueta": "A" } ] }
+  * Entre 1 y 8 puntos. "x" e "y": números enteros entre 0 y 10. "etiqueta": letra o nombre corto.
+  * "modo": "localizar" → el sistema DIBUJA los puntos en el plano y deja un hueco para que el
+    alumno escriba las coordenadas de cada uno (usa esto cuando el enunciado pida "escribe las
+    coordenadas de cada punto").
+    "modo": "representar" → el sistema deja el plano EN BLANCO (sin dibujar ningún punto) y solo
+    imprime la lista de coordenadas, para que el alumno los dibuje él mismo (usa esto cuando el
+    enunciado pida "representa/dibuja estos puntos en el plano").` : '';
+
+  const bloqueProbabilidad = esConProbabilidad ? `
+
+- "probabilidad": sucesos para valorar cualitativamente (sin ningún cálculo numérico).
+  { "modo": "clasificar"${esConProbabilidadOrdenar ? ' o "ordenar"' : ''},
+    "sucesos": [ { "texto": "Sacar un 7 al lanzar un dado normal", "icono": "dado" } ] }
+  * Entre 2 y 6 sucesos. "icono" es OPCIONAL y solo decorativo — EXACTAMENTE uno de estos
+    nombres si lo usas: ${ICONOS_PROBABILIDAD_DISPONIBLES.join(', ')}. Omítelo si el suceso no
+    tiene que ver con ninguno de ellos.
+  * "modo": "clasificar" → el sistema añade 3 casillas (Seguro / Posible / Imposible) junto a
+    cada suceso para que el alumno marque una.${esConProbabilidadOrdenar ? `
+    "modo": "ordenar" → el sistema deja un hueco numérico junto a cada suceso para que el
+    alumno los ordene de más a menos probable (usa esto solo cuando el enunciado pida
+    explícitamente ordenar/comparar la probabilidad de varios sucesos entre sí).` : ''}
+  * Nunca reveles tú si un suceso es seguro/posible/imposible ni su orden — eso es la respuesta.` : '';
+
+  const bloqueMedidasCentralizacion = esConMedidasCentralizacion ? `
+
+- "medidas_centralizacion": media, moda y/o mediana a partir de una lista de datos.
+  { "registros": [n1, n2, ...], "pedir": ["media", "moda", "mediana"] }
+  * "registros": entre 5 y 12 números. "pedir": entre 1 y 3 de "media"/"moda"/"mediana" — el
+    sistema imprime los datos en bruto y un hueco por cada medida pedida. NUNCA calcules ni
+    escribas tú ningún resultado.
+  * Para que "moda" tenga sentido, repite algún valor en "registros". Para que "mediana" sea
+    limpia, usa preferiblemente un número impar de registros.` : '';
+
+  const bloqueEcuacionSencilla = esConEcuacionSencilla ? `
+
+- "ecuacion_sencilla": operación con un hueco en cualquiera de sus tres posiciones (no siempre
+  en el resultado, a diferencia de "calculo_mental").
+  { "operaciones": [ { "a": n, "signo": "+", "b": n, "posicionIncognita": "a" } ] }
+  * Entre 3 y 8 operaciones por ejercicio. "signo": "+", "-" o "×". "posicionIncognita": "a"
+    (primer término), "b" (segundo término) o "resultado" — varía la posición entre las
+    distintas operaciones del mismo ejercicio, no la dejes siempre en el mismo sitio.
+  * El sistema CALCULA ÉL SOLO el resultado real a partir de "a", "signo" y "b" (nunca confía en
+    que tú lo hagas bien) — así que da SIEMPRE los tres campos "a", "b" Y el resultado
+    matemáticamente correcto no hace falta que lo mandes, el sistema lo ignora y lo recalcula.
+    Lo único que de verdad importa es que "a", "signo" y "b" sean coherentes y que
+    "posicionIncognita" señale el hueco.
+  * Respeta el rango numérico del curso (${rango}).` : '';
+
+  const bloqueCrucigrama = esConCrucigrama ? `
+
+- "crucigrama": crucigrama numérico — las respuestas (resultados de operaciones) se escriben
+  dígito a dígito en una rejilla, en horizontal o vertical, como un crucigrama normal pero con
+  números en vez de letras.
+  { "palabras": [ { "numero": 1, "direccion": "h", "fila": 0, "columna": 0, "longitud": 2 } ],
+    "pistas": [ { "numero": 1, "direccion": "h", "texto": "8 + 7" } ] }
+  * "palabras": cada una es una respuesta dentro de la rejilla — "fila"/"columna" (empezando en
+    0) son la celda INICIAL, "direccion" "h" (crece hacia la derecha) o "v" (crece hacia abajo),
+    "longitud" el número de dígitos de esa respuesta (normalmente 1-3). Rejilla máxima 10×10:
+    ninguna palabra puede salirse de ese límite. Dos palabras pueden cruzarse compartiendo una
+    celda (misma fila y columna en la posición del cruce) — es lo que hace que sea un
+    crucigrama de verdad, intenta que al menos algunas se crucen.
+  * "pistas": el texto de la operación para cada "numero" (coincidiendo con el de "palabras"),
+    agrupadas por el sistema en "Horizontales" y "Verticales" automáticamente según
+    "direccion". El resultado de la operación de cada pista DEBE tener EXACTAMENTE tantos
+    dígitos como la "longitud" de su palabra correspondiente — repásalo antes de responder.
+  * El sistema NUNCA calcula ni conoce las respuestas — solo dibuja la rejilla vacía (celdas
+    activas en blanco, el resto bloqueadas) y la lista de pistas. Comprueba tú que las cuentas
+    sean correctas y que el número de dígitos cuadre con la rejilla que diseñas.` : '';
+
+  const bloqueColoreaPorOperacion = esConColoreaPorOperacion ? `
+
+- "colorea_por_operacion": mosaico de casillas con una operación cada una; el alumno la resuelve
+  y colorea la casilla según a qué rango de la leyenda pertenezca el resultado.
+  { "celdas": [ { "operacion": "6 + 7" } ],
+    "leyenda": [ { "rangoMin": 0, "rangoMax": 10, "etiqueta": "amarillo" } ] }
+  * "celdas": entre 6 y 24 operaciones cortas (texto libre, ej. "6+7", "9-3"), una por casilla.
+  * "leyenda": entre 2 y 6 tramos que cubran TODOS los resultados posibles de las operaciones,
+    sin huecos ni solapes entre rangos. "etiqueta" es el nombre del color que el alumno debe
+    usar (ej. "amarillo", "azul") — el sistema asigna él mismo el color real de cada tramo
+    (nunca mandes tú un color en hexadecimal ni nada parecido, solo el nombre en "etiqueta").
+  * Los resultados de las operaciones deben caer TODOS dentro de algún tramo de la leyenda —
+    revisa que ningún resultado quede fuera de rango antes de responder.` : '';
+
+  const bloqueConectaLosPuntos = esConConectaLosPuntos ? `
+
+- "conecta_los_puntos": conectar puntos numerados en orden para revelar un dibujo.
+  { "plantilla": "estrella", "paso": 2, "inicio": 2 }
+  * "plantilla": EXACTAMENTE uno de estos nombres del catálogo cerrado: ${PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES.join(', ')}.
+    El sistema dibuja SIEMPRE ese dibujo (nunca inventes ni describas otro) — tú solo eliges cuál.
+  * "paso": de cuánto en cuánto se cuenta (1 = de 1 en 1, 2 = de 2 en 2, 5 = de 5 en 5...), entre
+    1 y 10. "inicio": OPCIONAL, el primer número de la serie (por defecto empieza en el propio
+    "paso", ej. si "paso" es 2 empieza en 2, 4, 6...).
+  * El sistema numera los puntos automáticamente según "paso"/"inicio" — nunca necesitas (ni
+    puedes) dar tú las coordenadas.` : '';
+
+  const bloqueNumeroDelDia = esConNumeroDelDia ? `
+
+- "numero_del_dia": trabajo de valor posicional — el número a trazar, un marco de diez (ten
+  frame) con círculos rellenos, y opcionalmente objetos para contar.
+  { "numero": n, "icono": "..." }
+  * "numero": entero entre 0 y 20. El sistema dibuja el número grande para trazar y el marco de
+    diez (dos marcos si el número pasa de 10) con exactamente ese número de círculos rellenos —
+    nunca des tú ninguna cantidad aparte, se deriva siempre de "numero".
+  * "icono": OPCIONAL, uno de estos nombres: ${listaIconos} — si lo das, el sistema añade también
+    ese número de objetos para contar (coherente con el enunciado, mismo criterio de coherencia
+    enunciado↔icono que en el resto de ejercicios).` : '';
+
+  // ── Segunda ampliación (07/09/2026) — sentido de la medida: masa y capacidad ──
+  const bloquePesarConBalanza = esConPesarConBalanza ? `
+
+- "pesar_con_balanza": balanza de dos platillos (sentido de la medida — masa).
+  { "modo": "comparar" o "pesas",
+    "izquierda": { "icono": "...", "cantidad": n }, "derecha": { "icono": "...", "cantidad": n },
+    "objeto": { "icono": "...", "cantidad": n },
+    "pesas": [ { "valor": n, "cantidad": n } ] }
+  * "modo": "comparar" → usa "izquierda" y "derecha" (ignora "objeto"/"pesas"). El sistema dibuja
+    ese número de objetos en cada platillo (icono EXACTAMENTE de esta lista: ${listaIconos},
+    cantidad entre 1 y 10) y deja un hueco entre "Izquierda" y "Derecha" para que el alumno
+    escriba <, > o =. La balanza se dibuja SIEMPRE nivelada (nunca inclinada hacia un lado) —
+    NUNCA reveles tú cuál pesa más, ni en el enunciado ni en los datos: el alumno lo decide solo
+    con lo que sepa del mundo real sobre esos objetos (ej. "un elefante" y "una hormiga").
+    "modo": "pesas" → usa "objeto" (el objeto de peso desconocido, un único platillo, cantidad
+    normalmente 1) y "pesas" (las pesas conocidas en el otro platillo). El sistema dibuja el
+    objeto en un lado y las pesas en el otro, y deja un hueco para que el alumno SUME el peso
+    total — NUNCA calcules ni escribas tú esa suma.
+  * "pesas[].valor" DEBE ser EXACTAMENTE una de estas denominaciones reales, en GRAMOS (número
+    JSON, nunca texto): 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000. Cualquier otro
+    valor se ignora sin dibujarse. "cantidad" por denominación: entre 1 y 6. Máximo 6
+    denominaciones distintas.
+  * Respeta el rango numérico del curso (${rango}) al elegir los valores de las pesas.` : '';
+
+  const bloqueMedirCapacidad = esConMedirCapacidad ? `
+
+- "medir_capacidad": recipientes graduados con el líquido dibujado a su nivel real (sentido de
+  la medida — capacidad).
+  { "modo": "leer" o "comparar", "unidad": "ml" o "l",
+    "recipientes": [ { "capacidadMax": n, "nivelActual": n } ],
+    "izquierda": { "capacidadMax": n, "nivelActual": n }, "derecha": { "capacidadMax": n, "nivelActual": n } }
+  * "modo": "leer" → usa "recipientes" (entre 1 y 4). El sistema dibuja cada uno como un
+    recipiente graduado con el líquido YA PINTADO hasta "nivelActual" y deja un hueco para que
+    el alumno lea y escriba esa cantidad — el enunciado debe pedir LEER el nivel (ej. "¿cuántos
+    ml contiene cada recipiente?"), nunca repitas tú el valor de "nivelActual" como texto.
+    "modo": "comparar" → usa "izquierda" y "derecha" (ignora "recipientes"). El sistema dibuja
+    los dos recipientes ya llenos a su nivel real, uno junto al otro, y deja un hueco en medio
+    para que el alumno escriba <, > o = comparando cuánto líquido tiene cada uno — mismo
+    espíritu que "grafico_barras" en modo leer: el dibujo representa el dato real, el alumno lo
+    lee o lo compara, nunca lo adivina.
+  * "capacidadMax": la capacidad total del recipiente (número JSON, ej. 1000). "nivelActual":
+    cuánto líquido tiene ahora mismo, SIEMPRE menor o igual que "capacidadMax". El sistema marca
+    4 divisiones graduadas (0, 1/4, 1/2, 3/4 y el máximo) con su valor numérico.
+  * Usa valores "redondos" para que las marcas de la escala caigan en números fáciles de leer
+    (ej. capacidadMax 1000 con marcas en 0/250/500/750/1000).` : '';
+
   let bloqueProblema;
   if (esConDibujos) {
     bloqueProblema = `
@@ -600,6 +883,22 @@ ${bloqueReparto}
 ${bloqueCuadroNumerico}
 ${bloqueRejillaNumerica}
 ${bloqueFiguraGeometrica}
+${bloqueDineroEuros}
+${bloqueProporcionalidad}
+${bloqueConversionUnidades}
+${bloqueMedirConRegla}
+${bloqueAngulos}
+${bloqueSimetria}
+${bloqueCoordenadas}
+${bloqueProbabilidad}
+${bloqueMedidasCentralizacion}
+${bloqueEcuacionSencilla}
+${bloqueCrucigrama}
+${bloqueColoreaPorOperacion}
+${bloqueConectaLosPuntos}
+${bloqueNumeroDelDia}
+${bloquePesarConBalanza}
+${bloqueMedirCapacidad}
 ${bloqueProblema}
 
 - "tipo_test": pregunta de opción múltiple (la pregunta va en "enunciado").
@@ -639,6 +938,134 @@ DATOS DE LA FICHA:
   `.trim();
 }
 
+// ─────────────────────────────────────────────
+// LENGUA CASTELLANA — pipeline JSON + renderizador (04/09/2026,
+// renderer-lengua.js). Primer tipo formalmente blindado: "trazo_letra"
+// (rejilla de copias grandes sólidas para colorear + rejilla de copias
+// pequeñas punteadas en la fuente real "Cole Carreira" para repasar, ver
+// Fase 9 del ROADMAP — séptima pasada, 05/09/2026). Para todo lo demás
+// (huecos gramaticales, lectura comprensiva, dictado, ordenar palabras...)
+// se usa la válvula de escape "contenido_libre": Claude sigue escribiendo
+// HTML libre, pero SOLO el contenido interior de ESE ejercicio — la
+// cabecera, el título, el envoltorio de cada ejercicio y el pie los pone
+// siempre el código (renderizarFichaLengua), igual que en Matemáticas.
+// Cuando se diseñen tipos propios para más ejercicios de Lengua (huecos,
+// lectura_comprensiva, relacionar, ordenar_palabras...), cada uno pasará
+// de "contenido_libre" a su propio tipo blindado y este prompt se irá
+// recortando poco a poco — ver Fase 9 del ROADMAP para el criterio.
+// ─────────────────────────────────────────────
+function construirSystemPromptLengua(curso) {
+  return `
+Eres un experto en diseño de materiales didácticos de Lengua Castellana para Educación
+Primaria en España, con dominio de la LOMLOE (Ley Orgánica 3/2020) y el Real Decreto 157/2022.
+
+Tu ÚNICA salida es JSON VÁLIDO. Nada de HTML fuera del campo "datos.html" que se describe
+abajo, nada de markdown, nada de \`\`\`json, ni una sola palabra antes o después del objeto JSON.
+
+ESQUEMA EXACTO:
+{
+  "titulo": "string — título CORTO, máximo 4-5 palabras (ej. 'Trazo de las vocales', NO una
+    frase larga tipo 'Ficha de Lengua Castellana: repaso de vocales y consonantes'). No repitas
+    la palabra 'Ficha' ni la materia, eso ya lo pone la cabecera.",
+  "ejercicios": [
+    {
+      "enunciado": "string — instrucción breve y clara del ejercicio, SIN 'Ejercicio N.'
+        delante (el número lo añade el sistema).",
+      "tipo": "trazo_letra | contenido_libre",
+      "datos": { ... según el tipo, ver abajo ... }
+    }
+  ]
+}
+
+TIPOS DE EJERCICIO DISPONIBLES Y SU CAMPO "datos":
+
+- "trazo_letra": refuerzo para alumnado que aún no relaciona el sonido con la letra escrita ni
+  sabe trazarla. Úsalo SOLO cuando el docente lo pida explícitamente en las instrucciones
+  especiales (ej. "ficha de trazo de la vocal A", "que repase la M mayúscula y minúscula") — no
+  lo generes por iniciativa propia si no se ha pedido.
+  { "letra": "A", "modo": "trazo" o "modelo", "estilo": "clasico" o "pautado",
+    "repeticionesGrandes": 6, "repeticionesPequenas": 12,
+    "filasPauta": 2, "columnasPauta": 5 }
+  * "letra": EXACTAMENTE un carácter (respeta mayúscula/minúscula), SOLO de este catálogo
+    cerrado — no inventes ni aproximes letras fuera de esta lista:
+    ${LETRAS_TRAZO_DISPONIBLES.join(', ')}
+    Si el docente pide una letra fuera de esta lista, NO generes este tipo de ejercicio para
+    ella: usa "contenido_libre" y explica en el enunciado que esa letra todavía no está
+    disponible para trazo, o simplemente omítela.
+  * "modo": "trazo" (por defecto) → un ejercicio de práctica del trazo (ver "estilo" para las
+    dos variantes disponibles). "modelo" → solo UNA copia grande y sólida de la letra, sin
+    rejillas ni flechas (úsalo si el docente solo quiere mostrar la forma de la letra, no un
+    ejercicio de trazo) — "estilo" no aplica en este modo.
+  * "estilo" (solo aplica con modo:"trazo"; por defecto "clasico" si no se especifica):
+    - "clasico" → una fila de copias GRANDES y sólidas de la letra (para colorear libremente)
+      seguida de una fila de copias PEQUEÑAS punteadas con la pauta escolar de 4 líneas ya
+      incluida (para repasar el trazo una y otra vez) — solo dibujos y letras sueltas
+      repetidas, nunca una palabra ni una frase. Las copias pequeñas usan la fuente real "Cole
+      Carreira" (aprobada por la maestra), así que no llevan flechas de dirección.
+    - "pautado" → dos modelos grandes de referencia arriba (uno liso, otro con flechas de
+      dirección FUERA de la letra) seguidos de varias filas de copias más pequeñas dentro de
+      una pauta de 3 líneas, con el contorno de la letra punteado para repasar encima —
+      formato más parecido a una ficha de caligrafía clásica de una fila por línea.
+  * "repeticionesGrandes": cuántas copias grandes para colorear, SOLO con estilo "clasico"
+    (número entero 0-9; por defecto 6 si no se especifica).
+  * "repeticionesPequenas": cuántas copias pequeñas punteadas para repasar, SOLO con estilo
+    "clasico" (número entero 0-24; por defecto 12 si no se especifica).
+  * "filasPauta"/"columnasPauta": SOLO con estilo "pautado" — cuántas filas y cuántas copias
+    por fila en la rejilla de práctica pautada (filasPauta: entero 1-6, por defecto 2;
+    columnasPauta: entero 1-8, por defecto 5).
+  * Cada letra pedida es SU PROPIO ejercicio, con un enunciado breve propio (ej. "Repasa la
+    vocal A"), aunque el docente pida varias letras seguidas en la misma ficha.
+
+- "contenido_libre": cualquier otro ejercicio de Lengua (dictado preparatorio, huecos
+  gramaticales, lectura comprensiva, ordenar palabras, sinónimos/antónimos, tipos de oraciones,
+  signos de puntuación, relacionar columnas, etc. — todo lo que todavía no tiene tipo propio).
+  { "html": "<!-- HTML del CONTENIDO del ejercicio, sin el envoltorio -->" }
+  * IMPORTANTE: "html" es SOLO el contenido interior del ejercicio — el sistema ya pone por su
+    cuenta el <div class="ejercicio">, el número y el enunciado (que va en el campo "enunciado"
+    de arriba, NUNCA repetido dentro de "html"). No incluyas <div class="ejercicio"> ni
+    <p class="enunciado"> dentro de "html".
+  * Clases HTML disponibles para construir "html" (usa SOLO estas, no inventes otras):
+    - Huecos para rellenar dentro de una frase: <span class="hueco"></span>
+      (variantes: "hueco hueco-largo" para palabras, "hueco hueco-corto" para una letra o V/F).
+    - Espacio de respuesta para escritura o redacción: <div class="espacio-respuesta pauta"></div>
+      (variantes: añade "alto" o "bajo" para más/menos alto; sin "pauta" es una caja lisa).
+    - Texto de lectura comprensiva: <blockquote class="texto-lectura">...</blockquote>
+    - Preguntas tipo test:
+      <div class="opciones-test">
+        <div class="opcion-item"><span class="casilla-test"></span> a) Opción</div>
+      </div>
+    - Espacio para dibujar: <div class="caja-espacio-dibujo">[ Dibuja aquí ]</div>
+    - Tabla de datos o de relacionar conceptos: <table class="tabla-ejercicio">...</table>
+    - Lista numerada de frases/palabras (ej. ordenar palabras, frases sueltas):
+      <ol class="ejercicio-lista"><li>...</li></ol>
+    - Muestra de una tipografía candidata para el trazo (TEMPORAL, 05/09/2026 — SOLO cuando el
+      docente pida explícitamente comparar/ver una fuente, ej. "ficha de prueba de la fuente
+      Little Days en mayúsculas"; retirar esta clase si finalmente no se adoptan):
+      <p class="muestra-fuente-little-days">A E I O U</p> o
+      <p class="muestra-fuente-cole-carreira">a e i o u</p> — dentro va SOLO la lista de letras
+      pedida (mayúsculas o minúsculas, tal cual se pida, separadas por espacios), nunca una
+      frase con significado; esto no es un ejercicio pedagógico normal, es una prueba visual.
+  * NUNCA autoevaluación ni caritas. NUNCA HTML fuera de estas clases (nada de estilos inline
+    salvo que una de las clases anteriores ya lo requiera).
+
+REGLAS GENERALES:
+- Por defecto genera ~10 ejercicios variados, mezclando tipos según lo que pida el docente.
+- Las instrucciones especiales del docente tienen MÁXIMA PRIORIDAD sobre todo lo anterior
+  (temática, número de ejercicios, letras concretas a trabajar...).
+- El título y los enunciados deben ser coherentes con Lengua Castellana de ${curso} de Primaria.
+`.trim();
+}
+
+function construirPromptLengua({ curso, comunidad, instrucciones, idioma }) {
+  return `
+DATOS DE LA FICHA:
+- Curso: ${curso} de Educación Primaria
+- Idioma: ${idioma || 'Español'}
+- Comunidad Autónoma: ${comunidad || 'LOMLOE estatal (general)'}
+- Instrucciones especiales del docente: ${instrucciones || 'Ninguna — genera una ficha variada y adecuada al curso.'}
+  `.trim();
+}
+
 function construirPrompt(materia, curso, comunidad, instrucciones, idioma, colegio) {
   const promptMateria = PROMPTS_MATERIA[materia]
     || `- Genera ejercicios variados y adecuados para ${materia} en ${curso} de Primaria.`;
@@ -668,6 +1095,39 @@ RECUERDA: el título y los textos deben reflejar explícitamente la materia "${m
 // ─────────────────────────────────────────────────────────────────
 app.get('/api/iconos', (req, res) => {
   res.json(ICONOS_SVG);
+});
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/ficha-en-blanco (07/09/2026)
+// Petición del usuario: algunos docentes ven un ejercicio ya hecho en
+// internet (ej. "las partes de un volcán") y prefieren capturar esa imagen
+// y pegarla ellos mismos en vez de que la IA intente redibujar o describir
+// el ejercicio. No hace falta la IA para esto — la ficha en blanco es solo
+// la cabecera/pie del sistema (mismo aspecto que cualquier otra ficha, para
+// que encaje con el resto) con CERO ejercicios generados; el propio
+// index.html ya tenía desde el 10/08/2026 un mecanismo de "imagen flotante"
+// para que el docente suba y coloque sus propias imágenes sobre la
+// ficha (ver añadirBotonesImagen/insertarImagenFlotante) — este endpoint
+// solo genera la página en blanco sobre la que colocarlas, sin gastar
+// ninguna llamada a la IA. Reutiliza renderizarFichaLengua() con
+// ejercicios:[] porque su cabecera/pie no dependen de que la materia sea
+// Lengua — funciona igual para cualquier materia elegida en el formulario.
+app.post('/api/ficha-en-blanco', (req, res) => {
+  try {
+    const { materia, curso, comunidad, colegio, titulo } = req.body;
+    if (!materia || !curso) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios: materia y curso.' });
+    }
+    const datosFicha = {
+      titulo: typeof titulo === 'string' && titulo.trim() ? titulo.trim() : undefined,
+      ejercicios: [],
+    };
+    const html = renderizarFichaLengua(datosFicha, { curso, materia, comunidad, colegio });
+    res.json({ html });
+  } catch (error) {
+    console.error('Error al generar la ficha en blanco:', error);
+    res.status(500).json({ error: 'Error interno al generar la ficha en blanco.' });
+  }
 });
 
 app.post('/api/generar-ficha', async (req, res) => {
@@ -730,6 +1190,44 @@ app.post('/api/generar-ficha', async (req, res) => {
       }
 
       const html = renderizarFichaMatematicas(datosFicha, { curso, materia, comunidad, colegio });
+      return res.json({ html });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LENGUA CASTELLANA: pipeline nuevo (JSON + renderizador propio,
+    // renderer-lengua.js). Ver construirSystemPromptLengua más arriba.
+    // ═══════════════════════════════════════════════════════════
+    if (materia === 'Lengua Castellana') {
+      const systemPrompt = construirSystemPromptLengua(curso);
+      const userPrompt = construirPromptLengua({ curso, comunidad, instrucciones, idioma });
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      });
+
+      if (response.stop_reason === 'max_tokens') {
+        console.warn('⚠️ Respuesta cortada por límite de tokens.');
+      }
+
+      const bloqueTexto = response.content.find(block => block.type === 'text');
+      let textoJson = bloqueTexto?.text || '';
+      textoJson = textoJson.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      let datosFicha;
+      try {
+        datosFicha = JSON.parse(textoJson);
+      } catch (errorParseo) {
+        console.error('❌ La IA devolvió JSON inválido:', errorParseo.message);
+        console.error('Contenido recibido:', textoJson.slice(0, 500));
+        return res.status(500).json({
+          error: 'La IA devolvió un formato inesperado al generar la ficha. Inténtalo de nuevo.'
+        });
+      }
+
+      const html = renderizarFichaLengua(datosFicha, { curso, materia, comunidad, colegio });
       return res.json({ html });
     }
 

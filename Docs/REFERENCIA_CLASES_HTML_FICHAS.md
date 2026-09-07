@@ -771,6 +771,235 @@ Para ejercicios tipo "completa la serie", "verdadero o falso", "une con flechas"
 
 ---
 
+## 9B. Ampliación curricular — 14 tipos nuevos (07/09/2026)
+
+Añadidos en una sola sesión para cubrir los sentidos de la medida, espacial, estocástico y
+algebraico del RD 157/2022 que no tenían tipo propio (auditoría completa en el ROADMAP, entrada
+del 07/09/2026). Todos siguen el mismo criterio del resto del fichero: código en
+`renderer-matematicas.js`, nunca Claude, decide cualquier cantidad derivable o la forma de un
+dibujo que tenga que "cuadrar bien". Gating por curso en `construirSystemPromptMatematicas()`
+(`server.js`) — ver esa función para el detalle exacto.
+
+### Dinero en euros
+```html
+<div class="dinero-bloque">
+  <div class="dinero-grupos">
+    <div class="dinero-grupo"><svg>...</svg><!-- ×cantidad, una moneda/billete por unidad --></div>
+  </div>
+  <p class="dinero-resultado">Total: <span class="hueco hueco-corto"></span> €</p>
+</div>
+```
+Catálogo cerrado de denominaciones reales (0,01€-50€, `DENOMINACIONES_EURO`); monedas (&lt;5€)
+como círculo, billetes como rectángulo. Modo `"cambio"` añade `.dinero-pagado` y
+`.dinero-precio` en vez de mostrar los grupos directamente. Nunca se calcula el total/cambio.
+
+### Proporcionalidad
+```html
+<table class="tabla-proporcionalidad">
+  <thead><tr><th>Magnitud A</th><th>Magnitud B</th></tr></thead>
+  <tbody><tr><td class="prop-celda">2</td><td class="prop-celda prop-hueco"></td></tr></tbody>
+</table>
+```
+Columna A con los valores dados por Claude, columna B siempre vacía.
+
+### Conversión de unidades
+```html
+<div class="conversion-bloque">
+  <p class="conversion-ayuda">Recuerda: 1 m = 100 cm</p>
+  <div class="conversion-fila"><span>3 m</span><span>=</span><span class="hueco hueco-corto"></span><span>cm</span></div>
+</div>
+```
+`.conversion-ayuda` es una tabla de equivalencia de apoyo automática (`EQUIVALENCIAS_UNIDADES`),
+solo aparece para los pares de unidades que el sistema reconoce.
+
+### Medir con regla
+```html
+<div class="regla-bloque">
+  <div class="regla-guia"><span class="regla-marca" style="left:0cm">0</span>...</div>
+  <div class="regla-fila">
+    <span class="regla-etiqueta">A)</span>
+    <div class="regla-segmento" style="width:5cm;"></div>
+    <span class="hueco hueco-corto"></span> cm
+  </div>
+</div>
+```
+**Importante para quien toque el CSS de impresión**: `.regla-guia` y `.regla-segmento` usan
+unidades CSS físicas (`cm`), no píxeles — es la única forma de que la longitud impresa en papel
+sea la longitud real. No convertir a `px` ni añadir un `transform: scale()` a estos elementos o
+la regla deja de ser fiable.
+
+### Ángulos
+```html
+<div class="angulos-grid">
+  <div class="angulo-tarjeta">
+    <svg>...<!-- vértice + semirrecta base + semirrecta al ángulo + arco --></svg>
+    <p class="angulo-respuesta">Tipo: <span class="hueco hueco-corto"></span></p>
+  </div>
+</div>
+```
+Modo `"transportador"` añade una escala de 0°-180° dibujada alrededor del vértice.
+
+### Simetría
+```html
+<div class="simetria-bloque">
+  <svg>
+    <g><!-- mitad ORIGINAL: rect .simetria-celda-llena / .simetria-celda-vacia --></g>
+    <g transform="translate(...)"><!-- mitad ESPEJO: SOLO .simetria-celda-vacia, nunca llena --></g>
+    <line stroke-dasharray="5,4"/><!-- eje -->
+  </svg>
+</div>
+```
+Catálogo cerrado de 4 figuras en `PATRONES_SIMETRIA` (`corazon`, `casa`, `flecha`, `copa`) sobre
+una cuadrícula de 5×6 celdas. La mitad espejo NUNCA se dibuja rellena — sería la respuesta.
+
+### Coordenadas
+```html
+<div class="coordenadas-bloque">
+  <svg><!-- rejilla 0-10 + ejes + (modo "localizar") puntos rojos rotulados --></svg>
+  <div class="coordenadas-lista"><p>A: ( <span class="hueco hueco-corto"></span> , <span class="hueco hueco-corto"></span> )</p></div>
+</div>
+```
+Modo `"representar"`: el plano se dibuja sin ningún punto, solo la lista de coordenadas en texto.
+
+### Probabilidad
+```html
+<div class="probabilidad-bloque">
+  <div class="probabilidad-fila">
+    <svg><!-- icono decorativo: dado/moneda/ruleta, catálogo cerrado --></svg>
+    <span class="probabilidad-texto">Sacar un 7 en un dado normal</span>
+    <span class="probabilidad-opciones">
+      <span class="opcion-item"><span class="casilla-test"></span> Seguro</span>
+      <span class="opcion-item"><span class="casilla-test"></span> Posible</span>
+      <span class="opcion-item"><span class="casilla-test"></span> Imposible</span>
+    </span>
+  </div>
+</div>
+```
+Reutiliza `.opcion-item`/`.casilla-test` de `tipo_test`. Modo `"ordenar"` sustituye
+`.probabilidad-opciones` por un único `.probabilidad-orden.hueco`.
+
+### Medidas de centralización
+```html
+<div class="medidas-centralizacion-bloque">
+  <p class="mc-datos-lista">Datos: 3, 5, 5, 7, 9</p>
+  <div class="mc-respuestas"><div class="mc-respuesta-fila"><span>Media = </span><span class="hueco hueco-largo"></span></div></div>
+</div>
+```
+Mismo espíritu que `tabla_frecuencia` numérica (5º-6º): datos en bruto, nunca calculados.
+
+### Ecuación sencilla
+```html
+<div class="ecuacion-sencilla-bloque">
+  <div class="ecuacion-fila">
+    <span class="hueco hueco-corto ecuacion-hueco"></span>
+    <span class="ecuacion-signo">-</span>
+    <span class="ecuacion-numero">4</span>
+    <span class="ecuacion-signo">=</span>
+    <span class="ecuacion-numero">8</span>
+  </div>
+</div>
+```
+El hueco puede caer en cualquiera de las tres posiciones. El número que se IMPRIME en la posición
+"resultado" (cuando no es ella la incógnita) lo recalcula siempre `calcularResultadoEcuacion()`
+a partir de `a`/`signo`/`b` — nunca el que mande Claude.
+
+### Crucigrama numérico
+```html
+<div class="crucigrama-bloque">
+  <div class="crucigrama-grid"><svg><!-- rect .crucigrama-celda-activa / -bloqueada por celda --></svg></div>
+  <div class="crucigrama-pistas">
+    <div class="crucigrama-lista-pistas"><p class="crucigrama-titulo-pistas">Horizontales</p><ul><li>1. 8 + 7</li></ul></div>
+  </div>
+</div>
+```
+**Ojo si se toca este bloque**: la lista de pistas usa `<ul>`, NUNCA `<ol>` — el número de pista
+ya se imprime a mano dentro de cada `<li>` (`"1. 8 + 7"`), y un `<ol>` añadiría su propia
+numeración automática encima, duplicándola (bug real, atrapado y corregido en esta sesión).
+Rejilla máxima 10×10, calculada por código a partir de `datos.palabras` — el sistema nunca
+calcula ni conoce las respuestas.
+
+### Colorea según el resultado
+```html
+<div class="colorea-por-operacion-bloque">
+  <div class="colorea-mosaico"><div class="colorea-celda">6 + 7</div></div>
+  <div class="colorea-leyenda">
+    <div class="colorea-leyenda-item"><span class="colorea-leyenda-color" style="background:#fde68a"></span><span>0–10: amarillo</span></div>
+  </div>
+</div>
+```
+El color real de cada tramo de leyenda lo asigna siempre el sistema (`PALETA_COLOREAR`, por
+posición) — nunca un color libre mandado por Claude en el JSON.
+
+### Conecta los puntos
+```html
+<div class="conecta-puntos-bloque">
+  <svg><!-- círculo + número de texto por punto, coordenadas fijas de la plantilla --></svg>
+</div>
+```
+Catálogo cerrado de 5 plantillas en `PLANTILLAS_CONECTA_PUNTOS` (`estrella`, `casa`, `pez`,
+`cometa`, `barco`) con coordenadas fijas dentro de un lienzo de 200×200. El sistema numera los
+puntos según `paso`/`inicio` — nunca dibuja líneas (las traza el alumno a mano).
+
+### Número del día / formación del número
+```html
+<div class="numero-dia-bloque">
+  <p class="numero-dia-trazar">14</p>
+  <div class="numero-dia-marcos"><svg><!-- 10 rects .marco-diez-lleno / -vacio, marco de diez --></svg></div>
+  <div class="numero-dia-iconos"><svg>...</svg><!-- ×min(numero,10), opcional --></div>
+</div>
+```
+El número de círculos rellenos en cada marco de diez se deriva siempre de `datos.numero` (0-20,
+dos marcos si pasa de 10) — nunca de un campo aparte.
+
+---
+
+## 9C. Segunda ampliación — sentido de la medida: masa y capacidad (07/09/2026)
+
+Los dos candidatos que en la sección 9B quedaron como "posible ampliación futura" — implementados
+el mismo día a petición del usuario. Mismo criterio de blindaje que toda la sección 9B.
+
+### Pesar con balanza
+```html
+<div class="balanza-bloque">
+  <div class="balanza-armazon">
+    <svg class="balanza-svg">...<!-- fulcro + viga + 2 óvalos de platillo, SIEMPRE nivelada --></svg>
+    <div class="balanza-platillo balanza-platillo-izq"><svg>...</svg><!-- ×cantidad --></div>
+    <div class="balanza-platillo balanza-platillo-der"><svg>...</svg></div>
+  </div>
+  <p class="balanza-respuesta"><span class="balanza-lado-nombre">Izquierda</span><span class="hueco hueco-corto"></span><span class="balanza-lado-nombre">Derecha</span></p>
+  <!-- modo "pesas": la última línea es en su lugar <p class="balanza-respuesta-pesas">Peso: <span class="hueco hueco-corto"></span></p> -->
+</div>
+```
+**Importante si se toca el CSS**: `.balanza-armazon` es `position: relative` con ancho fijo
+(280px, igual que el `viewBox` del SVG del armazón) y `.balanza-platillo` es `position: absolute`
+con un `left` calculado a mano para caer bajo cada óvalo del armazón (`-17px` / `223px`) — si se
+cambia el tamaño del armazón (`svgArmazonBalanza()` en `renderer-matematicas.js`) hay que
+recalcular esos dos `left` a la vez, o los objetos dejan de caer dentro del platillo. Los iconos
+dentro del platillo se fuerzan a 26×26px por CSS (`.balanza-platillo svg`) porque su tamaño nativo
+(60×60) no cabe en un platillo de 74px de ancho.
+La balanza **nunca se inclina** — ni el armazón ni el CSS tienen ninguna regla que la incline
+según el contenido; es una decisión deliberada (ver comentario en `renderPesarConBalanza()`), no
+un detalle pendiente de pulir.
+
+### Medir capacidad
+```html
+<div class="capacidad-bloque"><!-- modo "leer": una .capacidad-tarjeta por recipiente -->
+  <div class="capacidad-tarjeta">
+    <span class="capacidad-etiqueta">A)</span>
+    <svg><rect class="capacidad-fluido"/><!-- relleno a la altura real --><rect stroke="#000"/><!-- contorno --><!-- marcas graduadas --></svg>
+    <p class="capacidad-respuesta">Contiene: <span class="hueco hueco-corto"></span> ml</p>
+  </div>
+</div>
+<!-- modo "comparar": .capacidad-bloque.capacidad-comparar con 2 .capacidad-recipiente y un .capacidad-hueco-comparar en medio, sin .capacidad-respuesta (el hueco es el de comparar, no de lectura) -->
+```
+La altura del rect `.capacidad-fluido` se calcula siempre como
+`alto × (nivelActual / capacidadMax)` en `svgRecipiente()` — nunca a partir de otro dato, y
+`nivelActual` se acota siempre a `[0, capacidadMax]`. En blanco y negro el relleno se pinta blanco
+con un borde gris fino (`stroke`) en vez de desaparecer del todo, para que la línea de nivel se
+siga viendo aunque no haya color.
+
+---
+
 ## 10. Pie de página
 
 ```html
@@ -797,3 +1026,319 @@ Línea final, discreta, informativa.
 - No eliminar ni fusionar `.hueco` y `.espacio-respuesta` (son conceptualmente distintos: uno es una raya para una palabra/número corto dentro de una frase, el otro es una caja para una respuesta de problema).
 - No añadir JavaScript nuevo (el frontend ya tiene su propio script para llamar a la API y gestionar el editor).
 - Si necesita una clase nueva para algún elemento decorativo (iconos, fondos, etc.), debe documentarla aparte para que se pueda avisar a Claude si el HTML necesita generarla también.
+
+---
+
+## 13. Trazo de letras — Lengua Castellana (04/09/2026, migrado a JSON+renderizador el mismo día)
+
+Petición de una maestra para un niño de 1º que llega de Infantil sin base
+lectoescritora: distingue las vocales al hablar pero no las relaciona con lo
+escrito ni sabe trazarlas. Este tipo de ejercicio necesita precisión total
+(la dirección de cada trazo tiene que ser SIEMPRE correcta), así que está
+generado por código en `renderer-lengua.js` — mismo principio de blindaje
+que ya usa Matemáticas.
+
+**Pipeline de Lengua Castellana (04/09/2026)**: Lengua ya NO usa el pipeline
+legacy (Claude generando HTML de ficha completa). Ahora Claude responde SOLO
+con JSON (`{titulo, ejercicios:[{tipo, enunciado, datos}]}`,
+`construirSystemPromptLengua()` en `server.js`) y `renderizarFichaLengua()`
+en `renderer-lengua.js` construye el HTML completo — cabecera, título,
+numeración de ejercicios y pie SIEMPRE por código, igual que en Matemáticas.
+De momento hay un único tipo de ejercicio formalmente blindado,
+`"trazo_letra"` (descrito en esta sección). Para todo lo demás (huecos,
+lectura comprensiva, dictado, ordenar palabras...) existe la válvula de
+escape `"contenido_libre"` (`{ "datos": { "html": "..." } }`): Claude sigue
+escribiendo HTML libre, pero SOLO el contenido interior de ESE ejercicio —
+nunca la cabecera, el título, el envoltorio `.ejercicio` ni el pie, que
+siempre pone el código. Las clases permitidas dentro de ese HTML libre son
+las mismas que usaba el `SYSTEM_PROMPT` legacy para Lengua: `.hueco` (+
+variantes), `.espacio-respuesta`/`.espacio-libre`, `blockquote.texto-lectura`,
+`.opciones-test`/`.casilla-test`, `.caja-espacio-dibujo`, `.tabla-ejercicio`,
+`ol.ejercicio-lista` (ver secciones 5-7 y 9 de este documento), más dos
+clases TEMPORALES añadidas el 05/09/2026 — `.muestra-fuente-little-days` y
+`.muestra-fuente-cole-carreira` — solo para que la maestra vea esas dos
+fuentes candidatas aplicadas dentro de una ficha real antes de decidir si
+se adoptan para algo; a retirar (server.js, style.css) si la respuesta es
+que no. Motivo de la
+migración: generar toda la ficha en HTML libre cada vez era un desgaste
+innecesario para Claude y no daba las garantías de blindaje que sí tiene
+Matemáticas desde la Fase 2 — ver Fase 9 y la aclaración de la Fase 5 en el
+ROADMAP. Según se vayan diseñando tipos propios para más ejercicios de
+Lengua, cada uno saldrá de `contenido_libre` y pasará a tener su propio tipo
+blindado.
+
+**Cómo pide Claude un ejercicio de trazo**: nunca dibuja la letra ni la
+describe con texto — solo decide los datos, en JSON:
+
+```json
+{ "enunciado": "Repasa la vocal a", "tipo": "trazo_letra",
+  "datos": { "letra": "a", "modo": "trazo",
+             "repeticionesGrandes": 6, "repeticionesPequenas": 12 } }
+```
+
+`renderTrazoLetra(datos)` (llamada internamente por `renderizarFichaLengua()`
+a través de `RENDERERS_LENGUA_POR_TIPO`) construye el HTML real a partir de
+esos datos — Claude nunca decide ni un punto ni una flecha.
+
+**HTML final generado** (lo que produce `renderTrazoLetra()`, formato en
+rejillas repetidas desde el 05/09/2026 — ver más abajo):
+
+```html
+<div class="trazo-letra-bloque">
+  <div class="trazo-letra-grid-grande"><!-- ×data-repeticionesGrandes, todas iguales -->
+    <div class="trazo-letra-grid-celda">
+      <svg viewBox="0 5 140 290" width="130" height="269"><!-- construirModeloSolido() -->
+        <path class="trazo-letra-modelo-trazo" d="M ..."/><!-- ×N trazos, uno por levantamiento de lápiz -->
+        <circle class="trazo-letra-modelo-punto" .../><!-- solo si la letra lleva punto suelto, p.ej. la "i" -->
+      </svg>
+    </div>
+    <!-- ...se repite data-repeticionesGrandes veces... -->
+  </div>
+  <p class="trazo-letra-subtitulo">Ahora repasa el trazo:</p>
+  <div class="trazo-letra-grid-pequena"><!-- ×data-repeticionesPequenas, todas iguales, gap:0 a propósito -->
+    <span class="trazo-letra-fuente-punteada">a</span><!-- texto real, fuente "Cole Carreira" -->
+    <!-- ...se repite data-repeticionesPequenas veces, sin espacio entre celdas... -->
+  </div>
+</div>
+```
+
+**IMPORTANTE (05/09/2026, séptima pasada)**: el bloque de arriba ya refleja el
+cambio de esa fecha — la rejilla PEQUEÑA ya no es un `<svg>` con puntos
+dibujados a mano, es texto real en la fuente autoalojada "Cole Carreira".
+Ver la entrada fechada más abajo ("Rejilla pequeña pasa a usar la fuente
+real Cole Carreira") para el porqué y el coste aceptado (se pierden las
+flechas de dirección y el número de orden de trazo en esa rejilla).
+
+**Catálogo cerrado** (`LETRAS_TRAZO_DISPONIBLES` en `renderer-lengua.js`,
+04/09/2026 — de momento vocales + consonantes más frecuentes, mayúsculas y
+minúsculas): `a, e, i, o, u, m, p, l, s, t, A, E, I, O, U, M, P, L, S, T`.
+Si el docente pide una letra fuera de esta lista, el sistema NO rompe la
+ficha: `renderTrazoLetra()` devuelve `<p class="trazo-letra-no-disponible">`
+con un aviso, en vez de un hueco vacío sin explicación. Ampliar el catálogo
+(resto de consonantes) es trabajo pendiente, mismo patrón iterativo que ya
+se usó con los 84 iconos y las 15 figuras geométricas — cada letra nueva hay
+que verificarla visualmente (Playwright) antes de darla por buena.
+
+**Geometría**: cada letra está dibujada a mano como "esqueleto" (la línea
+que sigue el lápiz, en unidades de una rejilla propia —
+`BASELINE`/`XHEIGHT_TOP`/`ASCENDER_TOP`/`DESCENDER_BOTTOM` en
+`renderer-lengua.js`), NO extraída del contorno de una fuente — así se
+controla con exactitud dónde empieza cada trazo y hacia dónde apunta la
+flecha. Se investigó si existía ya una fuente gratuita que resolviera esto
+(punteado + flecha de dirección): lo más cercano es la familia "Edu" de
+Google Fonts (variantes Dots/Guides, licencia OFL), pero su propia
+documentación dice que la variante con flechas de dirección sigue "en
+desarrollo", no publicada, y no confirma cobertura de acentos españoles — de
+ahí la decisión de construir el catálogo propio.
+
+**Modos** (`datos.modo`, opcional):
+- `"trazo"` (por defecto): las dos rejillas descritas arriba (grande para colorear + pequeña punteada para repasar).
+- `"modelo"`: solo UNA copia grande y sólida, sin rejillas ni pauta — para cuando el docente solo quiere mostrar la forma de la letra, no un ejercicio de trazo. Devuelve `<div class="trazo-letra-bloque trazo-letra-solo-modelo">`.
+
+**Rejillas repetidas en vez de casillas en blanco (05/09/2026, quinta pasada)**: el formato
+original (un modelo grande + un único trazo punteado + casillas en blanco para escribir libre)
+se diseñó sin comparar con una referencia real de 1º sin ninguna base todavía. El usuario trajo
+una referencia real (lalibretapiruleta.com, "12VOCALES.pdf"): varias copias GRANDES idénticas
+para colorear libremente ("con el color que tú quieras"), y luego MUCHAS copias PEQUEÑAS
+punteadas seguidas para repasar una y otra vez — nada de casillas en blanco para escribir de
+memoria (eso quedaría, si hace falta, para un tipo de ejercicio propio más adelante). Rediseñado
+para seguir ese mismo patrón: `construirGridModelos()` repite `construirModeloSolido()`
+tantas veces como pida `datos.repeticionesGrandes` (0-9, por defecto 6);
+`construirGridPunteado()` repite una celda tantas veces como pida
+`datos.repeticionesPequenas` (0-24, por defecto 12) — en esta pasada (quinta) todavía repetía
+`construirSvgLetra()`, el punteado dibujado a mano; desde la séptima pasada repite en su lugar
+texto real en la fuente "Cole Carreira" (ver entrada fechada más abajo). Entre ambas rejillas, un subtítulo fijo puesto por
+el propio código (`<p class="trazo-letra-subtitulo">Ahora repasa el trazo:</p>`, nunca por
+Claude) marca la transición, igual que la referencia distingue "repasa con el color que
+quieras" de "repasa la e" con dos instrucciones. Las casillas en blanco
+(`.trazo-letra-repeticiones`/`.trazo-letra-repeticion-celda`) y la fila lado a lado
+(`.trazo-letra-fila`) del formato anterior se han retirado del CSS por quedar sin uso.
+Verificado con Playwright (color y B/N) contra la referencia real: mismo espíritu de ejercicio
+(varias copias para colorear + muchas para repasar), aunque no una copia pixel a pixel — 6
+grandes + 12 pequeñas por defecto, en vez de las 6 + 21 del PDF original, para no desbordar la
+página con letras más anchas del catálogo propio.
+
+**Modelo grande = mismo esqueleto que el punteado, trazo grueso y sólido (04/09/2026, cuarta
+pasada — sustituye por completo el experimento con Playwrite ES descrito antes en este documento
+y ya retirado)**: el modelo grande dejó de depender de ninguna fuente externa. Se dibuja con
+`construirModeloSolido(letra, {anchoPx})` en `renderer-lengua.js`, que reutiliza el MISMO
+esqueleto (`LETRAS[letra]()`) que ya usa `construirSvgLetra()` para el punteado, convirtiendo cada
+segmento (`line`/`arc`) en un `<path>` de SVG con comandos `M`/`L`/`A`
+(`pathDeTrazo()`/`segInicio()`) y dibujándolo como trazo continuo, grueso y redondeado
+(`stroke-linecap:round`, clase `.trazo-letra-modelo-trazo`) en vez de a puntos; el marcador
+`{isDot:true}` de letras como la `i` se dibuja como un `<circle class="trazo-letra-modelo-punto">`
+sólido. Motivo del cambio: con Playwrite ES como modelo grande, el modelo y el punteado eran
+literalmente dos dibujos distintos de la misma letra (dos fuentes de verdad), lo que obligaba a
+rediseñar el esqueleto letra por letra cada vez que se notaba una discrepancia (ver el historial
+de `e`/`m` más abajo) — un problema que solo podía crecer según se ampliara el catálogo. Con
+`construirModeloSolido()` esa inconsistencia desaparece de raíz y para siempre: modelo y trazo son
+el mismo dibujo por construcción, para cualquier letra del catálogo, sin mantenimiento adicional.
+Efecto colateral deseado: al dejar de usar Playwrite también desaparece su `e` minúscula (un bucle
+que se auto-cruza, señalada por el usuario como "rara, como un lazo") — el modelo grande vuelve a
+mostrar la `e` con la forma que sí se validó contra las referencias reales de letra escolar
+española (ver "Ajuste del rabito de la `e`" más abajo). Se han retirado también, por quedar sin
+uso, la letra "fantasma" invisible (el truco de ligadura de Playwrite) y el fichero de fuente
+`public/fonts/playwrite-es/`.
+
+Verificado con Playwright (color y B/N) dentro de una ficha real generada con
+`renderizarFichaLengua()`: el modelo grande y el punteado son ahora el mismo gesto exacto para
+cada letra probada (incluidas `e` e `i`, esta última con su punto suelto renderizado
+correctamente como círculo sólido).
+
+**Pauta escolar (retirada como campo, 05/09/2026, séptima pasada)**: hasta la sexta pasada,
+`datos.pauta` (booleano) decidía si la rejilla pequeña dibujaba a mano las 4 líneas de guía.
+Desde que esa rejilla usa la fuente real "Cole Carreira" (ver más abajo), el campo ya no tiene
+efecto y se retiró del esquema (`server.js`) — la pauta la trae puesta cada glifo de la propia
+fuente (ver esa misma entrada para el detalle). Nunca afectó a la rejilla grande — esas copias
+son para colorear, no llevan pauta.
+
+**Rabito de salida** (04/09/2026, corrección tras comparar con referencias reales de letra
+escolar española): las minúsculas redondas (`a`, `e` de momento) no terminan en seco en la
+línea base — el trazo sigue, sin levantar el lápiz, con un pequeño arco de enlace hacia
+arriba-derecha (`colaSalida()` en `renderer-lengua.js`), el mismo trazo que en cursiva conecta
+con la letra siguiente. Sin esto, las letras leían como un print genérico, no como la letra que
+se enseña realmente en España. Pendiente de extender a otras minúsculas redondas del catálogo
+(`o`, `u`, `m`) si hace falta.
+
+**Ajuste del rabito de la `e` (04/09/2026, mismo día, segunda pasada)**: comparando con más
+fichas de referencia, la `e` con el `colaSalida()` corto se leía como un simple círculo con un
+nudo — sin suficiente "peso visual" para distinguirse de una `o`. Nueva función
+`colaSalidaLarga()` en `renderer-lengua.js`: el mismo trazo (sin levantar el lápiz) se ALEJA
+primero hacia la derecha con una caída notable (como la cola de un "6" invertido) y solo
+entonces se riza con `colaSalida()`. Aplicada de momento solo a la `e` (única letra señalada
+como "rara" en esta corrección); reutilizable para `o` si hiciera falta el mismo tratamiento
+más adelante.
+
+**Rediseño de `e` y `m` para que coincidan con el modelo grande (04/09/2026, tercera pasada,
+tras cambiar el modelo a Playwrite ES)**: con el modelo grande usando Playwrite ES (ver más
+abajo) apareció un problema distinto — el trazo punteado y el modelo grande dibujaban dos formas
+distintas de la MISMA letra, no la misma letra en dos formatos. Se notaba sobre todo en `e`
+(bucle-espiral elaborado en Playwrite vs. círculo con barra de entrada a media altura en el
+esqueleto) y en `m` (Playwrite termina con un pequeño gancho de salida; el esqueleto no tenía
+ninguno). Diagnosticado con una ficha real del usuario (`Lengua_1_C_010.pdf`).
+
+Se midió la `e` de Playwrite con precisión (renderizada a tamaño grande y analizada con Python:
+bounding box, altura de x, línea base) para entender su gesto real: entra por ABAJO (no por una
+barra horizontal a media altura), traza un bucle ALTO y ESTRECHO (no un círculo ancho), y solo
+entonces continúa en la cola larga. Nueva `e()` en `renderer-lengua.js`: bucle de `rx=34,
+ry≈52.5` (antes `rx=42, ry=50`, más ancho y bajo) que empieza en el ángulo 95° (abajo, como la
+`o`) en vez de con una barra desde el centro. La `m()` gana una `colaSalida()` corta (radio 13)
+tras la segunda joroba, en vez de terminar en seco.
+
+Verificado visualmente con Playwright, comparando el trazo punteado y el modelo grande uno al
+lado del otro dentro de la ficha real (color y B/N): ahora ambos leen como el mismo gesto (bucle
+alto + cola en la `e`; dos jorobas + gancho en la `m`), aunque no son trazos idénticos —
+suficiente para no confundir al niño. **Decisión explícita del usuario**: corregir solo `e` y
+`m` (las que chocaban en su ficha real) y dejar el resto del catálogo (`a, i, o, u, p, l, s, t`
+y mayúsculas) para revisar más adelante si hiciera falta el mismo tratamiento.
+
+**Cuarta corrección de la `e` (05/09/2026, sexta pasada — se recupera la barra de entrada)**: al
+ver la rejilla de copias grandes y sólidas de la `e` (pasada anterior), el usuario señaló que la
+forma "parece una Q", y pidió tomar como referencia la letra de la fuente "Little Days" (recién
+instalada, ver LICENCIA.txt en `public/fonts/little-days/`). Comprobado: la `e` de esa fuente y
+la de la ficha de referencia original (lalibretapiruleta.com) resuelven la letra con un bucle
+pequeño de entrada, pero reproducir ese bucle compuesto a mano con nuestro sistema de arcos dio
+formas raras en varios intentos (ver iteraciones descartadas en el historial de la sesión). Un
+círculo simplemente abierto (sin barra) tampoco sirve: se lee como "C", no como "e" — lo que
+distingue a la "e" de un círculo es precisamente una barra o entrada a media altura.
+
+Se recuperó la primera versión de esta letra (barra desde el centro hasta el borde del círculo +
+bucle, la que existía ANTES de intentar parecerse a Playwrite ES) — esa versión nunca recibió la
+queja de "parece una Q", solo se corrigió su cola de salida (ver "Rabito de salida" más arriba,
+que se conserva sin cambios). Es la construcción más simple y fiable disponible: la barra es lo
+que hace que se lea sin ambigüedad como "e". El problema de fondo no era la fuente usada de
+referencia, sino que las pasadas segunda y tercera habían quitado esa barra para intentar
+parecerse a Playwrite (una fuente que, además, ya se retiró del proyecto en la cuarta pasada).
+
+Verificado con Playwright (color y B/N): la `e`, tanto en la copia grande sólida como en cada
+copia pequeña punteada, se lee ahora sin ambigüedad como "e"; ficha de regresión con todo el
+catálogo (vocales + m,p,l,s,t, mayús/minús) confirma que nada más se vio afectado.
+
+**Modo B/N**: totalmente soportado (`style.css`, sección 9). El modelo
+grande (SVG) pasa a trazo negro, igual que siempre. La rejilla pequeña,
+desde la séptima pasada, es texto en la fuente "Cole Carreira": en B/N su
+`color` pasa a negro (`.trazo-letra-fuente-punteada`) — ya no hay flechas ni
+número de orden que recolorear, porque esa rejilla ya no los dibuja (ver
+entrada fechada más abajo). Verificado con Playwright antes de dar el tipo
+por bueno (color y B/N).
+
+El `<svg>` del modelo grande queda protegido contra edición accidental sin
+tocar `public/index.html`: `protegerElementosEstructurales()` ya marca
+genéricamente todo `svg` como `contenteditable="false"` (línea 247). La
+rejilla pequeña, al ser texto real desde la séptima pasada (no un `<svg>`),
+necesitó su propia entrada en esa misma lista (`.trazo-letra-fuente-punteada`)
+para quedar igual de protegida — sin esto, el docente podría borrar o
+escribir encima de las letras punteadas sin querer al editar la ficha. El
+único texto editable dentro del bloque sigue siendo el subtítulo fijo "Ahora
+repasa el trazo:", que pone el propio código, no Claude.
+
+**Rejilla pequeña pasa a usar la fuente real "Cole Carreira" (05/09/2026,
+séptima pasada)**: la maestra, tras ver el ejercicio de trazo con nuestro
+punteado dibujado a mano, señaló que esas letras no eran la tipografía
+"Little Days" que había pedido — reveló que esperaba que el ejercicio
+usara directamente fuentes reales, no un sistema propio independiente.
+Hablando con ella, dio un veredicto concreto sobre las dos fuentes
+instaladas (ver LICENCIA.txt de cada una en `public/fonts/`): "Cole
+Carreira" (que ya es una fuente de puntos, con las 4 líneas de pauta
+incluidas dentro de cada glifo) funciona bien para punteado en mayúsculas,
+minúsculas Y números; "Little Days" solo funciona bien en minúsculas y
+números, no en mayúsculas (comprobado también por Claude renderizando el
+alfabeto completo de las dos: las mayúsculas de Little Days son ornamentadas
+y difíciles de leer, p.ej. la "S" se confunde con un "3").
+
+El usuario preguntó si se podía "buscar una tipografía como la colecarreira
+pero que no sea de puntos" — es decir, derivar de Cole Carreira una versión
+SÓLIDA (sin puntos) para que el modelo grande y el punteado vinieran de la
+MISMA fuente real, en vez de nuestro esqueleto a mano + la fuente real por
+separado. Se intentó (procesado de imagen: aislar los puntos de cada glifo
+descartando las líneas de pauta —anchura de componente < 100px—, y fusionar
+los puntos en un trazo continuo primero con cierre morfológico de kernel
+cuadrado creciente hasta 100px, después con desenfoque gaussiano + umbral).
+El resultado fue desigual: minúsculas redondas (`a`, `m`) quedaban limpias y
+naturales, pero mayúsculas y números de esquina cerrada (`A`, `5`) dejaban
+huecos sin cerrar o exigían un grosor desproporcionado — habría hecho falta
+ajustar carácter por carácter, con calidad desigual entre letras, para
+completar un alfabeto entero. Mostradas las pruebas concretas al usuario
+(imagen de comparación), decidió NO seguir por esa vía.
+
+**Decisión final**: en vez de una fuente derivada, se separan las dos
+rejillas por primera vez desde que existen. La rejilla GRANDE (modelo
+sólido para colorear) sigue con nuestro esqueleto a mano
+(`construirModeloSolido()`, sin cambios) — control total, cualquier letra
+del catálogo, sin depender de que una fuente "cierre bien" al solidificarla.
+La rejilla PEQUEÑA (punteado para repasar) pasa a usar texto real de "Cole
+Carreira" directamente (`construirGridPunteado()` ya no llama a
+`construirSvgLetra()`, que se ha retirado del código junto con
+`sampleStroke()`/`arrowMarker()`/`segLength()`/`pointOnSeg()`, sin más uso).
+Como cada glifo de la fuente ya trae dentro un tramo de las 4 líneas de
+pauta escolar, basta con poner las celdas SIN separación
+(`.trazo-letra-grid-pequena { gap: 0 }`) para que esos tramos encajen entre
+sí y formen una pauta continua a lo largo de toda la fila — comprobado
+visualmente con mayúsculas, minúsculas y un número de prueba, sin huecos.
+
+**Coste aceptado explícitamente por el usuario**: la rejilla pequeña pierde
+las flechas de dirección y el número de orden de trazo que sí tenía el
+punteado dibujado a mano (los puntos de una fuente no llevan esa
+información). Se le preguntó específicamente antes de aplicarlo y prefirió
+la fuente real de todos modos. `server.js` avisa a Claude de esto en la
+descripción del tipo, por si un docente pide explícitamente "que se vea el
+orden" o "con flechas" — en ese caso Claude debe decirlo en el enunciado, no
+inventar una alternativa.
+
+**De paso, corregido un defecto ya existente**: `o()`/`O()` dibujaban el
+círculo completo con un único arco SVG de 360° (`sweepDeg: -360`) —
+un comando `A` de SVG no puede representar una elipse completa cuando el
+punto de inicio y el de fin coinciden (caso degenerado): el navegador no
+dibujaba nada. No se notaba con el punteado anterior (los puntos se
+calculaban muestreando el arco directamente, no con comandos SVG reales),
+pero sí afectaba al modelo grande sólido (`construirModeloSolido`/
+`pathDeTrazo`, que sí genera comandos `A`): la "o"/"O" grande quedaba
+invisible en toda ficha generada hasta ahora. Corregido partiendo el
+círculo en dos arcos de 180° (mismo trazo, sin levantar el lápiz) — no
+relacionado con el cambio de fuente, encontrado durante la verificación de
+regresión de esta misma pasada.
+
+Verificado con Playwright (color y B/N): ficha de regresión con las 20
+letras del catálogo completo, comprobando que la rejilla pequeña tiene pauta
+continua para cada una (incluidas mayúsculas) y que la "o"/"O" grande ya es
+visible.

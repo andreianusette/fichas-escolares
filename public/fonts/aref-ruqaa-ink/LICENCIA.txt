@@ -1,0 +1,29 @@
+Fuente: Aref Ruqaa Ink (ArefRuqaaInk-Regular.woff2 / ArefRuqaaInk-Bold.woff2,
+convertidas desde los .ttf originales)
+Autor: The Aref Ruqaa Project Authors (https://github.com/aliftype/aref-ruqaa)
+Origen: subida por el usuario el 05/09/2026 a public/fonts/ (aref-ruqaa-ink.zip),
+que SÍ incluye el OFL.txt oficial completo (copiado también aquí).
+
+Licencia: SIL Open Font License 1.1 — confirmada directamente en el OFL.txt
+oficial incluido en el .zip, y coincide con lo grabado en la tabla "name" del
+propio archivo ("Copyright 2015-2022 The Aref Ruqaa Project Authors"). Es la
+misma familia que aparece en Google Fonts (variante "Ink" = trazo caligráfico
+más grueso/expresivo, estilo Ruqaa/Naskh). Verificación de la máxima
+confianza para este proyecto — sin ambigüedad ni conflicto, a diferencia de
+otras fuentes evaluadas antes (ver el caso de "Not Comic").
+
+Cobertura comprobada (fontTools): alfabeto árabe estándar completo (letras
+básicas + hamzas), con tablas GSUB y GPOS presentes — es decir, con las
+reglas de unión de letras (inicial/media/final/aislada) y ligaduras propias
+del árabe, imprescindibles para que el texto se vea correctamente unido y no
+como letras sueltas. (Faltan 5 letras muy poco frecuentes, de uso dialectal/
+histórico fuera del árabe estándar — irrelevante para este proyecto.)
+
+Estilo: caligráfico, con mucho carácter (estilo Ruqaa clásico) — más
+decorativo que un texto escolar de lectura corriente; probablemente mejor
+para títulos o encabezados en árabe que para el cuerpo de un ejercicio de
+lectoescritura infantil. Ver también "Cairo Play" para un estilo más neutro.
+
+Estado a 05/09/2026: instalada, disponible como font-family, SIN aplicar
+todavía a ningún ejercicio (la Fase 8 de traducción a árabe sigue sin
+empezar) — guardada para cuando se necesite. Ver ROADMAP_FICHAS_ESCOLARES.md.

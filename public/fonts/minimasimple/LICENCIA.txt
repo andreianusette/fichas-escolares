@@ -1,0 +1,44 @@
+Fuente: Minimasimple (Minimasimple-regular.ttf)
+Autor: Benoit Fourdinier (https://www.benoit-fourdinier.fr)
+Origen del archivo: subida por el usuario el 05/09/2026 a public/fonts/
+(minimasimple.zip); el .zip original NO incluye ningún fichero de licencia,
+y el propio archivo tampoco lleva grabado ningún texto de licencia (solo el
+nombre de la web del autor en el campo de copyright).
+
+Licencia verificada por Claude (05/09/2026) consultando dos catálogos
+independientes:
+- dafont.com: clasificada "100% Free".
+- commercialusefont.com: la describe explícitamente como "Free" y de uso
+  comercial permitido.
+
+Conclusión sobre la licencia: previsiblemente libre para uso personal y
+comercial (dos fuentes independientes coinciden), aunque con menos
+confirmación que Dimica (aquí no hay ni tabla "name" ni web oficial del autor
+que lo confirmen directamente — ver LICENCIA.txt de Dimica para comparar el
+nivel de certeza).
+
+*** ATENCIÓN — PROBLEMA DISTINTO Y MÁS IMPORTANTE QUE LA LICENCIA ***
+Comprobada la cobertura de caracteres (fontTools, las tres tablas cmap
+Unicode del archivo, no solo "lo que el navegador rellena por su cuenta"):
+a esta fuente le FALTAN caracteres imprescindibles para texto en español:
+  minúsculas que faltan: ñ, á, í, ó
+  mayúsculas que faltan: Ñ, Á, Í, Ó, Ú
+  también faltan: ¿, ¡
+Sí están presentes: é, ú, É (y el resto del alfabeto sin acentos).
+Ojo: si se prueba esta fuente en el navegador sin comprobar antes con una
+herramienta como fontTools, estos huecos NO se notan a simple vista, porque
+el navegador rellena automáticamente el carácter que falta con otra fuente
+del sistema (distinta, sin avisar) — por eso hace falta comprobarlo así,
+letra a letra, y no solo mirando una captura de pantalla.
+
+Conclusión: aunque la licencia parece estar bien, ESTA FUENTE NO SE PUEDE
+USAR TAL CUAL para texto en español — le falta la ñ y varias vocales
+acentuadas, imprescindibles. Para poder usarla haría falta o bien pedirle al
+propio autor una versión con esos caracteres añadidos, o bien completarlos
+nosotros mismos con una herramienta de edición de fuentes (mismo tipo de
+trabajo que se hizo para "Escolar Ligada", pero añadiendo glifos nuevos en
+vez de combinando dos fuentes ya completas).
+
+Estado a 05/09/2026: instalada tal cual (sin arreglar), disponible como
+font-family, pero NO USABLE para ningún ejercicio en español hasta resolver
+la cobertura de caracteres. Ver ROADMAP_FICHAS_ESCOLARES.md, Fase 9.

@@ -8,8 +8,12 @@
    disponibles de cara a comercializar la app, (2) evitar el problema de RGPD
    de cargar fuentes desde un CDN externo sin consentimiento (varios
    tribunales alemanes han sancionado esto), y (3) que funcione sin conexión.
-   Todas son SIL Open Font License (OFL) — uso y redistribución comercial
-   libres; la licencia de cada una está en su carpeta (public/fonts/<fuente>/OFL.txt). */
+   Andika/Nunito/Quicksand/Fredoka son SIL Open Font License (OFL) —
+   uso y redistribución comercial libres; la licencia de cada una está en su
+   carpeta (public/fonts/<fuente>/OFL.txt). Little Days y Cole Carreira
+   (añadidas 05/09/2026, ver más abajo) vienen de dafont.com sin fichero de
+   licencia — la licencia de cada una se ha verificado y documentado a mano
+   en public/fonts/<fuente>/LICENCIA.txt en vez de OFL.txt. */
 
 @font-face {
   font-family: 'Andika';
@@ -77,6 +81,150 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Little Days y Cole Carreira (05/09/2026) — fuentes "escolares" redondeadas
+   de verdad (letra de cuaderno), a petición de una maestra tras probar
+   Playwrite ES y no convencer (ver sección 13 de
+   REFERENCIA_CLASES_HTML_FICHAS.md y Fase 9 del ROADMAP). Cole Carreira ya
+   está EN USO real: la maestra la aprobó tal cual (mayúsculas, minúsculas y
+   números) para el punteado del ejercicio "trazo_letra" (unir puntitos) — ver
+   .trazo-letra-fuente-punteada más abajo y construirGridPunteado() en
+   renderer-lengua.js. Little Days sigue instalada como font-family pero SIN
+   aplicar sola a ningún elemento de producción — sus minúsculas sí se
+   reutilizan dentro de "Escolar Ligada" (ver más abajo). Ver LICENCIA.txt en
+   cada carpeta. */
+@font-face {
+  font-family: 'Little Days';
+  src: url('fonts/little-days/LittleDays-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cole Carreira';
+  src: url('fonts/colecarreira/ColeCarreira-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Escolar Ligada (05/09/2026, duodécima pasada) — fuente COMBINADA construida
+   para este proyecto: minúsculas de Little Days (con su rabito de enganche)
+   + mayúsculas, dígitos y puntuación de Baloo 2 Regular (OFL real, Google
+   Fonts). Combinación propuesta por el usuario y APROBADA por la maestra
+   tras verla montada: le gusta que la mayúscula quede más gruesa que la
+   minúscula, porque ayuda a los niños a distinguir claramente cuándo una
+   letra es mayúscula. Ver cómo se construyó en
+   public/fonts/escolar-ligada/LICENCIA.txt.
+   Estado: fuente lista para usarse, pero SIN aplicar todavía a ningún
+   ejercicio — Cole Carreira sigue siendo la fuente del punteado de
+   "trazo_letra" (unir puntitos); esta fuente combinada está pensada para un
+   futuro ejercicio de trazo CONTINUO (no de puntitos), pendiente de diseñar
+   — ver ROADMAP_FICHAS_ESCOLARES.md, Fase 9. */
+@font-face {
+  font-family: 'Escolar Ligada';
+  src: url('fonts/escolar-ligada/EscolarLigada-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Dimica y Minimasimple (05/09/2026) — candidatas para variar la tipografía en
+   cursos más avanzados de Primaria: la maestra pidió que, conforme el niño
+   sube de curso, aprenda también a leer otras tipografías (no solo la de
+   trazo escolar de 1º-2º). Dimica: licencia OFL confirmada con doble fuente
+   (la propia fuente + la web oficial del autor) y cobertura española
+   completa — lista para usarse de verdad. Minimasimple: licencia
+   probablemente libre, pero a día de hoy NO USABLE — le faltan la ñ y varias
+   vocales acentuadas (ver public/fonts/minimasimple/LICENCIA.txt para el
+   detalle exacto); dejada instalada solo como referencia, no usar en ningún
+   texto en español hasta arreglar esa cobertura. Sin aplicar ninguna de las
+   dos a ningún ejercicio todavía — pendiente de decidir en qué curso. */
+@font-face {
+  font-family: 'Dimica';
+  src: url('fonts/dimica/Dimica-Light.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Minimasimple';
+  src: url('fonts/minimasimple/Minimasimple-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aref Ruqaa Ink y Cairo Play (05/09/2026) — fuentes árabes con licencia OFL
+   real (OFL.txt oficial incluido, sin ambigüedad), guardadas para cuando
+   llegue la Fase 8 (traducción a árabe) o antes si hace falta. Ambas con
+   cobertura árabe completa y tablas GSUB/GPOS (unión de letras y ligaduras
+   correctas). Aref Ruqaa Ink: caligráfica, más decorativa, mejor para
+   títulos. Cairo Play: más neutra/de lectura, mejor para cuerpo de texto —
+   y además cubre también el alfabeto latino/español en el mismo archivo.
+   Sin aplicar ninguna a ningún ejercicio todavía. */
+@font-face {
+  font-family: 'Aref Ruqaa Ink';
+  src: url('fonts/aref-ruqaa-ink/ArefRuqaaInk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aref Ruqaa Ink';
+  src: url('fonts/aref-ruqaa-ink/ArefRuqaaInk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cairo Play';
+  src: url('fonts/cairo-play/CairoPlay-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cairo Play';
+  src: url('fonts/cairo-play/CairoPlay-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* NOTA sobre "GWM Sans Arabic" (05/09/2026): el usuario subió también
+   gwm-sans-arabic.zip para revisión. NO se ha instalado ni referenciado
+   aquí — es una fuente CORPORATIVA de pago: la tabla "name" del propio
+   archivo dice literalmente "Copyright © 2025 Great Wall Motors Company
+   Limited. All Rights Reserved.", diseñada por Monotype para esa marca de
+   coches. No tiene ninguna licencia libre y usarla en un producto ajeno a
+   Great Wall Motors sería un riesgo real. Ver ROADMAP_FICHAS_ESCOLARES.md,
+   Fase 9, para el detalle — se recomienda al usuario borrar ese .zip. */
+
+/* Muestra de fuente candidata (05/09/2026) — clases TEMPORALES, solo para que
+   la maestra vea las fuentes aplicadas dentro de una ficha real antes de
+   decidir si se usan en algo. Si no se adoptan, retirar estas clases junto
+   con las fuentes (ver LICENCIA.txt de cada una). */
+.muestra-fuente-little-days,
+.muestra-fuente-cole-carreira,
+.muestra-fuente-escolar-ligada,
+.muestra-fuente-dimica,
+.muestra-fuente-minimasimple,
+.muestra-fuente-aref-ruqaa-ink,
+.muestra-fuente-cairo-play {
+  font-size: 150px;
+  line-height: 1.5;
+  color: var(--calido-azul);
+  letter-spacing: 10px;
+  word-spacing: 36px;
+}
+.muestra-fuente-little-days { font-family: 'Little Days', cursive; }
+.muestra-fuente-dimica { font-family: 'Dimica', sans-serif; }
+.muestra-fuente-minimasimple { font-family: 'Minimasimple', sans-serif; }
+.muestra-fuente-aref-ruqaa-ink { font-family: 'Aref Ruqaa Ink', cursive; }
+.muestra-fuente-cairo-play { font-family: 'Cairo Play', sans-serif; }
+.muestra-fuente-cole-carreira { font-family: 'Cole Carreira', cursive; }
+.muestra-fuente-escolar-ligada { font-family: 'Escolar Ligada', cursive; }
 
 :root {
   --color-primario:   #1d4ed8;
@@ -220,6 +368,30 @@ body {
   color: #64748b;
   margin: 4px 0 0;
   line-height: 1.4;
+}
+
+/* ── Checkbox "Ficha en blanco" (07/09/2026) ─────────────────────────────
+   La regla genérica ".campo input" de arriba estira cualquier <input> del
+   formulario a width:100% con borde y relleno — pensada para texto/select,
+   rompería un checkbox (quedaría como una caja gigante). Se anula aquí solo
+   para el checkbox, y la etiqueta se pone en línea con él en vez de encima
+   (el patrón normal de ".campo label", pensado para campos de texto). */
+.campo-checkbox .etiqueta-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.campo-checkbox input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  border: none;
+  accent-color: var(--color-primario, #2563eb);
+  cursor: pointer;
 }
 
 /* ── Selector de iconos del formulario (11/08/2026) ──────────────────────
@@ -618,6 +790,41 @@ body {
 
 @media print {
   .btn-add-imagen { display: none !important; }
+}
+
+/* ── Botón general "🖼️ Añadir imagen" (07/09/2026) ──────────────────────
+   Para una ficha en blanco (sin ejercicios), no hay ningún .ejercicio del
+   que colgar el botón de arriba — este flota directamente sobre .ficha
+   (ver posición relative en .ficha) y, a diferencia de .btn-add-imagen,
+   está SIEMPRE visible en modo edición (no solo al pasar el ratón), porque
+   es el único punto de entrada para añadir imágenes en este tipo de ficha
+   y el docente puede pulsarlo varias veces seguidas para añadir varias. */
+.btn-add-imagen-general {
+  position: absolute;
+  top: 140px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 2px dashed var(--calido-azul);
+  background: white;
+  color: var(--calido-azul);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.btn-add-imagen-general:hover {
+  background: var(--calido-azul);
+  color: white;
+}
+
+@media print {
+  .btn-add-imagen-general { display: none !important; }
 }
 
 /* ── Imagen flotante independiente (10/08/2026 v2) ───────────────────────
@@ -2022,4 +2229,481 @@ ol.ejercicio-lista li {
     overflow: hidden !important;
     outline: none !important;
   }
+}
+
+/* ==========================================================================
+   9. TRAZO DE LETRAS (LENGUA) — 04/09/2026
+   ========================================================================== */
+/* Petición de una maestra para un niño de 1º sin base lectoescritora
+   (distingue las vocales al hablar, no las relaciona con lo escrito ni sabe
+   trazarlas): rejilla grande de modelos sólidos para colorear (contorno real
+   de la tipografía Escolar Ligada + flechas de dirección fuera de la letra,
+   desde el 05/09/2026, octava pasada) + rejilla pequeña punteada para
+   repasar (texto real en la fuente "Cole Carreira", desde el 05/09/2026 —
+   ver cabecera de renderer-lengua.js). Generado por código
+   (renderer-lengua.js), nunca por Claude. */
+
+.trazo-letra-bloque { margin-top: 8px; }
+
+/* Rejillas repetidas (05/09/2026, quinta pasada) — sustituyen el antiguo
+   "modelo + un trazo punteado + casillas en blanco" siguiendo una
+   referencia real de letra escolar (lalibretapiruleta.com): varias copias
+   grandes idénticas para colorear libremente, y muchas copias pequeñas
+   punteadas seguidas para repasar, ver cabecera de renderTrazoLetra() en
+   renderer-lengua.js. */
+.trazo-letra-grid-grande,
+.trazo-letra-grid-pequena {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.trazo-letra-grid-grande { gap: 22px; }
+/* gap:0 (05/09/2026, séptima pasada) — a propósito: cada glifo de la fuente
+   "Cole Carreira" ya trae dentro un tramo de las 4 líneas de pauta escolar;
+   con las celdas pegadas unas a otras esos tramos encajan y forman una
+   pauta continua a lo largo de toda la fila (comprobado visualmente). Un
+   gap>0 aquí rompería esa continuidad entre letra y letra. */
+.trazo-letra-grid-pequena { gap: 0; margin-top: 4px; }
+
+.trazo-letra-grid-celda { line-height: 0; }
+.trazo-letra-grid-celda svg { display: block; }
+
+/* Rejilla pequeña punteada (05/09/2026, séptima pasada) — texto real, no SVG
+   dibujado a mano; ver construirGridPunteado() en renderer-lengua.js para
+   el motivo del cambio (intento fallido de derivar una Cole Carreira sólida
+   para las mayúsculas/números, y la decisión de usar la fuente real aquí
+   aceptando perder las flechas de dirección y el número de orden de trazo
+   que sí tenía el sistema anterior). */
+.trazo-letra-fuente-punteada {
+  font-family: 'Cole Carreira', cursive;
+  font-size: 85px;
+  line-height: 1;
+  color: var(--calido-azul);
+  user-select: none;
+}
+
+.trazo-letra-subtitulo {
+  margin: 16px 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--calido-azul);
+}
+
+/* Modelo grande (05/09/2026, octava pasada — sustituye el esqueleto-sólido-
+   grueso de la séptima pasada): ya NO es un trazo dibujado a mano — es un
+   <svg> construido por construirModeloSolido() en renderer-lengua.js con
+   DOS piezas distintas: 1) el CONTORNO REAL del glifo de la tipografía
+   Escolar Ligada (extraído con fontTools, embebido en
+   letras-glifos-reales.json), rellenado como una forma sólida — ya no un
+   trazo con grosor de lápiz, sino la letra tal cual la dibuja la propia
+   fuente; 2) unas flechas cortas de dirección de escritura, calculadas
+   sobre un esqueleto-guía interno (no visible) que indica dónde empieza
+   cada trazo y hacia dónde va. A petición explícita del usuario, estas
+   flechas quedan SIEMPRE fuera del grosor de la letra (nunca encima ni
+   dentro de la tinta) y se dibujan finas y de un gris tenue, para que se
+   lean como un apoyo al trabajo, no con el mismo peso visual que la letra. */
+.trazo-letra-modelo {
+  display: block;
+  line-height: 0;
+  user-select: none;
+}
+
+.trazo-letra-modelo svg { display: block; }
+
+.trazo-letra-modelo-real {
+  fill: var(--calido-azul);
+  stroke: none;
+}
+
+.trazo-letra-modelo-flecha {
+  fill: none;
+  stroke: #9aa3ad;
+  stroke-width: 1.3;
+  stroke-dasharray: 5 4;
+  opacity: 0.9;
+}
+
+.trazo-letra-modelo-flecha-punta {
+  fill: #9aa3ad;
+}
+
+.trazo-letra-no-disponible {
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* En blanco y negro, la letra (ahora una forma RELLENA, no un trazo con
+   stroke) se fuerza a negro con fill, no con stroke; la flecha-guía se deja
+   tal cual (gris tenue), es apoyo, no contenido — igual que en pantalla. */
+.ficha.modo-blanco-negro .trazo-letra-modelo-real { fill: black !important; }
+.ficha.modo-blanco-negro .trazo-letra-fuente-punteada { color: black !important; }
+.ficha.modo-blanco-negro .trazo-letra-subtitulo { color: black !important; }
+
+/* Estilo "pautado" (07/09/2026, novena pasada) — ver cabecera de
+   construirCabeceraComparativa()/construirGridPauta() en renderer-lengua.js
+   para el porqué: layout de las fichas de referencia del usuario (dos
+   modelos arriba + filas con pauta de 3 líneas debajo), con nuestro propio
+   sistema de flechas fuera de la letra ya validado, no el de la referencia. */
+.trazo-letra-comparativa {
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.trazo-letra-comparativa-celda svg { display: block; }
+
+/* grid con columnas fijas (no flex-wrap) para que cada fila tenga siempre
+   el número de copias pedido, y column-gap:0 para que las 3 líneas de
+   pauta de cada celda encajen con las de la celda de al lado y formen una
+   pauta continua a lo largo de la fila — mismo motivo que ya se aplicó a
+   .trazo-letra-grid-pequena. */
+.trazo-letra-pauta-grid {
+  display: grid;
+  gap: 10px 0;
+  align-items: end;
+}
+
+.trazo-letra-pauta-celda svg { display: block; }
+
+.trazo-letra-pauta-linea {
+  stroke: var(--calido-azul);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.trazo-letra-pauta-linea-media {
+  stroke: var(--calido-azul);
+  stroke-width: 1.3;
+  stroke-dasharray: 4 3;
+  opacity: 0.55;
+}
+
+.trazo-letra-pauta-contorno {
+  fill: none;
+  stroke: #4b5563;
+  stroke-width: 2.5;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ficha.modo-blanco-negro .trazo-letra-pauta-linea,
+.ficha.modo-blanco-negro .trazo-letra-pauta-linea-media,
+.ficha.modo-blanco-negro .trazo-letra-pauta-contorno {
+  stroke: black !important;
+}
+
+@media print {
+  .trazo-letra-bloque { page-break-inside: avoid; break-inside: avoid; }
+  .trazo-letra-pautado { page-break-inside: avoid; break-inside: avoid; }
+}
+
+/* ==========================================================================
+   10. AMPLIACIÓN CURRICULAR — 14 TIPOS NUEVOS (07/09/2026)
+   ========================================================================== */
+/* A diferencia de las secciones anteriores, aquí cada bloque de estilos
+   lleva su propio override ".modo-blanco-negro" justo detrás (mismo
+   criterio que la sección 9, TRAZO DE LETRAS) en vez de acumularlos todos
+   en la sección 7 — así cada tipo nuevo queda autocontenido y es más fácil
+   de mantener/borrar si algún día se retira. */
+
+/* ── Dinero en euros ─────────────────────────────────────────────────── */
+.dinero-bloque { margin: 10px 0; }
+.dinero-grupos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.dinero-grupo { display: flex; flex-wrap: wrap; gap: 6px; }
+.dinero-pagado { margin-bottom: 10px; }
+.dinero-etiqueta { font-weight: bold; margin-bottom: 4px; }
+.dinero-precio { margin-top: 10px; }
+.dinero-resultado { margin-top: 10px; font-weight: bold; }
+
+/* ── Proporcionalidad ────────────────────────────────────────────────── */
+.tabla-proporcionalidad {
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 10px 0;
+  border: 2px solid var(--calido-azul);
+  border-radius: var(--radio-suave);
+  overflow: hidden;
+}
+.tabla-proporcionalidad th {
+  background: var(--calido-azul-fondo);
+  border-bottom: 2px solid var(--calido-azul);
+  padding: 6px 22px;
+  color: var(--calido-texto);
+}
+.tabla-proporcionalidad td.prop-celda {
+  border-top: 1px solid #dbeafe;
+  padding: 7px 22px;
+  text-align: center;
+}
+.ficha.modo-blanco-negro .tabla-proporcionalidad th,
+.ficha.modo-blanco-negro .tabla-proporcionalidad td {
+  background: white !important;
+  border-color: black !important;
+  color: black !important;
+}
+
+/* ── Conversión de unidades ──────────────────────────────────────────── */
+.conversion-bloque { margin: 10px 0; }
+.conversion-ayuda {
+  font-size: 12.5px;
+  color: var(--calido-texto);
+  background: var(--calido-azul-fondo);
+  border-radius: var(--radio-suave);
+  padding: 6px 12px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.conversion-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 14.5px;
+}
+.ficha.modo-blanco-negro .conversion-ayuda {
+  background: white !important;
+  border: 1.5px solid black !important;
+}
+
+/* ── Medir con regla ─────────────────────────────────────────────────── */
+.regla-bloque { margin: 10px 0; }
+.regla-nota { font-size: 12.5px; color: var(--calido-texto); margin-bottom: 8px; }
+.regla-guia {
+  position: relative;
+  height: 26px;
+  width: 15cm;
+  max-width: 100%;
+  border-bottom: 2px solid #000;
+  margin: 4px 0 22px;
+}
+.regla-marca {
+  position: absolute;
+  bottom: 0;
+  border-left: 1px solid #000;
+  height: 10px;
+  font-size: 8px;
+  padding-left: 2px;
+  transform: translateX(-1px);
+}
+.regla-linea { display: none; }
+.regla-fila { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.regla-etiqueta { font-weight: bold; min-width: 20px; }
+.regla-segmento { height: 4px; background: #000; border-radius: 2px; }
+/* Sin override de B/N: la regla y los segmentos ya son negro puro en modo
+   color (nunca usan var(--calido-*)), así que no hace falta tocar nada
+   aquí — un "background: black" sobre ".regla-marca" (que solo debería
+   llevar un borde-tick) pintaría todo el bloque de negro sólido. */
+
+/* ── Ángulos ──────────────────────────────────────────────────────────── */
+.angulos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 10px 0;
+}
+.angulo-tarjeta {
+  border: 1.5px solid var(--calido-azul);
+  border-radius: var(--radio-suave);
+  padding: 8px 12px;
+  text-align: center;
+}
+.angulo-respuesta { margin-top: 4px; font-size: 13px; }
+.ficha.modo-blanco-negro .angulo-tarjeta { border-color: black !important; }
+
+/* ── Simetría ─────────────────────────────────────────────────────────── */
+.simetria-bloque { margin: 10px 0; }
+.simetria-celda-llena { fill: var(--calido-azul); stroke: #1e3a5f; stroke-width: 1; }
+.simetria-celda-vacia { fill: white; stroke: #cbd5e1; stroke-width: 1; stroke-dasharray: 2,2; }
+.ficha.modo-blanco-negro .simetria-celda-llena { fill: black !important; stroke: black !important; }
+.ficha.modo-blanco-negro .simetria-celda-vacia { stroke: #666 !important; }
+
+/* ── Coordenadas ──────────────────────────────────────────────────────── */
+.coordenadas-bloque { margin: 10px 0; }
+.coordenadas-lista { margin-top: 10px; font-size: 14px; }
+.coordenadas-lista p { margin: 6px 0; }
+.ficha.modo-blanco-negro .coordenadas-bloque circle[fill="#dc2626"] { fill: black !important; }
+
+/* ── Probabilidad ─────────────────────────────────────────────────────── */
+.probabilidad-bloque { margin: 10px 0; }
+.probabilidad-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+.probabilidad-texto { flex: 1; min-width: 160px; font-size: 14px; }
+.probabilidad-opciones { display: flex; gap: 12px; flex-wrap: wrap; }
+.probabilidad-orden { margin-left: auto; }
+
+/* ── Medidas de centralización ───────────────────────────────────────── */
+.medidas-centralizacion-bloque { margin: 10px 0; }
+.mc-datos-lista {
+  background: var(--calido-azul-fondo);
+  border-radius: var(--radio-suave);
+  padding: 8px 12px;
+  font-size: 13.5px;
+}
+.mc-respuestas { margin-top: 10px; }
+.mc-respuesta-fila { margin: 8px 0; font-size: 14.5px; }
+.ficha.modo-blanco-negro .mc-datos-lista {
+  background: white !important;
+  border: 1.5px solid black !important;
+}
+
+/* ── Ecuación sencilla ────────────────────────────────────────────────── */
+.ecuacion-sencilla-bloque { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; }
+.ecuacion-fila { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+.ecuacion-numero { font-weight: bold; min-width: 26px; text-align: center; }
+.ecuacion-signo { color: var(--calido-texto); }
+.ecuacion-hueco { min-width: 44px !important; }
+.ficha.modo-blanco-negro .ecuacion-signo { color: black !important; }
+
+/* ── Crucigrama numérico ─────────────────────────────────────────────── */
+.crucigrama-bloque { margin: 10px 0; }
+.crucigrama-grid { overflow-x: auto; }
+.crucigrama-celda-activa { fill: white; stroke: #000; stroke-width: 1.3; }
+.crucigrama-celda-bloqueada { fill: #333; stroke: #333; }
+.crucigrama-pistas { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 12px; }
+.crucigrama-lista-pistas { min-width: 180px; }
+.crucigrama-titulo-pistas { font-weight: bold; margin-bottom: 4px; }
+.crucigrama-lista-pistas ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.crucigrama-lista-pistas li { margin: 3px 0; }
+.ficha.modo-blanco-negro .crucigrama-celda-bloqueada { fill: black !important; stroke: black !important; }
+
+/* ── Colorea según el resultado ──────────────────────────────────────── */
+.colorea-por-operacion-bloque { margin: 10px 0; }
+.colorea-mosaico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.colorea-celda {
+  border: 1.5px solid #000;
+  border-radius: 8px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+}
+.colorea-leyenda { display: flex; flex-wrap: wrap; gap: 12px; }
+.colorea-leyenda-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.colorea-leyenda-color {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #000;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.ficha.modo-blanco-negro .colorea-leyenda-color { background: white !important; }
+
+/* ── Conecta los puntos ───────────────────────────────────────────────── */
+.conecta-puntos-bloque { margin: 10px 0; }
+
+/* ── Número del día / formación del número ───────────────────────────── */
+.numero-dia-bloque { margin: 10px 0; }
+.numero-dia-trazar {
+  font-size: 64px;
+  font-weight: bold;
+  color: transparent;
+  -webkit-text-stroke: 1.5px #333;
+  text-stroke: 1.5px #333;
+  margin: 0 0 10px;
+  line-height: 1;
+}
+.numero-dia-marcos { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.marco-diez-lleno { fill: var(--calido-azul); stroke: #1e3a5f; stroke-width: 1; }
+.marco-diez-vacio { fill: white; stroke: #94a3b8; stroke-width: 1.3; }
+.numero-dia-iconos { display: flex; flex-wrap: wrap; gap: 4px; max-width: 300px; }
+.ficha.modo-blanco-negro .numero-dia-trazar { -webkit-text-stroke-color: black !important; }
+.ficha.modo-blanco-negro .marco-diez-lleno { fill: black !important; stroke: black !important; }
+.ficha.modo-blanco-negro .marco-diez-vacio { stroke: #666 !important; }
+
+@media print {
+  .angulo-tarjeta { page-break-inside: avoid; break-inside: avoid; }
+  .crucigrama-bloque { page-break-inside: avoid; break-inside: avoid; }
+  .colorea-por-operacion-bloque { page-break-inside: avoid; break-inside: avoid; }
+  .simetria-bloque { page-break-inside: avoid; break-inside: avoid; }
+}
+
+/* ==========================================================================
+   11. SEGUNDA AMPLIACIÓN — SENTIDO DE LA MEDIDA (07/09/2026)
+   ========================================================================== */
+/* pesar_con_balanza y medir_capacidad — mismo criterio que la sección 10:
+   cada bloque lleva su propio override ".modo-blanco-negro" justo detrás. */
+
+/* ── Pesar con balanza ───────────────────────────────────────────────── */
+.balanza-bloque { margin: 10px 0 16px; }
+.balanza-armazon {
+  position: relative;
+  width: 280px;
+  max-width: 100%;
+  height: 70px;
+  margin: 0 auto;
+}
+.balanza-svg { display: block; }
+.balanza-platillo {
+  position: absolute;
+  top: 38px;
+  width: 74px;
+  min-height: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+.balanza-platillo svg { width: 26px; height: 26px; }
+.balanza-platillo-izq { left: -17px; }
+.balanza-platillo-der { left: 223px; }
+.balanza-respuesta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--calido-texto);
+}
+.balanza-lado-nombre { font-weight: bold; }
+.balanza-respuesta-pesas { text-align: center; margin-top: 8px; font-weight: bold; }
+.ficha.modo-blanco-negro .balanza-lado-nombre,
+.ficha.modo-blanco-negro .balanza-respuesta {
+  color: black !important;
+}
+
+/* ── Medir capacidad ─────────────────────────────────────────────────── */
+.capacidad-bloque {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 10px 0;
+  align-items: flex-end;
+}
+.capacidad-comparar { align-items: center; }
+.capacidad-recipiente { text-align: center; }
+.capacidad-hueco-comparar { margin: 0 4px; }
+.capacidad-tarjeta { text-align: center; }
+.capacidad-etiqueta { display: block; font-weight: bold; margin-bottom: 4px; }
+.capacidad-respuesta { margin-top: 6px; font-size: 13px; }
+.capacidad-fluido { fill: #93c5fd; }
+.ficha.modo-blanco-negro .capacidad-fluido {
+  fill: white !important;
+  stroke: #666 !important;
+  stroke-width: 1;
+}
+
+@media print {
+  .balanza-bloque { page-break-inside: avoid; break-inside: avoid; }
+  .capacidad-tarjeta { page-break-inside: avoid; break-inside: avoid; }
 }

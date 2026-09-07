@@ -1,0 +1,21 @@
+Fuente: Little Days
+Autor: West Wind Fonts
+Origen del archivo: dafont.com (https://www.dafont.com/little-days.font),
+descargado por el usuario el 05/09/2026 — el .zip original NO incluye ningún
+fichero de licencia (readme/OFL.txt), a diferencia de las fuentes de Google
+Fonts ya usadas en este proyecto (Andika, Nunito, Quicksand, Fredoka).
+
+Licencia verificada por Claude (05/09/2026) consultando tres catálogos de
+fuentes independientes, ya que dafont no publica el texto legal completo:
+- dafont.com: clasificada "100% Gratis" / "Dominio público, GPL, OFL o Linux".
+- fontspace.com: "Freeware" — meta-descripción "licensed for personal and
+  commercial-use".
+- blogfonts.com: "free for Personal | Commercial | Modification Allowed |
+  Redistribution Allowed".
+
+Conclusión: uso personal y comercial libres, sin necesidad de permiso ni
+donación al autor. No se ha podido acceder a la página original del autor
+(cg.scs.carleton.ca/~luc/westwind.html, bloqueada por política de red del
+entorno de Claude) para cotejar el texto legal exacto — si en algún momento
+se necesita una confirmación por escrito más formal para un contrato o
+auditoría, sería el siguiente paso.

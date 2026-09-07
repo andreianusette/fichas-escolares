@@ -1,0 +1,17 @@
+Fuente: Cole Carreira (ColeCarreira.ttf)
+Autor: Colexio Carreira
+Origen del archivo: dafont.com (https://www.dafont.com/colecarreira.font),
+descargado por el usuario el 05/09/2026 — el .zip original NO incluye ningún
+fichero de licencia (readme/OFL.txt), a diferencia de las fuentes de Google
+Fonts ya usadas en este proyecto (Andika, Nunito, Quicksand, Fredoka).
+
+Licencia verificada por Claude (05/09/2026): dafont.com la clasifica como
+"100% Gratis" / "Dominio público, GPL, OFL o Linux" — misma clasificación
+que Little Days. No se ha encontrado una segunda fuente independiente que
+lo confirme (a diferencia de Little Days, verificada además en fontspace.com
+y blogfonts.com), así que esta clasificación se apoya solo en dafont.
+
+Conclusión: previsiblemente libre para uso personal y comercial, pero con
+menos confirmación cruzada que Little Days. Si esta fuente llega a usarse
+en el producto final, sería prudente buscar una segunda fuente que lo
+confirme antes de darlo por definitivo para un contrato o auditoría.
