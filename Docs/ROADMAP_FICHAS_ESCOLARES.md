@@ -1,6 +1,54 @@
 # ROADMAP DEL PROYECTO — Generador de Fichas Escolares
 
-*Última actualización: FASE 9 (05/09/2026, decimotercera pasada) — revisadas 5 fuentes nuevas
+*Última actualización (08/09/2026, misma tarde, tras el análisis del Megapack 2026): el usuario
+planteó una duda de UX que no estaba recogida en el roadmap — con 41 tipos de ejercicio ya
+implementados en Matemáticas, el docente no tiene forma de saber cuáles existen al rellenar
+"Instrucciones especiales". Tras valorar tres caminos, se decidió un pop-up modal con botones (uno
+por tipo disponible para el curso elegido, agrupados por "sentido" LOMLOE, nombre amigable +
+descripción, nunca la clave interna) que rellena ese textarea al pulsarlos — cambio 100% de
+frontend, no toca `server.js` ni los renderizadores. Implementado, verificado con `node --check` y
+Playwright (recuento de tipos por curso, toggle de selección, persistencia del estado al reabrir) y
+documentado — ver nueva subsección "Selector visual de tipos de ejercicio" al final de la Fase 3.
+Alcance explícito: solo Matemáticas por ahora, por ser la asignatura más madura; el usuario ya
+anticipó que el mismo patrón se replicará en el resto según se vayan migrando a JSON + renderizador
+(Fase 5).
+
+Antes de esto (mismo día, misma tarde): el usuario compartió un SEGUNDO PDF, el "Megapack
+2026" de Kumubox (catálogo de este mismo curso, ~1130 páginas, restringido a la parte de Primaria
+por instrucción explícita del usuario) y se repitió el mismo análisis, anotando solo lo NUEVO
+frente al Megapack 2025 ya recogido. Se confirma la hipótesis del usuario: **Religión existe como
+asignatura nueva** en el catálogo 2026 (5 recursos, mayoría de corte católico — Fase 5). En
+Matemáticas, un tipo nuevo blindado (`numeros_romanos` — los 40 renderers pasan a ser 41, ver
+Fase 3, "Quinta ampliación"); en Lengua, tres tipos nuevos blindados (`categoria_gramatical`,
+`formacion_palabras`, `eleccion_ortografica`, ver Fase 9) — los cuatro ya validados con datos
+simulados y Playwright (color/B-N), pendientes de confirmar con ficha real vía API. Se amplió el
+backlog por asignatura (Fase 5) con lo nuevo de 2026 en Ciencias Sociales, Ciencias Naturales,
+Inglés, Francés, Música, Educación Física, Educación Artística, ELE, lenguas cooficiales y ACNEAE,
+y se amplió la Fase 10 con los recursos nuevos de Gestión Emocional/Gestión del Aula (incluyendo
+un conjunto de instrumentos de evaluación en Excel para el docente, formato distinto al resto).
+Se anotó también en la Fase 4 una tercera referencia independiente a la falta de "vistosidad
+ilustrativa" de las fichas (misma conclusión que Twinkl/Santillana, esta vez comparando con el
+propio Megapack), sin decidir ni actuar todavía. Aparte, se identificó que Kumubox tiene su propio
+generador de recursos con IA (`app.kumubox.com/generador`, promocionado dentro del propio
+Megapack con 100 generaciones gratis 30 días y cupón de suscripción de pago) — primer competidor
+directo real encontrado en los dos catálogos estudiados hasta ahora.
+
+Antes de esto (mismo día, por la mañana, Megapack 2025): el usuario compartió el PDF "Megapack
+2025" de Kumubox (marketplace de recursos para Primaria de más de 100 docentes, ~500 páginas) y se
+comparó su catálogo completo con lo ya implementado. Resultado: en Matemáticas, 3 tipos nuevos
+blindados (`mcd_mcm`, `descomposicion_numerica`, `detective_numeros` — los 37 renderers pasan a
+ser 40, ver Fase 3); en Lengua, 3 tipos nuevos blindados (`relacionar`, `clasificar_silabas`,
+`acentuacion`, ver Fase 9) — los seis ya validados con datos simulados y Playwright (color/B-N),
+pendientes de confirmar con ficha real vía API. Para el resto de asignaturas, solo se ANOTÓ el
+catálogo del Megapack como backlog por asignatura (Fase 5), sin implementar nada todavía —
+incluye la decisión de dividir "Conocimiento del Medio" en Ciencias Naturales/Ciencias Sociales y
+añadir Francés como asignatura nueva. Se abrió también la Fase 10 (Gestión Emocional y Gestión
+del Aula), una línea de contenido transversal detectada en el mismo catálogo, sin decidir alcance
+todavía. También se anotó en la Fase 8 (Bloque C, sin urgencia) el diseño para generar la MISMA
+ficha en dos idiomas a la vez (mismos números/ejercicios, solo cambia el texto) — pregunta del
+usuario sobre un caso de aula real con un alumno no hispanohablante entre compañeros
+hispanohablantes; depende del hallazgo previo de esa misma fase (idioma sin llegar a los
+renderizadores). Antes de esto: FASE 9 (05/09/2026, decimotercera pasada) — revisadas 5 fuentes nuevas
 subidas por el usuario: Dimica (OFL confirmada por partida doble, instalada y lista), Minimasimple
 (licencia probablemente libre pero le faltan ñ/acentos españoles, NO usable tal cual), Aref Ruqaa
 Ink y Cairo Play (árabe, OFL real con OFL.txt oficial, cobertura completa con GSUB/GPOS, instaladas
@@ -917,6 +965,118 @@ hueco curricular o una petición concreta, el patrón a seguir es el mismo de es
 function + registro en `RENDERERS_POR_TIPO` + CSS + documentación gateada por curso en
 `construirSystemPromptMatematicas()` + validación visual color/B-N).
 
+### Cuarta ampliación — backlog Megapack Kumubox (08/09/2026): mcd_mcm, descomposicion_numerica, detective_numeros
+
+Origen: el usuario compartió el PDF "Megapack 2025" de Kumubox (marketplace de recursos para
+Primaria de más de 100 docentes, ~500 páginas) y se pidió, entre otras cosas, comparar su catálogo
+de Matemáticas de Primaria (32 recursos) con los tipos ya implementados aquí. Tres huecos
+identificados que ni la propia auditoría curricular del 07/09 había detectado, todos de sentido
+numérico: **`mcd_mcm`** (máximo común divisor/mínimo común múltiplo, currículo real de 5º-6º —
+recursos del Megapack: "MCD y MCM Carteles y Truco", "40 problemas de MCM y MCD"),
+**`descomposicion_numerica`** (valor posicional de números de 3+ cifras, disponible desde 3º —
+recurso: "Descomposición de números de 3 y 4 cifras") y **`detective_numeros`** (adivinar un
+número secreto a partir de una lista de pistas, todos los cursos — recurso: "Detective de
+números"). **Los 37 renderers pasan a ser 40.**
+
+Mismo patrón de blindaje que el resto del fichero: `mcd_mcm` y `descomposicion_numerica` nunca
+calculan ni imprimen el resultado real (dejan huecos, igual que `medidas_centralizacion`); en
+`descomposicion_numerica` las etiquetas de columna Y el número de huecos de la suma se derivan
+siempre del propio número (`String(numero).length`), nunca de un dato aparte que Claude tenga
+que acertar. En `detective_numeros`, el número secreto viaja en el JSON solo para que Claude
+compruebe la coherencia de sus propias pistas — el renderizador lo ignora por completo, nunca
+llega a imprimirse.
+
+Documentación del contrato HTML/CSS en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 9D. Validado:
+`node --check` en los tres ficheros tocados (`renderer-matematicas.js`, `server.js`,
+`public/style.css`), render unitario con datos simulados (incluyendo casos límite: arrays vacíos,
+número de 6 cifras completo hasta "CM") y capturas Playwright en color y en blanco y negro sobre
+una ficha completa con el `style.css` real. **Pendiente, igual que toda tanda nueva**: confirmar
+con una ficha real generada por Claude a través de la API (no solo con datos simulados a mano).
+
+### Quinta ampliación (08/09/2026): numeros_romanos
+
+Origen: el usuario compartió el Megapack 2026 de Kumubox (catálogo de este mismo curso, distinto
+del de 2025 usado en la ampliación anterior) y pidió comparar de nuevo, anotando solo lo NUEVO. De
+los ~38 recursos de Matemáticas del catálogo 2026, todos menos uno ya encajaban en algún tipo
+existente (incluidos los tres añadidos la tanda anterior — `descomposicion_numerica` cubre
+directamente el recurso "Pack decenas", por ejemplo). El único hueco real: **`numeros_romanos`**
+(conversión arábigo↔romano, currículo real de 3º-6º). **Los 40 renderers pasan a ser 41.**
+
+Blindaje distinto al resto de la tanda anterior: a diferencia de `mcd_mcm`/`descomposicion_
+numerica` (donde el sistema deja huecos porque no puede verificar el resultado), la conversión a
+numeración romana es un algoritmo determinista sin ambigüedad — el sistema la calcula siempre por
+su cuenta. Claude nunca escribe un numeral romano: solo elige números arábigos adecuados al curso
+y un "sentido" (a_romano / a_arabigo / mixto); cuando hay que MOSTRAR el numeral romano como dato
+de partida (sentido "a_arabigo"), lo genera el propio código (`numeroARomano()`, tabla de
+sustracción estándar M/CM/D/CD/C/XC/L/XL/X/IX/V/IV/I) — así nunca puede salir mal escrito.
+
+Documentación del contrato HTML/CSS en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 9E. Validado:
+`node --check` en los tres ficheros tocados, render unitario con datos simulados (casos límite:
+array vacío, números fuera de rango 1-3999 filtrados, negativos normalizados con `Math.abs`,
+1994→MCMXCIV y 3999→MMMCMXCIX comprobados a mano) y capturas Playwright en color y en blanco y
+negro. **Pendiente, igual que toda tanda nueva**: confirmar con una ficha real generada por Claude
+a través de la API.
+
+---
+
+### Selector visual de tipos de ejercicio — pop-up en el formulario (08/09/2026)
+
+**Origen — hueco de descubribilidad detectado por el usuario:** con 41 tipos de ejercicio ya
+implementados en Matemáticas, el docente que rellena "Instrucciones especiales" no tiene forma de
+saber cuáles existen realmente — no puede pedir a propósito "un ejercicio de MCD y MCM" si no sabe
+que ese tipo está implementado. Se valoraron tres caminos (chips/checkboxes en el propio
+formulario, una página de catálogo aparte, autocompletado dentro del textarea) y se descartaron los
+dos últimos por proceso mental adicional para el docente o por ambigüedad de lo que autocompletar.
+Se eligió una variante de la primera opción, pero como **pop-up con botones** en vez de una fila de
+etiquetas, explícitamente pedida "agradable a la vista, no tipo W95 ni nada por el estilo".
+
+**Diseño implementado (solo Matemáticas, primera asignatura desarrollada — patrón pensado para
+replicarse en el resto según se migren a JSON + renderizador, Fase 5):**
+- Botón "➕ Elegir tipos de ejercicio" junto al campo de instrucciones especiales, habilitado solo
+  con Matemáticas seleccionada (el curso ya tiene valor por defecto, así que no hace falta
+  comprobarlo aparte).
+- Al pulsarlo se abre un pop-up modal con los tipos disponibles para el curso actual, agrupados en
+  6 categorías con lenguaje curricular LOMLOE real ("Sentido numérico", "Sentido de la medida",
+  "Sentido espacial", "Sentido algebraico", "Sentido estocástico", "Resolución de problemas y
+  refuerzo") en vez de una lista plana de 41 botones.
+- Cada botón muestra un **nombre amigable + una descripción de una línea** (nunca la clave interna
+  del tipo, p.ej. "MCD y MCM" en vez de `mcd_mcm`) — necesario porque el nombre solo no basta para
+  que un docente sepa qué es sin abrir la ficha.
+- Al pulsar un botón se añade la frase `"Incluye un ejercicio de {nombre}."` al textarea de
+  instrucciones; al volver a pulsarlo se quita (toggle, con estado visual "seleccionado" — fondo
+  relleno del color de su categoría + marca ✓ — para que el docente vea de un vistazo qué ha
+  marcado y pueda deshacer un clic accidental). El estado se sincroniza contra el contenido actual
+  del textarea cada vez que se (re)abre el pop-up, así que sobrevive a que el docente edite el
+  texto a mano entremedias.
+- Un botón "Finalizar" cierra el pop-up (también con la tecla Escape o pulsando fuera del panel);
+  el docente puede seguir editando el textarea libremente después y sigue teniendo que pulsar el
+  botón separado "✨ Generar Ficha" para enviar.
+- Estética: tarjetas redondeadas de color plano con sombra difusa y pequeña elevación al pasar el
+  ratón — sin bordes en relieve/bisel de estilo interfaces antiguas — reutilizando la paleta
+  `--calido-*` ya usada en las fichas (azul/verde/morado/naranja/rosa, una por categoría-sentido;
+  la sexta categoría, que no es un "sentido" LOMLOE real, usa el azul neutro `--color-primario` del
+  resto de la app en vez de un color cálido) para que el selector se sienta parte de la misma app.
+
+**Es un cambio 100% de frontend** (`public/index.html` + `public/style.css`): no toca `server.js`
+ni los renderizadores. Explota que el campo "Instrucciones especiales" ya tenía prioridad máxima
+documentada en el SYSTEM_PROMPT — el pop-up solo rellena ese textarea por el docente, nunca envía
+nada nuevo al backend.
+
+**Catálogo de los 41 tipos** (nombre amigable, descripción, categoría y cursos disponibles) escrito
+a mano en el propio `<script>` de `index.html`, copiando el gating real de `server.js`
+(`esConDibujos`, `esGuiado`, `esMultDiv`, `esConSimetria`, `esConCrucigrama`, etc. y el bloque
+"todos los cursos"). **Importante para mantenimiento:** si en el futuro se amplía o cambia el rango
+de cursos de un tipo en `server.js`, hay que actualizar también esta tabla en `index.html`, o el
+selector ofrecerá al docente un tipo que el backend no vaya a incluir realmente en el prompt para
+ese curso — se verificó a mano la correspondencia exacta de los 41 tipos antes de implementar.
+
+Validado con `node --check` sobre el `<script>` extraído, y con Playwright: botón deshabilitado
+fuera de Matemáticas, apertura/cierre del pop-up, recuento de tipos disponibles por curso (27 para
+1º, 31 para 6º — coinciden exactamente con un recuento programático del propio catálogo), toggle de
+selección (añade/quita la frase sin duplicar espacios), persistencia del estado "seleccionado" al
+reabrir, refresco del catálogo al cambiar de curso con el pop-up abierto, cierre con Escape, y
+captura de pantalla para comprobar visualmente el resultado.
+
 ---
 
 ## FASE 4 — Diferenciación visual por asignatura y curso
@@ -944,6 +1104,17 @@ del profesorado prefiere fichas visuales, porque ayudan al niño a entender mejo
 — no es un capricho estético, es un dato pedagógico real a favor de acabar abordando esta fase.
 Queda anotado como el dato más fuerte a favor de la Opción C (banco de ilustraciones) cuando
 llegue el momento de retomar la Fase 4, aunque por ahora no se actúa sobre él.
+
+**Nueva referencia (08/09/2026)**: al estudiar el Megapack 2026 de Kumubox el usuario repite la
+misma observación con otro punto de comparación — "echo en falta la vistosidad ilustrativa de
+todas las demás apps que hemos investigado, o incluso las fichas de estos pdfs, son muy visuales
+aunque el contenido pedagógico nuestro sea correcto también". No es un dato nuevo en el sentido
+técnico (mismo diagnóstico que el 30/08, y el propio catálogo Kumubox es justo la fuente de la que
+se han sacado ya seis tipos de ejercicio nuevos esta sesión), pero sí es la tercera vez que surge
+de forma independiente (Twinkl/Santillana el 04/08 y 30/08, Kumubox ahora) — refuerza que no es un
+caso aislado de una comparación concreta. Sigue sin decidirse ni actuarse: mismo criterio que las
+dos entradas anteriores, esto queda anotado para cuando se retome la Fase 4 con su propia sesión
+de decisión de alcance, no se abre ni se implementa nada ahora.
 
 Pregunta planteada: hoy solo hay una variable de diferenciación visual
 (`curso-inicial`, 1º-3º vs el resto — tipografía). No hay ninguna diferencia
@@ -1080,12 +1251,31 @@ ejercicios. Rehecho como bloque flotante:
 **Estado: ⏳ Pendiente (migración completa por asignatura)** · **🔄 En curso de forma gradual —
 ver aclaración de alcance más abajo (04/09/2026)**
 
-Orden sugerido (a confirmar): Lengua Castellana → Conocimiento del Medio →
-Inglés → Educación Física → Música. El motor (JSON + renderizador) ya existe
-y es compartido — migrar una asignatura nueva NO es reconstruir el motor,
-es: definir sus tipos de ejercicio propios, escribir su porción de
-`SYSTEM_PROMPT` (condicional por curso, como en Matemáticas) y sus funciones
-de renderizado en un `renderer-<asignatura>.js` nuevo.
+Orden sugerido (a confirmar): Lengua Castellana → Ciencias Naturales / Ciencias
+Sociales → Inglés → Francés → Educación Física → Música → Religión. El motor (JSON +
+renderizador) ya existe y es compartido — migrar una asignatura nueva NO es
+reconstruir el motor, es: definir sus tipos de ejercicio propios, escribir su
+porción de `SYSTEM_PROMPT` (condicional por curso, como en Matemáticas) y sus
+funciones de renderizado en un `renderer-<asignatura>.js` nuevo.
+
+**Conocimiento del Medio se divide en dos asignaturas — Ciencias Naturales y Ciencias Sociales
+(08/09/2026)**: decisión del usuario al comparar el catálogo de Matemáticas/Lengua con el
+Megapack 2025 de Kumubox (ver más abajo, "Backlog de recursos del Megapack Kumubox") — ese
+catálogo ya trata "Ciencias Sociales" y "Ciencias de la Naturaleza" como dos áreas separadas con
+peso similar (15 y 16 recursos en Primaria), así que se adopta esa misma separación aquí en vez
+de una única asignatura "Conocimiento del Medio". **Francés se añade como asignatura nueva**
+(misma fecha), también a partir de la evidencia del Megapack (8 recursos de Francés en Primaria,
+además de Inglés).
+
+**Religión se añade como asignatura nueva (08/09/2026)**: al estudiar el Megapack 2026 de Kumubox
+(catálogo de este mismo curso, distinto del de 2025 usado hasta ahora) se confirma la hipótesis
+del usuario — sí existe un área "Religión" separada, con 5 recursos distintos en Primaria:
+*Cuadernillo de colorear el Mes de María*, *Parábolas y valores*, *¿Quién es quién? Santos y
+santas* (los tres de corte católico explícito) y *Las religiones del mundo* (comparativa neutral
+judaísmo/cristianismo/islam/hinduismo/budismo, este último etiquetado también como Ciencias
+Sociales). Catálogo pequeño todavía frente a las demás asignaturas (5 recursos frente a 40-90 de
+Lengua/Inglés), pero suficiente para tratarla como asignatura propia desde ya, igual que se hizo
+con Francés.
 
 **Aclaración de alcance (04/09/2026)** — el usuario recordaba que la intención original, desde
 que se decidió el patrón JSON+renderizador en la Fase 2, era que TODAS las asignaturas fueran
@@ -1117,11 +1307,106 @@ pasó con `trazo_letra`), esa asignatura entera pasa a JSON+renderizador con vá
 `contenido_libre` para el resto — no hace falta migrar cada asignatura de una sola vez con
 todos sus tipos ya diseñados, ni esperar a que le toque el turno en la lista de abajo.
 
-- [ ] Lengua Castellana *(🔄 ya en el pipeline JSON+renderizador — primer tipo blindado: `trazo_letra`, resto de ejercicios vía "contenido_libre" — ver Fase 9. No se marca como completa: quedan tipos por diseñar — huecos, lectura comprensiva, relacionar, ordenar palabras...)*
-- [ ] Conocimiento del Medio
+- [ ] Lengua Castellana *(🔄 ya en el pipeline JSON+renderizador — tipos blindados: `trazo_letra`,
+      `relacionar`, `clasificar_silabas`, `acentuacion` (Megapack 2025, ver entrada más abajo) y
+      `categoria_gramatical`, `formacion_palabras`, `eleccion_ortografica` (Megapack 2026, ver
+      entrada al final de la Fase 9) — resto de ejercicios vía "contenido_libre". No se marca
+      como completa: quedan tipos por diseñar — huecos, lectura comprensiva, ordenar palabras...)*
+- [ ] Ciencias Naturales *(dividida de "Conocimiento del Medio", 08/09/2026 — ver más arriba)*
+- [ ] Ciencias Sociales *(dividida de "Conocimiento del Medio", 08/09/2026 — ver más arriba)*
 - [ ] Inglés
+- [ ] Francés *(asignatura nueva, 08/09/2026 — ver más arriba)*
 - [ ] Educación Física
 - [ ] Música
+- [ ] Religión *(asignatura nueva, 08/09/2026 — ver más arriba)*
+
+### Backlog de recursos del Megapack Kumubox, por asignatura (08/09/2026, ampliado 08/09/2026)
+
+Origen: comparativa completa del catálogo de Primaria del Megapack 2025 de Kumubox (marketplace
+de recursos de más de 100 docentes — ver el mismo análisis ya aplicado a Matemáticas y Lengua,
+que sí se implementaron; entrada correspondiente en la Fase 3 y aquí abajo). Estas asignaturas
+siguen sin desarrollar (⏳/💭, ni siquiera migradas a JSON+renderizador todavía), así que estos
+recursos quedan solo ANOTADOS como referencia de qué tipo de ejercicio pedir cuando le llegue el
+turno a cada una — no implementar nada de esto todavía.
+
+**Ampliación con el Megapack 2026** (catálogo de este mismo curso, ~1130 páginas, restringido a
+Primaria): mismo criterio — solo se anota lo que es genuinamente NUEVO frente a lo ya recogido
+del Megapack 2025, para no duplicar la misma idea con otro nombre. Marcado como "(2026)" dentro
+de cada asignatura para distinguir el origen.
+
+- **Ciencias Sociales**: tarjetas de oficios · la Edad Antigua · la sociedad Medieval · la
+  población · mapas y planos · descubre el s. XIX · ODS (llavero interactivo, tarjetas,
+  investigación) · Memory Prehistoria · husos horarios · trivial histórico · trivial España ·
+  Monopoly Unión Europea · juego de mesa india. *(2026)*: la Constitución y los derechos de la
+  infancia · las comunidades autónomas de España (mapas, capitales, banderas, y sus días/
+  tradiciones) · el relieve de España (sistemas montañosos, ríos, costas) · seguridad vial y
+  movilidad sostenible · el Antiguo Egipto · mitología (romana, griega y egipcia) · historia del
+  arte (autores, estilos, obras, formato "¿Quién es quién?").
+- **Ciencias de la Naturaleza**: el cuerpo humano (rosco, desplegables de aparatos/sistemas,
+  oca, trivial) · profesiones STEM (efecto Matilda) · tarjetas de oficios · todo sobre las
+  plantas · maleta de las estaciones · atención primaveral · la Tierra · medioambiente y
+  desarrollo sostenible · pasos del método científico (flipbook) · tipos de energía (foldable) ·
+  propiedades de la materia · cuento de movimientos (imantismo/gravedad). *(2026)*: los 5
+  sentidos · clasificación de animales (vertebrados e invertebrados) · máquinas simples e
+  inventos (palanca, polea, plano inclinado, engranaje) · ecosistemas y cadenas tróficas
+  (productores/consumidores/descomponedores) · el sistema solar y astronomía (fases de la luna,
+  constelaciones) · el ciclo del agua · estados de la materia y sus cambios (fusión, evaporación,
+  condensación, solidificación) — huecos curriculares llamativos, ninguno estaba en el listado
+  de 2025 pese a ser contenido muy estándar de Primaria.
+- **Inglés**: role plays · árbol genealógico · Who Am I (USA/British) · the city · animals ·
+  our world · systems · who has the time · memory de frutas · let's go to London · animal hunt ·
+  evaluación inicial 1º-3º · pets (spelling/gramática) · flipbooks de planetas · story maps ·
+  question anchor chart · multilingual breakout · the -s game · Halloween (superpack + Dobble) ·
+  todo sobre mí · calendario de rutinas · reglas de spelling (flipbooks) · Gulpy's school
+  superpack · Jenga gamificado para idiomas · Inside Out (carrera de emociones, rueda de
+  emociones) · English grammar (flipbooks) · lapbook de las plantas. *(2026)*: cognados y false
+  friends (inglés-español) · comparativos y superlativos (aparece repetido varias veces en el
+  catálogo, tema recurrente) · países de habla inglesa (cultura) · frases desordenadas /
+  reconstruir oraciones ("broken sentences", "sentence builder") · phonics (sonidos, dígrafos,
+  blending) · plan lector estructurado (reading badges, retos de lectura).
+- **Francés**: calendario de rutinas · juego de la pesca FLE A1-A2 · todo sobre mí · Pasapalabra
+  FLE · Jenga gamificado para idiomas · Inside Out (carrera/rueda de emociones) · Monopoli
+  Voyage en France. *(2026)*: festividades y cultura francesa (Chandeleur, Francofonía,
+  Carnaval) · vocabulario básico A1 ilustrado (saludos, colores, números, familia, alimentos,
+  animales).
+- **Música**: Break out del misterio de las canciones de Pascua · mindfulness musical · Dooble
+  Musical. *(2026)*: lenguaje musical básico (figuras, silencios, pentagrama, notas, compases) ·
+  familias de instrumentos de la orquesta · ritmo y percusión corporal · cualidades del sonido
+  (altura, duración, timbre, intensidad).
+- **Educación Física**: los reyes de la comba · tablero navideño · desafío deportivo · retos
+  físicos · retos cooperativos. *(2026)*: motricidad fina · juegos populares y tradicionales del
+  mundo · estructura de la sesión (calentamiento, parte principal, vuelta a la calma).
+- **Religión** *(asignatura nueva, 08/09/2026 — ver Fase 5 más arriba)*: parábolas y valores
+  cristianos · santos y santas de la tradición cristiana ("¿Quién es quién?") · el Mes de María ·
+  las religiones del mundo (comparativa neutral entre las grandes tradiciones religiosas). Solo
+  5 recursos en el Megapack 2026 — catálogo pequeño todavía, se irá ampliando con el tiempo.
+
+**Fuera de la lista de asignaturas de esta fase, sin fase asignada todavía** — aparecen en el
+Megapack pero no encajan en ninguna de las anteriores; quedan anotados aquí para no perderlos,
+sin decidir qué hacer con ellos:
+- **Educación Artística**: Keith Haring (art lesson) · cuaderno de estimulación cognitiva ·
+  láminas de creatividad (proyecto superhéroes) · cuentos acordeón · grafismo vuelta al cole ·
+  bus capibaras. *(2026)*: mujeres artistas en la historia del arte (mismo espíritu que "efecto
+  Matilda" de Ciencias, aplicado a Plástica) · elementos plásticos básicos (línea, forma, textura,
+  círculo cromático, composición).
+- **ELE** (Español como Lengua Extranjera): mayormente los mismos recursos ya listados en
+  Lengua Castellana e Inglés, reutilizados para ese público — no parece requerir tipos de
+  ejercicio propios distintos, es más bien un caso de uso del selector de idioma (ver Fase 8).
+  *(2026)*: mismo patrón confirmado con más ejemplos (refranes y expresiones idiomáticas por
+  meses, dar opiniones/acuerdo-desacuerdo, vocabulario navideño) — sigue sin cambiar la
+  conclusión.
+- **Catalán/Euskera/Valenciano**: recursos ya listados en Lengua Castellana/Matemáticas
+  adaptados a estas lenguas — relacionado directamente con la Fase 8 (idiomas), no con una
+  asignatura nueva. *(2026)*: aparecen además recursos de lectoescritura y comprensión lectora
+  específicos en estas lenguas (textos propios, no traducciones de Lengua) — sigue sin requerir
+  tipos propios, mismo caso de uso del selector de idioma.
+- **ACNEAE** (necesidades educativas especiales): nuestra mascota Pelusín comilón · maleta de
+  las estaciones · cuaderno de estimulación cognitiva · camisetas en apuros · cuadernillo de
+  memoria — línea de contenido transversal (no una asignatura), sin fase propia todavía.
+  *(2026)*: pictogramas y agenda visual · historias sociales · tableros de comunicación
+  aumentativa (CAA) · materiales específicos para dislexia · entrenamiento de funciones
+  ejecutivas — catálogo notablemente más completo este año, con herramientas de apoyo muy
+  estándar en aulas de PT/AL que antes no aparecían.
 
 ---
 
@@ -1272,7 +1557,40 @@ Pendiente (no empezado, sin alcance cerrado):
 - [ ] No empezar sin al menos una ficha de referencia real en árabe o
       hebreo delante, mismo criterio que se usó para decidir la Fase 4.
 
-**Próximo paso**: no tocar código todavía en ninguno de los dos bloques.
+### Bloque C — Generar la misma ficha en varios idiomas a la vez (💭 abierta, 08/09/2026)
+
+Origen: pregunta del usuario sobre un caso de aula real — un grupo con un alumno que no habla
+español (ej. rumano) entre compañeros hispanohablantes, y si se le puede dar la MISMA ficha
+(mismos ejercicios, mismos números) en su idioma, en vez de una ficha distinta generada aparte.
+
+**Diagnóstico**: hoy no es posible tal cual. `idioma` es una línea de texto libre en el prompt
+(`construirPromptMatematicas()`/`construirPromptLengua()`, `server.js`) y cada llamada a la API
+genera contenido nuevo — dos llamadas (una en español, otra en rumano) dan dos fichas del mismo
+curso/tema pero con ejercicios distintos, no la misma ficha traducida.
+
+**Diseño propuesto (sin implementar, decisión de arquitectura para cuando se aborde)**: aprovechar
+que en el patrón JSON+renderizador los datos numéricos/estructurales (`datos`: números, iconos,
+coordenadas...) ya son independientes del idioma — solo el texto (`enunciado` y campos de texto
+libre) cambia. Por tanto:
+1. Pedir a Claude, en una única llamada, el JSON con los campos de texto en AMBOS idiomas a la
+   vez (ej. `"enunciado": { "es": "...", "ro": "..." }`), en vez de un string simple.
+2. Renderizar DOS VECES el mismo JSON — una con `idioma: 'es'` y otra con `idioma: 'ro'` —
+   seleccionando el campo de texto correspondiente en cada pasada, pero reutilizando exactamente
+   los mismos `datos` (mismos números, mismos dibujos) en las dos.
+3. Resultado: dos PDFs con el mismo ejercicio exacto, solo cambia el idioma del texto — más
+   barato que dos llamadas independientes y, a diferencia de esas dos llamadas, garantiza que es
+   de verdad "la misma ficha".
+
+**Depende del hallazgo previo de esta misma fase** (arriba, "idioma nunca llega a
+`renderer-matematicas.js`"): sin resolver ese pendiente (pasar `idioma` hasta los renderizadores
+y traducir las ~6 etiquetas fijas hardcodeadas), la ficha en el segundo idioma saldría con
+etiquetas estructurales en español mezcladas — así que este Bloque C no se puede abordar antes
+que ese hallazgo, aunque sí puede diseñarse/implementarse justo a continuación.
+
+**Estado**: sin urgencia, no decidido cuándo abordarlo — queda anotado para cuando convenga
+retomarlo, mismo criterio que el resto de esta fase.
+
+**Próximo paso**: no tocar código todavía en ninguno de los tres bloques.
 El Bloque A es candidato razonable para abordar pronto (complejidad baja,
 una vez resuelto el hallazgo previo). El Bloque B necesita su propia
 sesión dedicada a decidir alcance con referencias reales delante, igual
@@ -2048,6 +2366,130 @@ caracteres letra a letra, y verificación cruzada externa cuando el propio archi
 - [ ] Pendiente (sin decidir): en qué curso/ejercicio concreto se usarían Dimica (y Minimasimple, una
       vez arreglada), y cuándo empezar la Fase 8 (traducción a árabe) para usar Aref Ruqaa Ink/Cairo
       Play — de momento las 4 quedan solo guardadas y documentadas.
+
+**08/09/2026 — tres tipos blindados nuevos: `relacionar`, `clasificar_silabas`, `acentuacion`
+(backlog Megapack Kumubox)**: mismo origen que la ampliación equivalente de Matemáticas (ver
+Fase 3) — comparativa del catálogo de Lengua de Primaria del Megapack 2025 de Kumubox (47
+recursos) contra lo ya implementado. Confirma exactamente el pendiente que ya constaba en la
+Fase 5 ("huecos, lectura comprensiva, relacionar, ordenar palabras") y añade `clasificar_silabas`
+y `acentuacion` como candidatos concretos con buena pinta para blindar (recursos de origen:
+"Dominó rimado"/"Palomitas silábicas"/"Monosílabas, bisílabas y trisílabas"/"Estructuras
+silábicas" → `clasificar_silabas`; "Frases hechas" y varios ejercicios de relacionar conceptos →
+`relacionar`; "Pack ortografía" → `acentuacion`). `huecos` y `lectura comprensiva` y `ordenar
+palabras` NO se implementan en esta tanda — siguen disponibles vía la válvula de escape
+`contenido_libre` (ya cubren esos tres con las clases documentadas ahí: `.hueco`,
+`.texto-lectura`, `.ejercicio-lista`), quedan pendientes de blindar como tipo propio cuando les
+toque turno.
+
+Gating por curso en `construirSystemPromptLengua()` (`server.js`), mismo patrón que Matemáticas:
+`relacionar` en todos los cursos, `clasificar_silabas` solo 1º-3º (conciencia silábica, cursos
+iniciales), `acentuacion` desde 3º (currículo real de reglas de acentuación). Blindaje real en
+`relacionar` (`renderer-lengua.js`): la columna B que se IMPRIME nunca llega en el mismo orden
+que la columna A que manda Claude — el propio código la desordena con una baraja determinista
+(sembrada con un hash del contenido, para que la ficha no cambie entre vista previa e impresión)
+y corrige cualquier elemento que por azar quede en su fila original. `clasificar_silabas` y
+`acentuacion` blindan solo el maquetado (huecos, casillas, separación en sílabas con "·"): el
+contenido lingüístico en sí no se verifica por código, mismo criterio que ya se usa con
+`crucigrama` en Matemáticas — exigiría reproducir reglas fonéticas/ortográficas completas del
+español sin margen de error.
+
+Documentación del contrato HTML/CSS en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 14. Validado:
+`node --check`, render unitario con datos simulados (incluyendo columnas de relacionar con
+distinta longitud, tipo desconocido cayendo en `contenido_libre`) y capturas Playwright en color
+y blanco/negro sobre una ficha completa. **Pendiente**: confirmar con una ficha real generada por
+Claude a través de la API.
+
+**08/09/2026 — tres tipos blindados más: `categoria_gramatical`, `formacion_palabras`,
+`eleccion_ortografica` (backlog Megapack 2026 de Kumubox)**: mismo origen que la ampliación
+equivalente de Matemáticas de la misma fecha (ver Fase 3, "Quinta ampliación") — comparativa del
+catálogo de Lengua de Primaria del Megapack 2026 (50 recursos, catálogo de este mismo curso,
+distinto del de 2025 usado en la ampliación anterior) contra lo ya implementado, anotando solo lo
+NUEVO. Tres huecos identificados: **`categoria_gramatical`** (identificar sustantivo/verbo/
+adjetivo/determinante dentro de una frase, currículo real de 3º-6º — recurso: "Plantillas
+analizadoras tipos de palabras"), **`formacion_palabras`** (clasificar palabras simples/derivadas/
+compuestas, 4º-6º — recursos: "El muro de las palabras", "Pizzas familiares de palabras simples,
+derivadas y compuestas") y **`eleccion_ortografica`** (completar una palabra eligiendo la letra
+correcta entre un cierre de opciones — b/v, g/j, h, ll/y —, 2º-6º — recurso: "Reglas de
+ortografía: b/v, g/j, h y ll/y"). Se descartó implementar "sinónimos y antónimos" como tipo propio
+porque ya lo cubre `relacionar` (columna A ↔ columna B genérica, sin necesidad de un tipo nuevo) y
+se dejó "comprensión lectora"/"dictados preparados" fuera de esta tanda por ser un desarrollo
+mucho mayor (necesitan textos de lectura reales) — siguen en el pendiente de siempre, vía
+`contenido_libre`.
+
+Gating por curso en `construirSystemPromptLengua()`, mismo patrón: `categoria_gramatical` 3º-6º,
+`formacion_palabras` 4º-6º, `eleccion_ortografica` 2º-6º. Blindaje: ninguno de los tres decide
+contenido lingüístico (categoría gramatical real, clasificación de la palabra, letra correcta) —
+eso lo garantiza Claude, mismo criterio que `clasificar_silabas`/`acentuacion`; el código solo
+resalta la palabra objetivo dentro de la frase en `categoria_gramatical` (búsqueda de texto exacta,
+sin regex — si no encuentra la palabra tal cual, imprime la frase sin resaltar en vez de fallar) y
+convierte el "_" de `eleccion_ortografica` en el hueco exacto donde va la letra a elegir.
+`formacion_palabras` reutiliza directamente las clases CSS de `clasificar_silabas` (mismo patrón
+visual de casillas, solo cambian las 3 categorías), sin CSS propio.
+
+Documentación del contrato HTML/CSS en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 15. Validado:
+`node --check` en los tres ficheros tocados, render unitario con datos simulados (incluyendo casos
+límite: palabra objetivo no encontrada en la frase, item sin frase, palabra sin "_", múltiples "_"
+en la misma palabra, `opciones` vacío) y capturas Playwright en color y blanco/negro sobre una
+ficha completa junto con `numeros_romanos`. **Pendiente, igual que toda tanda nueva**: confirmar
+con una ficha real generada por Claude a través de la API.
+
+---
+
+## FASE 10 — Gestión Emocional y Gestión del Aula (💭 abierta, 08/09/2026)
+**Estado: 💭 Abierta — sin decidir alcance ni cuándo**
+
+Origen: al comparar el catálogo completo de Primaria del Megapack 2025 de Kumubox con lo que ya
+cubre la app, dos categorías aparecieron con peso real (26 y 17 recursos respectivamente) que no
+son "fichas de asignatura" en el sentido curricular LOMLOE — no encajan en ninguna fase existente
+(Fase 5 es migración de ASIGNATURAS; esto es contenido transversal) — así que quedan anotadas
+aquí, como línea de contenido a tener en cuenta para el futuro, sin decidir todavía si se aborda,
+cuándo, ni con qué alcance. Ninguno de estos recursos depende del banco de ilustraciones (Fase 4)
+para empezar — la mayoría es texto/estructura maquetable con el mismo patrón JSON+renderizador
+que el resto del proyecto.
+
+**Gestión Emocional y Mindfulness** (26 recursos en el Megapack): carpeta general con enigmas ·
+enigmas de las 4 emociones básicas (alegría/ira/miedo/tristeza) · entendiendo la ansiedad
+(clasificación) · autoconocimiento y autoestima · cómo acompañar una rabieta · cómo gestionar que
+no pegue · reforzar seguridad y autonomía · teoría del apego · calendario emocional · tarjetas de
+calma · caja de habilidades sociales · pack de gestión emocional · cuadernillo de mindfulness ·
+meditaciones guiadas (25 días) · juego de mindfulness · estrategias de afrontamiento (A-Z) ·
+estrategias de calma · escape room "El Jardín de la Tranquilidad" · mindfulness musical · mini
+cuaderno de respiración consciente · cuaderno de convivencia emocional · Inside Out (carrera y
+rueda de emociones).
+
+**Gestión del Aula** (17 recursos en el Megapack): dinámica grupal "círculo curioso" · medallas
+de inicio de curso · aviso al Ratoncito Pérez · señales de aula · registro de baño · diario de
+aula · decoración temática (El Principito) · dinámicas para cambiar de sitio · carteles de
+aprendizaje socioemocional · prevención y detección del acoso escolar · "en sus zapatos" (empatía)
+· pack de recursos de evaluación · pack de rutinas de pensamiento · exit tickets para evaluar ·
+dianas de evaluación · llaves de los pensadores · tickets de salida para la reflexión.
+
+**Ampliación con el Megapack 2026 (08/09/2026)** — catálogo de este mismo curso; mismo criterio,
+solo lo genuinamente NUEVO frente a lo ya recogido arriba del Megapack 2025 (se confirma, por
+ejemplo, que "círculo curioso" y "medallas de inicio de curso" son literalmente los mismos
+recursos repetidos, no se duplican aquí):
+
+**Gestión Emocional y Mindfulness — nuevo (2026)**: "Rompe los Estereotipos" (kit de debate visual
+sobre igualdad de género) · microhistorias para pensar y debatir (dilemas breves) · semáforo
+emocional / semáforo de aprendizaje (parar-pensar-actuar, autorregulación) · rincón de la calma
+(reloj de las emociones) · material sobre uso y abuso de las pantallas · pausas activas (tarjetas
+de movimiento/calma/creatividad/estiramiento).
+
+**Gestión del Aula — nuevo (2026)**: carteles de técnicas de aprendizaje cooperativo · actividades
+multinivel de cohesión grupal de inicio de curso · sistema de puntos/refuerzo positivo estilo
+ClassDojo (tablero de recompensas, tarjeta de puntos) · un conjunto completo de **instrumentos de
+evaluación en Excel para el docente** (rúbrica analítica, coevaluación, autoevaluación, control de
+asistencia, seguimiento de competencias LOMLOE, objetivos individuales, rúbrica de exposiciones
+orales) — formato distinto al resto (hoja de cálculo descargable, no una ficha imprimible para el
+alumnado), pero mismo terreno de "gestión de aula"; se anota aparte porque si algún día se aborda
+esta fase, esta parte necesitaría un enfoque de producto distinto (exportar/generar una plantilla
+de seguimiento, no una ficha A4).
+
+**Próximo paso**: ninguno todavía — igual que se hizo con la Fase 4 y la Fase 7, no tocar código
+hasta dedicarle su propia sesión de decisión de alcance (¿es una "asignatura" más dentro del
+selector, o una categoría de contenido transversal distinta? ¿qué tipos de ejercicio/formato
+tendría sentido blindar primero? ¿tiene sentido meter ahí también los instrumentos de evaluación
+en Excel, o es un producto aparte?).
 
 ---
 

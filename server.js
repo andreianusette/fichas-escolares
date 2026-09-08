@@ -218,6 +218,23 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   const esConPesarConBalanza = true; // todos los cursos
   const esConMedirCapacidad = true; // todos los cursos
 
+  // ── Tercera ampliación (08/09/2026) — backlog identificado comparando con
+  // el Megapack 2025 de Kumubox (catálogo de recursos de más de 100
+  // docentes): "mcd_mcm" y "descomposicion_numerica" cubren dos huecos de
+  // sentido numérico que ni la auditoría del RD 157/2022 del 07/09 había
+  // detectado; "detective_numeros" es un formato de refuerzo (pistas →
+  // deducir el número) muy repetido en ese catálogo sin equivalente aquí.
+  // Ver ROADMAP, entrada del 08/09/2026, para el origen completo.
+  const esConMcdMcm = ['5º', '6º'].includes(curso); // MCD/MCM, currículo real de 5º-6º
+  const esConDescomposicion = ['3º', '4º', '5º', '6º'].includes(curso); // números de 3+ cifras
+  const esConDetectiveNumeros = true; // todos los cursos, dificultad la regula el rango del curso
+
+  // ── Cuarta ampliación (08/09/2026) — Megapack 2026 de Kumubox, restringido
+  // a Primaria: "numeros_romanos" es el único hueco de Matemáticas que no
+  // estaba ya cubierto por un tipo existente (ver ROADMAP, entrada del
+  // 08/09/2026 con el detalle de la comparativa 2025→2026).
+  const esConNumerosRomanos = ['3º', '4º', '5º', '6º'].includes(curso); // numeración romana, currículo real
+
   if (esConDineroEuros) tiposDisponibles += ' | dinero_euros';
   if (esConProporcionalidad) tiposDisponibles += ' | proporcionalidad';
   if (esConConversionUnidades) tiposDisponibles += ' | conversion_unidades';
@@ -234,6 +251,10 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   if (esConNumeroDelDia) tiposDisponibles += ' | numero_del_dia';
   if (esConPesarConBalanza) tiposDisponibles += ' | pesar_con_balanza';
   if (esConMedirCapacidad) tiposDisponibles += ' | medir_capacidad';
+  if (esConMcdMcm) tiposDisponibles += ' | mcd_mcm';
+  if (esConDescomposicion) tiposDisponibles += ' | descomposicion_numerica';
+  if (esConDetectiveNumeros) tiposDisponibles += ' | detective_numeros';
+  if (esConNumerosRomanos) tiposDisponibles += ' | numeros_romanos';
 
   let bloqueOperacion = `
 - "operacion_vertical": SOLO sumas y restas en columna (nunca multiplicación
@@ -805,6 +826,59 @@ ${notaRejillaEspecifica}` : '';
   * Usa valores "redondos" para que las marcas de la escala caigan en números fáciles de leer
     (ej. capacidadMax 1000 con marcas en 0/250/500/750/1000).` : '';
 
+  const bloqueMcdMcm = esConMcdMcm ? `
+
+- "mcd_mcm": máximo común divisor y/o mínimo común múltiplo de parejas de números.
+  { "pares": [ { "a": n, "b": n, "pedir": ["mcd", "mcm"] } ] }
+  * Entre 3 y 6 parejas por ejercicio. "pedir": array con "mcd", "mcm" o ambos — puede variar
+    entre parejas del mismo ejercicio (algunas solo MCD, otras solo MCM, otras las dos).
+  * El sistema deja un hueco por cada valor pedido — NUNCA calcules ni escribas tú el resultado,
+    solo elige parejas de números para las que el cálculo tenga sentido en ${curso}.
+  * Respeta el rango numérico del curso (${rango}); usa números con divisores/múltiplos claros
+    (evita primos entre sí sin necesidad, salvo que quieras practicar precisamente ese caso).` : '';
+
+  const bloqueDescomposicionNumerica = esConDescomposicion ? `
+
+- "descomposicion_numerica": descomponer números en unidades/decenas/centenas... (valor posicional).
+  { "numeros": [n1, n2, ...] }
+  * Entre 3 y 6 números, enteros positivos, acordes al rango numérico del curso (${rango}).
+  * El sistema dibuja SOLO a partir del propio número: calcula él mismo cuántas cifras tiene,
+    las etiquetas de columna (Unidades, Decenas, Centenas...) y cuántos huecos lleva la suma de
+    descomposición — tú SOLO das los números, nunca inventes tú las columnas ni la cantidad de
+    sumandos.
+  * Usa números con cifras variadas (evita ceros intermedios en todos los números del ejercicio,
+    o el ejercicio se vuelve repetitivo) y con el número de cifras propio de ${curso}.` : '';
+
+  const bloqueDetectiveNumeros = esConDetectiveNumeros ? `
+
+- "detective_numeros": adivinar un número secreto a partir de una lista de pistas.
+  { "casos": [ { "numero": n, "pistas": ["Es par", "Mayor que 40", "Menor que 50"] } ] }
+  * Entre 2 y 4 casos por ejercicio. "numero": el número secreto (SOLO para que tú compruebes
+    que las pistas son coherentes entre sí — el sistema lo ignora, NUNCA lo imprime en la ficha).
+  * "pistas": entre 3 y 6 por caso, cada una una condición verdadera sobre "numero" (par/impar,
+    mayor/menor que, número de cifras, suma de sus cifras, es múltiplo de..., está entre dos
+    valores...). Las pistas EN CONJUNTO deben acotar un único número posible — revísalo tú mismo
+    antes de responder (si dos números distintos cumplen todas las pistas, el caso está mal
+    planteado).
+  * NUNCA reveles el número en el enunciado del ejercicio ni en ninguna pista de forma directa
+    (ej. mal: "el número es mayor que 46 y menor que 48" cuando el secreto es 47, eso ya lo
+    revela). Adecúa la dificultad y el rango numérico al curso (${rango}).` : '';
+
+  const bloqueNumerosRomanos = esConNumerosRomanos ? `
+
+- "numeros_romanos": conversión entre número arábigo y numeración romana.
+  { "numeros": [n1, n2, ...], "sentido": "a_romano" | "a_arabigo" | "mixto" }
+  * "numeros": SIEMPRE números arábigos normales — NUNCA escribas tú un numeral romano, el
+    sistema lo calcula solo cuando hace falta mostrarlo (así nunca puede salir mal escrito).
+    Entre 4 y 10 números, enteros entre 1 y 3999.
+  * "sentido": "a_romano" → se muestra el número arábigo y el alumno escribe el numeral romano.
+    "a_arabigo" → el sistema calcula y muestra el numeral romano, el alumno escribe el número
+    arábigo. "mixto" → el sistema alterna ambos sentidos automáticamente, ejercicio a ejercicio.
+  * Ajusta el rango al nivel real de ${curso}: en 3º-4º usa números pequeños que solo necesiten
+    I, V, X, L, C (hasta el entorno de 100); en 5º-6º ya puedes usar D y M y números de varias
+    cifras, pero evita numerales artificialmente largos (ej. 3888) salvo que quieras
+    precisamente practicar un caso así.` : '';
+
   let bloqueProblema;
   if (esConDibujos) {
     bloqueProblema = `
@@ -899,6 +973,10 @@ ${bloqueConectaLosPuntos}
 ${bloqueNumeroDelDia}
 ${bloquePesarConBalanza}
 ${bloqueMedirCapacidad}
+${bloqueMcdMcm}
+${bloqueDescomposicionNumerica}
+${bloqueDetectiveNumeros}
+${bloqueNumerosRomanos}
 ${bloqueProblema}
 
 - "tipo_test": pregunta de opción múltiple (la pregunta va en "enunciado").
@@ -955,6 +1033,101 @@ DATOS DE LA FICHA:
 // recortando poco a poco — ver Fase 9 del ROADMAP para el criterio.
 // ─────────────────────────────────────────────
 function construirSystemPromptLengua(curso) {
+  // ── Backlog Megapack Kumubox (08/09/2026) — tres tipos nuevos, gating por
+  // curso siguiendo el mismo criterio que Matemáticas (ver ROADMAP, entrada
+  // del 08/09/2026, origen completo de los tres).
+  const esConRelacionar = true; // todos los cursos — dificultad la regula Claude vía el vocabulario
+  const esConClasificarSilabas = ['1º', '2º', '3º'].includes(curso); // conciencia silábica, cursos iniciales
+  const esConAcentuacion = ['3º', '4º', '5º', '6º'].includes(curso); // reglas de tildes, currículo real
+
+  // ── Backlog Megapack Kumubox 2026 (08/09/2026) — tres tipos más, mismo
+  // criterio de gating por curso; ver ROADMAP, entrada del 08/09/2026, para
+  // la comparativa completa 2025→2026 y qué otros recursos ya estaban
+  // cubiertos.
+  const esConCategoriaGramatical = ['3º', '4º', '5º', '6º'].includes(curso); // sustantivo/verbo/adjetivo/determinante
+  const esConFormacionPalabras = ['4º', '5º', '6º'].includes(curso); // simples/derivadas/compuestas
+  const esConEleccionOrtografica = ['2º', '3º', '4º', '5º', '6º'].includes(curso); // reglas b/v, g/j, h, ll/y...
+
+  let tiposDisponibles = 'trazo_letra | contenido_libre';
+  if (esConRelacionar) tiposDisponibles += ' | relacionar';
+  if (esConClasificarSilabas) tiposDisponibles += ' | clasificar_silabas';
+  if (esConAcentuacion) tiposDisponibles += ' | acentuacion';
+  if (esConCategoriaGramatical) tiposDisponibles += ' | categoria_gramatical';
+  if (esConFormacionPalabras) tiposDisponibles += ' | formacion_palabras';
+  if (esConEleccionOrtografica) tiposDisponibles += ' | eleccion_ortografica';
+
+  const bloqueRelacionar = esConRelacionar ? `
+
+- "relacionar": emparejar cada elemento de una columna A con el que le corresponde en una
+  columna B (sinónimos, antónimos, frases hechas, sustantivo↔adjetivo, palabra↔definición...).
+  { "columnaA": ["elemento 1", "elemento 2", ...], "columnaB": ["su pareja 1", "su pareja 2", ...] }
+  * "columnaA" y "columnaB" DEBEN tener la misma longitud, entre 3 y 8 elementos. El elemento
+    "columnaB[i]" es SIEMPRE la pareja correcta de "columnaA[i]" (mismo índice) — el propio
+    sistema desordena la columna B al imprimirla (nunca en el mismo orden que la A), tú no
+    tienes que preocuparte de mezclarla.
+  * Elige parejas con una única relación correcta clara — evita que un elemento de la columna A
+    pueda emparejar razonablemente con más de un elemento de la columna B.` : '';
+
+  const bloqueClasificarSilabas = esConClasificarSilabas ? `
+
+- "clasificar_silabas": conteo o clasificación de sílabas de una lista de palabras.
+  { "modo": "contar" o "clasificar", "palabras": ["mesa", "paraguas", "sol"] }
+  * "modo": "contar" → el sistema deja un hueco numérico junto a cada palabra para que el alumno
+    escriba cuántas sílabas tiene. "clasificar" → el sistema añade 4 casillas (Mono/Bi/Tri/Poli)
+    para que el alumno marque una.
+  * Entre 4 y 12 palabras, adecuadas al vocabulario de ${curso}. Varía la longitud silábica de
+    las palabras dentro del mismo ejercicio (si todas tienen el mismo número de sílabas, el
+    ejercicio de clasificar pierde sentido).
+  * El sistema NO verifica el número real de sílabas de cada palabra — esa corrección depende
+    por completo de ti, revísala antes de responder.` : '';
+
+  const bloqueAcentuacion = esConAcentuacion ? `
+
+- "acentuacion": el alumno reescribe cada palabra colocando la tilde donde corresponda.
+  { "palabras": [ { "palabra": "arbol", "silabas": ["ar", "bol"] } ] }
+  * "palabra": la palabra SIN ninguna tilde (aunque la lleve en su escritura correcta — el
+    sistema la imprime tal cual, sin acentuar, para que el alumno decida). "silabas": la misma
+    palabra dividida en sus sílabas (también sin tilde), en orden — el sistema las separa con
+    un punto medio (·) al imprimirlas.
+  * Entre 4 y 14 palabras. Mezcla agudas, llanas y esdrújulas, y palabras que SÍ y que NO llevan
+    tilde (si todas la llevan, o ninguna, el alumno no practica a decidir).
+  * El sistema NUNCA calcula ni imprime dónde va la tilde — solo estructura el ejercicio,
+    revisa tú que cada palabra esté bien dividida en sílabas antes de responder.` : '';
+
+  const bloqueCategoriaGramatical = esConCategoriaGramatical ? `
+
+- "categoria_gramatical": identificar la categoría gramatical de una palabra dentro de una frase
+  (sustantivo, verbo, adjetivo o determinante).
+  { "items": [ { "frase": "El perro grande corre.", "palabra": "grande" } ] }
+  * "frase": la oración completa donde aparece la palabra (da contexto real — la categoría de una
+    palabra puede depender de él, ej. "canto" puede ser sustantivo o verbo). "palabra": EXACTAMENTE
+    como aparece escrita dentro de "frase" (mismas mayúsculas/minúsculas) — el sistema la busca
+    por coincidencia exacta de texto para resaltarla; si no coincide tal cual, se imprime la frase
+    sin resaltar.
+  * Entre 4 y 12 items. Mezcla las 4 categorías dentro del mismo ejercicio (si todas las palabras
+    son de la misma categoría, el alumno no practica a distinguir).
+  * El sistema NO decide la categoría correcta — la garantizas tú.` : '';
+
+  const bloqueFormacionPalabras = esConFormacionPalabras ? `
+
+- "formacion_palabras": clasificar palabras en simples, derivadas o compuestas.
+  { "palabras": ["flor", "florero", "sacapuntas"] }
+  * Entre 4 y 14 palabras. Mezcla las 3 categorías dentro del mismo ejercicio.
+  * El sistema NO verifica la clasificación real de cada palabra — la garantizas tú.` : '';
+
+  const bloqueEleccionOrtografica = esConEleccionOrtografica ? `
+
+- "eleccion_ortografica": completar una palabra eligiendo la letra u opción correcta entre un
+  cierre de alternativas (reglas de b/v, g/j, h, ll/y...).
+  { "items": [ { "palabra": "esta_a", "opciones": ["b", "v"] } ] }
+  * "palabra": la palabra con UN ÚNICO "_" en el lugar exacto de la letra que hay que decidir (el
+    sistema lo convierte en un hueco para escribir). "opciones": entre 2 y 4 alternativas cerradas
+    que se imprimen junto a la palabra para que el alumno marque la correcta (dar las opciones
+    ayuda especialmente en cursos iniciales; en cursos más avanzados puedes dejar "opciones": []
+    para que el alumno decida sin pistas).
+  * Entre 4 y 16 items. Usa vocabulario y reglas propias de ${curso} (b/v, g/j, h, ll/y, r/rr...).
+  * El sistema NO decide qué opción es correcta — la garantizas tú.` : '';
+
   return `
 Eres un experto en diseño de materiales didácticos de Lengua Castellana para Educación
 Primaria en España, con dominio de la LOMLOE (Ley Orgánica 3/2020) y el Real Decreto 157/2022.
@@ -971,13 +1144,13 @@ ESQUEMA EXACTO:
     {
       "enunciado": "string — instrucción breve y clara del ejercicio, SIN 'Ejercicio N.'
         delante (el número lo añade el sistema).",
-      "tipo": "trazo_letra | contenido_libre",
+      "tipo": "${tiposDisponibles}",
       "datos": { ... según el tipo, ver abajo ... }
     }
   ]
 }
 
-TIPOS DE EJERCICIO DISPONIBLES Y SU CAMPO "datos":
+TIPOS DE EJERCICIO DISPONIBLES PARA ${curso} Y SU CAMPO "datos":
 
 - "trazo_letra": refuerzo para alumnado que aún no relaciona el sonido con la letra escrita ni
   sabe trazarla. Úsalo SOLO cuando el docente lo pida explícitamente en las instrucciones
@@ -1047,6 +1220,12 @@ TIPOS DE EJERCICIO DISPONIBLES Y SU CAMPO "datos":
       frase con significado; esto no es un ejercicio pedagógico normal, es una prueba visual.
   * NUNCA autoevaluación ni caritas. NUNCA HTML fuera de estas clases (nada de estilos inline
     salvo que una de las clases anteriores ya lo requiera).
+${bloqueRelacionar}
+${bloqueClasificarSilabas}
+${bloqueAcentuacion}
+${bloqueCategoriaGramatical}
+${bloqueFormacionPalabras}
+${bloqueEleccionOrtografica}
 
 REGLAS GENERALES:
 - Por defecto genera ~10 ejercicios variados, mezclando tipos según lo que pida el docente.

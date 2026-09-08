@@ -480,6 +480,239 @@ body {
 #btnGenerar:hover    { background: #1e40af; }
 #btnGenerar:disabled { background: #94a3b8; cursor: not-allowed; }
 
+/* ── Selector de tipos de ejercicio — Matemáticas (08/09/2026) ────────────
+   Botón junto a "Instrucciones especiales" que abre un pop-up con los
+   tipos de ejercicio disponibles para el curso elegido (catálogo y lógica
+   en el <script> de index.html), agrupados por "sentido" LOMLOE para no
+   enseñar una lista plana de 41 botones. Estética deliberadamente redonda,
+   plana y con sombra difusa — nada de bordes en relieve/bisel al estilo
+   interfaces antiguas — y reutiliza los colores cálidos ya usados en las
+   fichas para que el pop-up se sienta parte de la misma app. */
+.campo-cabecera-botones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-elegir-tipos {
+  background: var(--color-primario);
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(29,78,216,0.35);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.btn-elegir-tipos:hover:not(:disabled) {
+  background: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 7px rgba(29,78,216,0.4);
+}
+
+.btn-elegir-tipos:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 41, 59, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal-panel {
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 780px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px 0;
+}
+
+.modal-cabecera h3 {
+  font-family: var(--fuente-titulo);
+  color: var(--color-primario);
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-cerrar {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-cerrar:hover { background: #fee2e2; color: #dc2626; }
+
+.modal-ayuda {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 8px 24px 0;
+  line-height: 1.4;
+}
+
+.modal-contenido {
+  overflow-y: auto;
+  padding: 12px 24px 20px;
+}
+
+.modal-categoria { margin-top: 18px; }
+.modal-categoria:first-child { margin-top: 12px; }
+
+.modal-categoria-titulo {
+  font-family: var(--fuente-titulo);
+  font-size: 14px;
+  color: var(--calido-texto);
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #eef1f5;
+}
+
+.modal-rejilla-tipos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+/* Tarjetas de tipo de ejercicio: color plano y redondeado, nunca relieve.
+   Cada categoría usa uno de los --calido-* de las fichas; al seleccionar
+   se rellena con el color sólido y aparece un check, para que el docente
+   vea de un vistazo qué ha añadido ya al textarea. */
+.tipo-boton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: #f8fafc;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, box-shadow 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.tipo-boton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.tipo-boton-nombre {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--calido-texto);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.tipo-boton-nombre::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tipo-boton.seleccionado .tipo-boton-nombre::after {
+  content: '✓';
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.tipo-boton-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.tipo-boton--azul    { border-color: var(--calido-azul);    background: var(--calido-azul-fondo); }
+.tipo-boton--verde   { border-color: var(--calido-verde);   background: var(--calido-verde-fondo); }
+.tipo-boton--morado  { border-color: var(--calido-morado);  background: var(--calido-morado-fondo); }
+.tipo-boton--naranja { border-color: var(--calido-naranja); background: var(--calido-naranja-fondo); }
+.tipo-boton--rosa    { border-color: var(--calido-rosa);    background: var(--calido-rosa-fondo); }
+.tipo-boton--neutro  { border-color: #cbd5e1;                background: #f8fafc; }
+
+.tipo-boton--azul    .tipo-boton-nombre::before { background: var(--calido-azul); }
+.tipo-boton--verde   .tipo-boton-nombre::before { background: var(--calido-verde); }
+.tipo-boton--morado  .tipo-boton-nombre::before { background: var(--calido-morado); }
+.tipo-boton--naranja .tipo-boton-nombre::before { background: var(--calido-naranja); }
+.tipo-boton--rosa    .tipo-boton-nombre::before { background: var(--calido-rosa); }
+.tipo-boton--neutro  .tipo-boton-nombre::before { background: var(--color-primario); }
+
+.tipo-boton--azul.seleccionado    { background: var(--calido-azul); }
+.tipo-boton--verde.seleccionado   { background: var(--calido-verde); }
+.tipo-boton--morado.seleccionado  { background: var(--calido-morado); }
+.tipo-boton--naranja.seleccionado { background: var(--calido-naranja); }
+.tipo-boton--rosa.seleccionado    { background: var(--calido-rosa); }
+.tipo-boton--neutro.seleccionado  { background: var(--color-primario); border-color: var(--color-primario); }
+
+.tipo-boton.seleccionado .tipo-boton-nombre,
+.tipo-boton.seleccionado .tipo-boton-desc {
+  color: white;
+}
+
+.tipo-boton.seleccionado .tipo-boton-nombre::before {
+  background: white;
+}
+
+.modal-pie {
+  padding: 14px 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.btn-modal-finalizar {
+  background: var(--calido-verde);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-family: var(--fuente-titulo);
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(92,184,92,0.4);
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-modal-finalizar:hover { background: #4a9d4a; transform: translateY(-1px); }
+
 .panel-visor {
   flex: 1;
   display: flex;
@@ -2173,7 +2406,8 @@ ol.ejercicio-lista li {
 @media print {
   .panel-superior,
   .panel-formulario,
-  .barra-herramientas {
+  .barra-herramientas,
+  .modal-overlay {
     display: none !important;
   }
 
@@ -2706,4 +2940,139 @@ ol.ejercicio-lista li {
 @media print {
   .balanza-bloque { page-break-inside: avoid; break-inside: avoid; }
   .capacidad-tarjeta { page-break-inside: avoid; break-inside: avoid; }
+}
+
+/* ==========================================================================
+   7. TIPOS NUEVOS — backlog Megapack Kumubox (08/09/2026)
+   Matemáticas: mcd_mcm, descomposicion_numerica, detective_numeros.
+   Lengua: relacionar, clasificar_silabas, acentuacion.
+   ========================================================================== */
+
+/* ── MCD y MCM ────────────────────────────────────────────────────────── */
+.mcdmcm-bloque { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.mcdmcm-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; }
+.mcdmcm-letra { font-weight: bold; }
+.mcdmcm-numeros { font-weight: bold; }
+.mcdmcm-etiqueta { color: var(--calido-texto); margin-left: 6px; }
+.ficha.modo-blanco-negro .mcdmcm-etiqueta { color: black !important; }
+
+/* ── Descomposición numérica / valor posicional ──────────────────────── */
+.descomposicion-numerica-bloque { display: flex; flex-direction: column; gap: 18px; margin: 10px 0; }
+.descomposicion-tabla { border-collapse: collapse; }
+.descomposicion-tabla th,
+.descomposicion-tabla td {
+  border: 1.5px solid #333;
+  text-align: center;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.descomposicion-tabla th { background: var(--calido-azul-fondo); font-weight: bold; }
+.dn-celda { min-width: 34px; height: 30px; }
+.descomposicion-suma { margin-top: 8px; font-size: 15px; }
+.descomposicion-numero { font-weight: bold; }
+.dn-mas { color: var(--calido-texto); }
+.ficha.modo-blanco-negro .descomposicion-tabla th { background: white !important; }
+.ficha.modo-blanco-negro .dn-mas { color: black !important; }
+
+/* ── Detective de números ─────────────────────────────────────────────── */
+.detective-numeros-bloque { display: flex; flex-direction: column; gap: 14px; margin: 10px 0; }
+.detective-caso {
+  border: 1.5px solid var(--calido-morado);
+  border-radius: var(--radio-suave);
+  padding: 10px 14px;
+}
+.detective-titulo { font-weight: bold; margin: 0 0 4px 0; color: var(--calido-morado); }
+.detective-pistas { margin: 4px 0 8px 0; padding-left: 20px; font-size: 13.5px; }
+.detective-pistas li { margin: 2px 0; }
+.detective-respuesta { margin: 0; font-size: 14px; }
+.ficha.modo-blanco-negro .detective-caso { border-color: black !important; }
+.ficha.modo-blanco-negro .detective-titulo { color: black !important; }
+
+/* ── Relacionar columnas ──────────────────────────────────────────────── */
+.relacionar-bloque {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 30px;
+  margin: 10px 0;
+}
+.relacionar-columna { display: flex; flex-direction: column; gap: 10px; }
+.relacionar-fila-a,
+.relacionar-fila-b { display: flex; align-items: center; gap: 8px; font-size: 14.5px; }
+.relacionar-hueco {
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+  border-bottom: 1.5px solid #333;
+}
+.relacionar-num,
+.relacionar-letra { font-weight: bold; min-width: 20px; }
+
+/* ── Clasificar sílabas ───────────────────────────────────────────────── */
+.clasificar-silabas-bloque { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; }
+.cs-fila-contar,
+.cs-fila-clasificar { display: flex; align-items: center; gap: 12px; font-size: 15px; flex-wrap: wrap; }
+.cs-palabra { font-weight: bold; min-width: 90px; }
+.cs-casillas { display: flex; gap: 14px; flex-wrap: wrap; }
+.cs-casilla-item { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+
+/* ── Acentuación / tildes ─────────────────────────────────────────────── */
+.acentuacion-bloque { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.acentuacion-fila { display: flex; align-items: center; gap: 14px; font-size: 15px; }
+.acentuacion-silabas { min-width: 110px; }
+
+@media print {
+  .detective-caso { page-break-inside: avoid; break-inside: avoid; }
+  .descomposicion-bloque { page-break-inside: avoid; break-inside: avoid; }
+}
+
+/* ==========================================================================
+   8. TIPOS NUEVOS — backlog Megapack Kumubox 2026 (08/09/2026)
+   Matemáticas: numeros_romanos.
+   Lengua: categoria_gramatical, formacion_palabras (reutiliza clasificar-
+   silabas-bloque/cs-*, sin CSS propio), eleccion_ortografica.
+   ========================================================================== */
+
+/* ── Números romanos ──────────────────────────────────────────────────── */
+.numeros-romanos-bloque {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 26px;
+  margin: 10px 0;
+}
+.numeros-romanos-fila { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.nr-dado { font-weight: bold; }
+.nr-romano {
+  letter-spacing: 1px;
+  color: var(--calido-morado);
+}
+.nr-arabigo { color: var(--calido-azul); }
+.nr-igual { color: var(--calido-texto); }
+.ficha.modo-blanco-negro .nr-romano,
+.ficha.modo-blanco-negro .nr-arabigo,
+.ficha.modo-blanco-negro .nr-igual { color: black !important; }
+
+/* ── Categoría gramatical ─────────────────────────────────────────────── */
+.categoria-gramatical-bloque { display: flex; flex-direction: column; gap: 14px; margin: 10px 0; }
+.cg-fila { display: flex; flex-direction: column; gap: 6px; }
+.cg-frase { margin: 0; font-size: 14.5px; }
+.cg-resaltada {
+  font-weight: bold;
+  text-decoration: underline;
+  text-decoration-color: var(--calido-naranja);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.cg-palabra { font-weight: bold; }
+.cg-casillas { display: flex; gap: 14px; flex-wrap: wrap; }
+.ficha.modo-blanco-negro .cg-resaltada { text-decoration-color: black !important; }
+
+/* ── Elección ortográfica ─────────────────────────────────────────────── */
+.eleccion-ortografica-bloque { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; }
+.eo-fila { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 16px; }
+.eo-palabra { font-weight: bold; letter-spacing: 0.5px; }
+.eo-hueco-inline { min-width: 22px; margin: 0 1px; vertical-align: -3px; }
+.eo-opciones { display: flex; gap: 12px; flex-wrap: wrap; }
+
+@media print {
+  .categoria-gramatical-bloque .cg-fila { page-break-inside: avoid; break-inside: avoid; }
 }

@@ -1891,6 +1891,145 @@ function renderMedirCapacidad(datos) {
   return `<div class="capacidad-bloque">${tarjetas}</div>`;
 }
 
+// ── MCD y MCM (sentido numérico, backlog Megapack Kumubox 08/09/2026) ───
+// Blindaje de tamaño (máximo 6 pares) y de qué hueco se pinta según
+// "pedir" — el sistema nunca calcula ni imprime el MCD/MCM real (mismo
+// criterio que "medidas_centralizacion": el contenido lo garantiza el
+// prompt, el código solo estructura el hueco correspondiente).
+function renderMcdMcm(datos) {
+  let pares = Array.isArray(datos.pares) ? datos.pares.slice(0, 6) : [];
+  if (pares.length === 0) return '';
+
+  const filas = pares.map((p, i) => {
+    const a = Math.max(1, Math.round(numeroDesdeJSON(p.a)));
+    const b = Math.max(1, Math.round(numeroDesdeJSON(p.b)));
+    const pedir = Array.isArray(p.pedir) && p.pedir.length > 0 ? p.pedir : ['mcd', 'mcm'];
+    const huecoMcd = pedir.includes('mcd')
+      ? `<span class="mcdmcm-etiqueta">MCD:</span><span class="hueco hueco-corto"></span>` : '';
+    const huecoMcm = pedir.includes('mcm')
+      ? `<span class="mcdmcm-etiqueta">MCM:</span><span class="hueco hueco-corto"></span>` : '';
+    return `<div class="mcdmcm-fila">
+      <span class="mcdmcm-letra">${String.fromCharCode(97 + i)})</span>
+      <span class="mcdmcm-numeros">${a} y ${b}</span>
+      ${huecoMcd}${huecoMcm}
+    </div>`;
+  }).join('');
+
+  return `<div class="mcdmcm-bloque">${filas}</div>`;
+}
+
+// ── Descomposición numérica / valor posicional (sentido numérico,
+// backlog Megapack Kumubox 08/09/2026) ──────────────────────────────────
+// El alumno escribe cada cifra del número en su columna de valor
+// posicional y, debajo, lo reescribe como suma de esos valores. Blindaje:
+// las ETIQUETAS de columna y el NÚMERO de huecos de la suma se derivan
+// siempre del propio número (nunca de un dato aparte que Claude tenga que
+// acertar) — así nunca puede haber más o menos columnas que cifras tiene
+// el número, ni más o menos sumandos que cifras.
+const ETIQUETAS_VALOR_POSICIONAL = ['Unidades', 'Decenas', 'Centenas', 'UM', 'DM', 'CM', 'Millones'];
+
+function renderDescomposicionNumerica(datos) {
+  let numeros = Array.isArray(datos.numeros) ? datos.numeros.slice(0, 6) : [];
+  numeros = numeros
+    .map(n => Math.round(Math.abs(numeroDesdeJSON(n))))
+    .filter(n => n > 0 && n < 10000000);
+  if (numeros.length === 0) return '';
+
+  const bloques = numeros.map(n => {
+    const cifras = String(n).split('');
+    const etiquetas = ETIQUETAS_VALOR_POSICIONAL.slice(0, cifras.length).reverse();
+    const cabecera = etiquetas.map(e => `<th>${e}</th>`).join('');
+    const celdas = etiquetas.map(() => `<td class="dn-celda"></td>`).join('');
+    const sumaHuecos = cifras.map(() => `<span class="hueco hueco-corto"></span>`).join(' <span class="dn-mas">+</span> ');
+
+    return `<div class="descomposicion-bloque">
+      <table class="descomposicion-tabla">
+        <thead><tr>${cabecera}</tr></thead>
+        <tbody><tr>${celdas}</tr></tbody>
+      </table>
+      <p class="descomposicion-suma"><span class="descomposicion-numero">${n}</span> = ${sumaHuecos}</p>
+    </div>`;
+  }).join('');
+
+  return `<div class="descomposicion-numerica-bloque">${bloques}</div>`;
+}
+
+// ── Detective de números (sentido numérico, backlog Megapack Kumubox
+// 08/09/2026) ─────────────────────────────────────────────────────────
+// Adivinar un número secreto a partir de una lista de pistas (par/impar,
+// mayor/menor que, suma de cifras...). El número en sí NUNCA se imprime
+// en la ficha: "datos.casos[].numero" viaja en el JSON solo para que en
+// el prompt quede claro qué solución tienen que cuadrar las pistas —
+// el renderizador lo ignora por completo al pintar el HTML, solo usa
+// "pistas".
+function renderDetectiveNumeros(datos) {
+  let casos = Array.isArray(datos.casos) ? datos.casos.slice(0, 4) : [];
+  casos = casos.filter(c => Array.isArray(c.pistas) && c.pistas.length > 0);
+  if (casos.length === 0) return '';
+
+  const bloques = casos.map((c, i) => {
+    const pistas = c.pistas.slice(0, 6).map(p => `<li>${escapeHtml(p)}</li>`).join('');
+    return `<div class="detective-caso">
+      <p class="detective-titulo">Caso ${i + 1}</p>
+      <ol class="detective-pistas">${pistas}</ol>
+      <p class="detective-respuesta">El número secreto es: <span class="hueco hueco-corto"></span></p>
+    </div>`;
+  }).join('');
+
+  return `<div class="detective-numeros-bloque">${bloques}</div>`;
+}
+
+// ── Números romanos (sentido numérico, backlog Megapack Kumubox 2026,
+// 08/09/2026) ────────────────────────────────────────────────────────────
+// Conversión arábigo↔romano. A diferencia de "acentuacion"/"clasificar_
+// silabas" en Lengua (reglas lingüísticas con excepciones, se confía en
+// Claude), la numeración romana es un algoritmo determinista y sin
+// ambigüedad — el sistema la calcula siempre por su cuenta, nunca confía
+// en que Claude escriba el numeral romano correctamente: cuando hay que
+// MOSTRAR un numeral romano como dato de partida, el propio código lo
+// genera a partir del número arábigo. Claude solo elige números arábigos
+// pedagógicamente adecuados al curso, nunca escribe un romano él mismo.
+function numeroARomano(n) {
+  const TABLA = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let resto = Math.round(n);
+  let resultado = '';
+  for (const [valor, simbolo] of TABLA) {
+    while (resto >= valor) {
+      resultado += simbolo;
+      resto -= valor;
+    }
+  }
+  return resultado;
+}
+
+function renderNumerosRomanos(datos) {
+  let numeros = Array.isArray(datos.numeros) ? datos.numeros.slice(0, 10) : [];
+  numeros = numeros
+    .map(n => Math.round(Math.abs(numeroDesdeJSON(n))))
+    .filter(n => n > 0 && n <= 3999);
+  if (numeros.length === 0) return '';
+
+  const sentido = ['a_romano', 'a_arabigo', 'mixto'].includes(datos.sentido) ? datos.sentido : 'a_romano';
+
+  const filas = numeros.map((n, i) => {
+    const modoFila = sentido === 'mixto' ? (i % 2 === 0 ? 'a_romano' : 'a_arabigo') : sentido;
+    const dado = modoFila === 'a_arabigo'
+      ? `<span class="nr-dado nr-romano">${numeroARomano(n)}</span>`
+      : `<span class="nr-dado nr-arabigo">${n}</span>`;
+    return `<div class="numeros-romanos-fila">
+      ${dado}
+      <span class="nr-igual">=</span>
+      <span class="hueco hueco-corto"></span>
+    </div>`;
+  }).join('');
+
+  return `<div class="numeros-romanos-bloque">${filas}</div>`;
+}
+
 const RENDERERS_POR_TIPO = {
   operacion_vertical: (datos) => renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
@@ -1928,7 +2067,11 @@ const RENDERERS_POR_TIPO = {
   conecta_los_puntos:       (datos) => renderConectaLosPuntos(datos),
   numero_del_dia:           (datos) => renderNumeroDelDia(datos),
   pesar_con_balanza:        (datos) => renderPesarConBalanza(datos),
-  medir_capacidad:          (datos) => renderMedirCapacidad(datos)
+  medir_capacidad:          (datos) => renderMedirCapacidad(datos),
+  mcd_mcm:                  (datos) => renderMcdMcm(datos),
+  descomposicion_numerica:  (datos) => renderDescomposicionNumerica(datos),
+  detective_numeros:        (datos) => renderDetectiveNumeros(datos),
+  numeros_romanos:          (datos) => renderNumerosRomanos(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {

@@ -108,11 +108,14 @@
         <div class="campo">
           <div class="campo-cabecera-instrucciones">
             <label for="instrucciones">Instrucciones especiales:</label>
-            <button type="button" id="btnBorrarInstrucciones" class="btn-borrar-instrucciones" onclick="borrarInstrucciones()" title="Vaciar este campo para escribir una instrucción nueva">🗑️ Borrar</button>
+            <div class="campo-cabecera-botones">
+              <button type="button" id="btnElegirTipos" class="btn-elegir-tipos" onclick="abrirModalTipos()" disabled>➕ Elegir tipos de ejercicio</button>
+              <button type="button" id="btnBorrarInstrucciones" class="btn-borrar-instrucciones" onclick="borrarInstrucciones()" title="Vaciar este campo para escribir una instrucción nueva">🗑️ Borrar</button>
+            </div>
           </div>
           <textarea id="instrucciones" name="instrucciones" rows="4"
             placeholder="Aquí está la clave de la variedad. Ej: Temática de dinosaurios · solo 8 ejercicios · números hasta el 30 · incluye un problema con dibujo"></textarea>
-          <p class="campo-ayuda">El docente puede pedir temática, nivel, número de ejercicios, formato... tiene prioridad máxima sobre todo lo demás.</p>
+          <p class="campo-ayuda">El docente puede pedir temática, nivel, número de ejercicios, formato... tiene prioridad máxima sobre todo lo demás. Con el botón "Elegir tipos de ejercicio" puedes ver qué ejercicios hay disponibles y añadirlos aquí sin escribir nada.</p>
         </div>
 
         <div class="campo campo-checkbox">
@@ -152,6 +155,27 @@
     </section>
 
   </main>
+
+  <!-- ── Selector de tipos de ejercicio — Matemáticas (08/09/2026) ──────────
+       Pop-up con los tipos de ejercicio ya implementados para el curso
+       elegido, agrupados por "sentido" LOMLOE, para que el docente sepa qué
+       puede pedir en "Instrucciones especiales" sin tener que adivinarlo.
+       Pulsar un botón añade una frase al textarea; volver a pulsarlo la
+       quita. No toca el backend en absoluto: solo rellena el textarea de
+       siempre, que ya tiene prioridad máxima en el prompt. -->
+  <div id="modalTipos" class="modal-overlay" style="display:none;" onclick="if (event.target === this) cerrarModalTipos();">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTiposTitulo">
+      <div class="modal-cabecera">
+        <h3 id="modalTiposTitulo">Elegir tipos de ejercicio</h3>
+        <button type="button" class="modal-cerrar" onclick="cerrarModalTipos()" title="Cerrar">✕</button>
+      </div>
+      <p class="modal-ayuda">Pulsa un tipo de ejercicio para añadirlo a las instrucciones especiales. Vuelve a pulsarlo para quitarlo. Puedes elegir varios.</p>
+      <div id="modalTiposContenido" class="modal-contenido"></div>
+      <div class="modal-pie">
+        <button type="button" class="btn-modal-finalizar" onclick="cerrarModalTipos()">Finalizar</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // El campo "sumandos" solo tiene sentido en Matemáticas (afecta a las
@@ -220,6 +244,199 @@
       const campo = document.getElementById('instrucciones');
       campo.value = '';
       campo.focus();
+    }
+
+    // ── Selector de tipos de ejercicio — Matemáticas (08/09/2026) ───────
+    // Catálogo de los 41 tipos de ejercicio de Matemáticas ya implementados
+    // en el renderer (ver RENDERERS_POR_TIPO en renderer-matematicas.js),
+    // con nombre amigable (nunca la clave interna, p.ej. "mcd_mcm"),
+    // descripción de una línea y categoría (agrupación por "sentidos"
+    // LOMLOE, para no enseñar una lista plana de 41 botones de golpe).
+    // El array `cursos` de cada tipo está copiado a mano de los flags
+    // esConDibujos/esGuiado/esMultDiv/esConTransportador-etc. de server.js:
+    // si allí se amplía o cambia el rango de cursos de un tipo, hay que
+    // actualizar también esta tabla, o el selector ofrecerá algo que el
+    // backend no vaya a incluir realmente en el prompt para ese curso.
+    const TODOS_LOS_CURSOS_MATE = ['1º','2º','3º','4º','5º','6º'];
+
+    const CATEGORIAS_TIPOS_MATEMATICAS = [
+      { id: 'numerico',    nombre: 'Sentido numérico',                  color: 'azul'    },
+      { id: 'medida',      nombre: 'Sentido de la medida',               color: 'verde'   },
+      { id: 'espacial',    nombre: 'Sentido espacial',                   color: 'morado'  },
+      { id: 'algebraico',  nombre: 'Sentido algebraico',                 color: 'naranja' },
+      { id: 'estocastico', nombre: 'Sentido estocástico',                color: 'rosa'    },
+      { id: 'problemas',   nombre: 'Resolución de problemas y refuerzo', color: 'neutro'  }
+    ];
+
+    const CATALOGO_TIPOS_MATEMATICAS = [
+      // Sentido numérico
+      { nombre: 'Operación en columna', descripcion: 'Sumas o restas colocadas en vertical, una debajo de otra.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Cálculo mental', descripcion: 'Operaciones sencillas para resolver sin cuentas escritas.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Serie numérica', descripcion: 'Completar una secuencia de números siguiendo un patrón.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Comparar números', descripcion: 'Indicar con &lt;, &gt; o = cuál de dos números es mayor.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Detective de números', descripcion: 'Adivinar un número secreto a partir de varias pistas.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Cuenta y colorea', descripcion: 'Contar objetos dibujados y escribir o colorear el resultado.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Resta con barritas', descripcion: 'Restar tachando barritas o palitos dibujados.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Recta numérica', descripcion: 'Situar o saltar números sobre una línea numerada.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Tabla de multiplicar', descripcion: 'Practicar las tablas de multiplicar rellenando resultados.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Reparto en grupos', descripcion: 'Repartir una cantidad de objetos en partes iguales.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Número del día', descripcion: 'Trabajar un mismo número desde varios puntos de vista.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Cuadro numérico (100)', descripcion: 'Ejercicios sobre la tabla del 100, como en el cuaderno de clase.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Rejilla numérica', descripcion: 'Completar huecos en una cuadrícula de números consecutivos.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Colorea según el resultado', descripcion: 'Resolver operaciones y colorear un dibujo según el resultado.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Multiplicación en columna', descripcion: 'Multiplicaciones colocadas en vertical, paso a paso.', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'División en columna', descripcion: 'Divisiones colocadas en vertical, con su proceso completo.', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'Descomposición de números', descripcion: 'Descomponer un número en unidades, decenas, centenas...', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'Números romanos', descripcion: 'Leer, escribir o convertir números romanos.', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'MCD y MCM', descripcion: 'Máximo común divisor y/o mínimo común múltiplo de varios números.', categoria: 'numerico', cursos: ['5º','6º'] },
+
+      // Sentido de la medida
+      { nombre: 'Reloj analógico', descripcion: 'Leer o dibujar horas en un reloj de agujas.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Dinero (euros)', descripcion: 'Contar, sumar o calcular cambios con monedas y billetes.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Medir con regla', descripcion: 'Medir longitudes dibujadas con una regla.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Pesar con balanza', descripcion: 'Comparar o calcular pesos con una balanza dibujada.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Medir capacidad', descripcion: 'Ejercicios sobre litros, medio litro y capacidad de recipientes.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Conversión de unidades', descripcion: 'Convertir entre unidades de longitud, peso, capacidad o tiempo.', categoria: 'medida', cursos: ['3º','4º','5º','6º'] },
+
+      // Sentido espacial
+      { nombre: 'Figuras geométricas', descripcion: 'Identificar, dibujar o clasificar figuras geométricas.', categoria: 'espacial', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Conecta los puntos', descripcion: 'Unir puntos numerados para formar un dibujo.', categoria: 'espacial', cursos: ['1º','2º','3º'] },
+      { nombre: 'Ángulos', descripcion: 'Medir o clasificar ángulos, con o sin transportador.', categoria: 'espacial', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'Coordenadas', descripcion: 'Situar o leer puntos en un plano de coordenadas.', categoria: 'espacial', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'Simetría', descripcion: 'Completar dibujos simétricos respecto a un eje.', categoria: 'espacial', cursos: ['2º','3º','4º','5º','6º'] },
+
+      // Sentido algebraico
+      { nombre: 'Ecuación sencilla', descripcion: 'Resolver ecuaciones básicas de primer grado.', categoria: 'algebraico', cursos: ['3º','4º','5º','6º'] },
+      { nombre: 'Proporcionalidad', descripcion: 'Problemas de proporcionalidad directa (reglas de tres sencillas).', categoria: 'algebraico', cursos: ['5º','6º'] },
+
+      // Sentido estocástico
+      { nombre: 'Tabla de frecuencias', descripcion: 'Recoger y organizar datos en una tabla de frecuencias.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Gráfico de barras', descripcion: 'Leer o construir un gráfico de barras.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Probabilidad', descripcion: 'Estimar o comparar la probabilidad de sucesos.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Gráfico de sectores', descripcion: 'Leer o construir un gráfico circular de sectores ("quesitos").', categoria: 'estocastico', cursos: ['5º','6º'] },
+      { nombre: 'Media, moda y mediana', descripcion: 'Calcular medidas de centralización de un conjunto de datos.', categoria: 'estocastico', cursos: ['5º','6º'] },
+
+      // Resolución de problemas y refuerzo
+      { nombre: 'Problema de matemáticas', descripcion: 'Un problema con enunciado y solución, con o sin dibujo.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Preguntas tipo test', descripcion: 'Preguntas de respuesta múltiple para elegir la opción correcta.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Ejercicio con dibujo', descripcion: 'Un ejercicio apoyado en una ilustración.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Crucigrama matemático', descripcion: 'Crucigrama con pistas y vocabulario matemático.', categoria: 'problemas', cursos: ['2º','3º','4º','5º','6º'] }
+    ];
+
+    let modalTiposAbierto = false;
+
+    // El botón solo cobra sentido con Matemáticas seleccionada (de momento
+    // es la única asignatura con catálogo). El curso siempre tiene un valor
+    // por defecto (1º), así que no hace falta comprobarlo aparte.
+    function actualizarVisibilidadBotonTipos() {
+      const materia = document.getElementById('materia').value;
+      const boton = document.getElementById('btnElegirTipos');
+      const esMatematicas = materia === 'Matemáticas';
+      boton.disabled = !esMatematicas;
+      boton.title = esMatematicas
+        ? 'Ver los tipos de ejercicio disponibles para este curso y añadirlos a las instrucciones'
+        : 'De momento solo disponible para Matemáticas';
+      if (!esMatematicas && modalTiposAbierto) cerrarModalTipos();
+    }
+    document.getElementById('materia').addEventListener('change', actualizarVisibilidadBotonTipos);
+    document.getElementById('curso').addEventListener('change', () => {
+      actualizarVisibilidadBotonTipos();
+      if (modalTiposAbierto) renderContenidoModalTipos();
+    });
+    actualizarVisibilidadBotonTipos();
+
+    function escaparRegExp(texto) {
+      return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function fraseDeTipo(nombre) {
+      return `Incluye un ejercicio de ${nombre}.`;
+    }
+
+    function tipoEstaSeleccionado(nombre) {
+      return document.getElementById('instrucciones').value.includes(fraseDeTipo(nombre));
+    }
+
+    // Añade o quita la frase del tipo en el textarea de instrucciones,
+    // cuidando los espacios sobrantes al quitarla para no dejar huecos
+    // dobles si el docente ha escrito algo más alrededor a mano.
+    function toggleTipoEjercicio(nombre, boton) {
+      const campo = document.getElementById('instrucciones');
+      const frase = fraseDeTipo(nombre);
+      if (tipoEstaSeleccionado(nombre)) {
+        campo.value = campo.value
+          .replace(new RegExp('\\s*' + escaparRegExp(frase)), '')
+          .trim();
+        boton.classList.remove('seleccionado');
+      } else {
+        campo.value = campo.value.trim()
+          ? campo.value.trim() + ' ' + frase
+          : frase;
+        boton.classList.add('seleccionado');
+      }
+    }
+
+    function abrirModalTipos() {
+      document.getElementById('modalTipos').style.display = 'flex';
+      modalTiposAbierto = true;
+      renderContenidoModalTipos();
+    }
+
+    function cerrarModalTipos() {
+      document.getElementById('modalTipos').style.display = 'none';
+      modalTiposAbierto = false;
+    }
+
+    // Pulsar Escape cierra el pop-up, como cualquier modal esperable.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalTiposAbierto) cerrarModalTipos();
+    });
+
+    // Filtra el catálogo por el curso actualmente elegido, lo agrupa por
+    // categoría (solo se muestran las categorías que tengan algún tipo
+    // disponible para ese curso) y sincroniza el estado "seleccionado" de
+    // cada botón contra el contenido actual del textarea, para que si el
+    // docente reabre el pop-up vea de un vistazo qué había marcado ya.
+    function renderContenidoModalTipos() {
+      const curso = document.getElementById('curso').value;
+      const contenedor = document.getElementById('modalTiposContenido');
+      document.getElementById('modalTiposTitulo').textContent = `Elegir tipos de ejercicio · Matemáticas · ${curso} de Primaria`;
+
+      contenedor.innerHTML = '';
+      CATEGORIAS_TIPOS_MATEMATICAS.forEach(categoria => {
+        const tiposDeCategoria = CATALOGO_TIPOS_MATEMATICAS.filter(
+          t => t.categoria === categoria.id && t.cursos.includes(curso)
+        );
+        if (tiposDeCategoria.length === 0) return;
+
+        const seccion = document.createElement('div');
+        seccion.className = 'modal-categoria';
+
+        const titulo = document.createElement('h4');
+        titulo.className = 'modal-categoria-titulo';
+        titulo.textContent = categoria.nombre;
+        seccion.appendChild(titulo);
+
+        const rejilla = document.createElement('div');
+        rejilla.className = 'modal-rejilla-tipos';
+
+        tiposDeCategoria.forEach(t => {
+          const boton = document.createElement('button');
+          boton.type = 'button';
+          boton.className = `tipo-boton tipo-boton--${categoria.color}`;
+          if (tipoEstaSeleccionado(t.nombre)) boton.classList.add('seleccionado');
+          boton.innerHTML = `<span class="tipo-boton-nombre">${t.nombre}</span><span class="tipo-boton-desc">${t.descripcion}</span>`;
+          boton.addEventListener('click', () => toggleTipoEjercicio(t.nombre, boton));
+          rejilla.appendChild(boton);
+        });
+
+        seccion.appendChild(rejilla);
+        contenedor.appendChild(seccion);
+      });
+
+      if (!contenedor.children.length) {
+        contenedor.innerHTML = '<p class="campo-ayuda">No hay tipos de ejercicio específicos para este curso todavía.</p>';
+      }
     }
 
     // Espera a que las fuentes @font-face (Andika/Nunito/Quicksand/Fredoka)

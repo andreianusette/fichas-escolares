@@ -1000,6 +1000,98 @@ siga viendo aunque no haya color.
 
 ---
 
+## 9D. Tercera ampliación — backlog Megapack Kumubox (08/09/2026)
+
+Tres tipos nuevos, identificados comparando el catálogo de Matemáticas con el Megapack 2025 de
+Kumubox (marketplace de recursos de más de 100 docentes de Primaria — ver ROADMAP, entrada del
+08/09/2026, para el origen completo). Mismo criterio de blindaje que el resto del fichero: cada
+uno deja huecos, nunca calcula ni imprime la respuesta real.
+
+### MCD y MCM
+```html
+<div class="mcdmcm-bloque">
+  <div class="mcdmcm-fila">
+    <span class="mcdmcm-letra">a)</span>
+    <span class="mcdmcm-numeros">18 y 24</span>
+    <span class="mcdmcm-etiqueta">MCD:</span><span class="hueco hueco-corto"></span>
+    <span class="mcdmcm-etiqueta">MCM:</span><span class="hueco hueco-corto"></span>
+  </div>
+  <!-- una .mcdmcm-fila por pareja; el hueco de MCD y/o MCM aparece según "pedir" -->
+</div>
+```
+Disponible solo en 5º-6º (`esConMcdMcm`, `server.js`) — currículo real de múltiplos/divisores.
+
+### Descomposición numérica (valor posicional)
+```html
+<div class="descomposicion-numerica-bloque">
+  <div class="descomposicion-bloque">
+    <table class="descomposicion-tabla">
+      <thead><tr><th>UM</th><th>Centenas</th><th>Decenas</th><th>Unidades</th></tr></thead>
+      <tbody><tr><td class="dn-celda"></td><td class="dn-celda"></td><td class="dn-celda"></td><td class="dn-celda"></td></tr></tbody>
+    </table>
+    <p class="descomposicion-suma"><span class="descomposicion-numero">2456</span> = <span class="hueco hueco-corto"></span> + <span class="hueco hueco-corto"></span> + <span class="hueco hueco-corto"></span> + <span class="hueco hueco-corto"></span></p>
+  </div>
+  <!-- una .descomposicion-bloque por número -->
+</div>
+```
+**Blindaje real** (`renderDescomposicionNumerica()`, `renderer-matematicas.js`): tanto las
+ETIQUETAS de columna como el NÚMERO de huecos de la suma se derivan siempre de
+`String(numero).length` — nunca de un dato que Claude tenga que acertar aparte, así que nunca
+puede haber más o menos columnas/sumandos que cifras tiene el número. Etiquetas fijas de
+`ETIQUETAS_VALOR_POSICIONAL` (Unidades → Millones, hasta 7 cifras). Disponible desde 3º
+(`esConDescomposicion`) — antes no hay números de 3+ cifras en el rango del curso.
+
+### Detective de números
+```html
+<div class="detective-numeros-bloque">
+  <div class="detective-caso">
+    <p class="detective-titulo">Caso 1</p>
+    <ol class="detective-pistas"><li>Es impar</li><li>Mayor que 40</li><li>Menor que 50</li></ol>
+    <p class="detective-respuesta">El número secreto es: <span class="hueco hueco-corto"></span></p>
+  </div>
+</div>
+```
+El campo `datos.casos[].numero` viaja en el JSON solo para que Claude compruebe la coherencia de
+sus propias pistas — `renderDetectiveNumeros()` lo ignora por completo, nunca lo imprime.
+Disponible en todos los cursos (`esConDetectiveNumeros`); la dificultad la regula el rango
+numérico del curso y el número de pistas.
+
+---
+
+## 9E. Cuarta ampliación — backlog Megapack Kumubox 2026 (08/09/2026)
+
+Un tipo nuevo, identificado comparando el catálogo de Matemáticas con el Megapack 2026 de Kumubox
+(catálogo de este mismo curso, distinto del 2025 usado en la 9D — ver ROADMAP, entrada del
+08/09/2026, "Quinta ampliación"). A diferencia de los tres tipos de la 9D, aquí el blindaje no es
+"dejar un hueco" — es una conversión determinista que el propio sistema calcula.
+
+### Números romanos
+```html
+<div class="numeros-romanos-bloque">
+  <div class="numeros-romanos-fila">
+    <span class="nr-dado nr-arabigo">14</span>
+    <span class="nr-igual">=</span>
+    <span class="hueco hueco-corto"></span>
+  </div>
+  <div class="numeros-romanos-fila">
+    <span class="nr-dado nr-romano">MCMXCIV</span>
+    <span class="nr-igual">=</span>
+    <span class="hueco hueco-corto"></span>
+  </div>
+  <!-- una .numeros-romanos-fila por número; el "dado" es nr-arabigo (sentido "a_romano")
+       o nr-romano (sentido "a_arabigo") según "datos.sentido" -->
+</div>
+```
+**Blindaje real** (`numeroARomano()`, `renderNumerosRomanos()`, `renderer-matematicas.js`): la
+conversión arábigo→romano es un algoritmo determinista y sin ambigüedad (tabla de sustracción
+estándar M/CM/D/CD/C/XC/L/XL/X/IX/V/IV/I), así que el sistema la calcula siempre por su cuenta —
+Claude NUNCA escribe un numeral romano, solo elige números arábigos (1-3999) y un `datos.sentido`
+("a_romano", "a_arabigo" o "mixto", que alterna por índice de fila). Números fuera de 1-3999 se
+descartan; negativos se normalizan con `Math.abs()` antes del filtro (mismo criterio que
+`descomposicion_numerica`). Disponible desde 3º (`esConNumerosRomanos`) — currículo real.
+
+---
+
 ## 10. Pie de página
 
 ```html
@@ -1342,3 +1434,168 @@ Verificado con Playwright (color y B/N): ficha de regresión con las 20
 letras del catálogo completo, comprobando que la rejilla pequeña tiene pauta
 continua para cada una (incluidas mayúsculas) y que la "o"/"O" grande ya es
 visible.
+
+---
+
+## 14. Relacionar, clasificar sílabas y acentuación — Lengua Castellana (08/09/2026)
+
+Tres tipos nuevos, identificados comparando el catálogo de Lengua con el Megapack 2025 de Kumubox
+(ver ROADMAP, entrada del 08/09/2026, y sección 9D de este mismo documento para el origen y el
+criterio general). A diferencia de los tipos de Matemáticas de esa misma tanda, aquí el blindaje
+es principalmente de MAQUETADO (el contenido lingüístico en sí — número real de sílabas, si una
+palabra lleva tilde — no se verifica por código, igual que ya ocurre con `crucigrama` en
+Matemáticas: exigiría reproducir reglas fonéticas/ortográficas completas del español sin margen
+de error, así que la corrección del contenido la garantiza el prompt, no el renderizador).
+
+### Relacionar columnas
+```html
+<div class="relacionar-bloque">
+  <div class="relacionar-columna">
+    <div class="relacionar-fila-a">
+      <span class="relacionar-hueco"></span>
+      <span class="relacionar-num">1.</span>
+      <span class="relacionar-texto">Rápido</span>
+    </div>
+    <!-- una .relacionar-fila-a por elemento de columnaA -->
+  </div>
+  <div class="relacionar-columna">
+    <div class="relacionar-fila-b">
+      <span class="relacionar-letra">a)</span>
+      <span class="relacionar-texto">Enorme</span>
+    </div>
+    <!-- una .relacionar-fila-b por elemento de columnaB, YA DESORDENADA -->
+  </div>
+</div>
+```
+**Blindaje real** (`renderRelacionar()`, `renderer-lengua.js`): `datos.columnaB[i]` es siempre la
+pareja correcta de `datos.columnaA[i]` en el JSON (mismo índice), pero el orden que se IMPRIME en
+la columna B nunca es ese — el propio código lo desordena con una baraja determinista
+(`barajaDeterminista()`, sembrada con un hash del propio contenido: misma entrada → mismo orden de
+salida, para que la ficha no cambie entre vista previa e impresión) y, si el azar deja algún
+elemento en su posición original, lo intercambia con el siguiente para que ninguna fila "regale"
+la respuesta. Disponible en todos los cursos.
+
+### Clasificar sílabas
+```html
+<!-- modo "contar" -->
+<div class="clasificar-silabas-bloque">
+  <div class="cs-fila-contar">
+    <span class="cs-palabra">mariposa</span>
+    <span class="hueco hueco-corto"></span>
+  </div>
+</div>
+<!-- modo "clasificar" -->
+<div class="clasificar-silabas-bloque">
+  <div class="cs-fila-clasificar">
+    <span class="cs-palabra">catorce</span>
+    <span class="cs-casillas">
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Mono</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Bi</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Tri</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Poli</label>
+    </div>
+  </div>
+</div>
+```
+Reutiliza `.casilla-test` (la misma casilla cuadrada ya usada en `.opciones-test`, sección 4 de
+este documento) para las 4 categorías fijas del modo "clasificar". Disponible solo en 1º-3º
+(`esConClasificarSilabas`, `server.js`) — conciencia silábica, currículo de cursos iniciales.
+
+### Acentuación / tildes
+```html
+<div class="acentuacion-bloque">
+  <div class="acentuacion-fila">
+    <span class="acentuacion-silabas">ar·bol</span>
+    <span class="hueco hueco-largo"></span>
+  </div>
+</div>
+```
+La palabra se imprime SIEMPRE sin tilde, dividida en sílabas con `datos.palabras[].silabas`
+(unidas con "·" por el propio código) — el sistema nunca decide ni imprime dónde va la tilde,
+solo deja el hueco para que el alumno reescriba la palabra ya acentuada. Disponible desde 3º
+(`esConAcentuacion`) — currículo real de reglas de acentuación (agudas/llanas/esdrújulas).
+
+**Verificación de los 6 tipos de esta tanda (Matemáticas y Lengua)**: `node --check` en los tres
+ficheros tocados, render unitario con datos de ejemplo (incluyendo casos límite: arrays vacíos,
+tipo desconocido cayendo en `contenido_libre`) y capturas Playwright en color y en blanco y negro
+sobre una ficha completa, con el `style.css` real del proyecto. **Pendiente, igual que toda
+tanda nueva**: confirmar con una ficha real generada por Claude a través de la API (no solo con
+datos simulados a mano).
+
+---
+
+## 15. Categoría gramatical, formación de palabras y elección ortográfica — Lengua Castellana
+(08/09/2026)
+
+Tres tipos nuevos más, identificados comparando el catálogo de Lengua con el Megapack 2026 de
+Kumubox (catálogo de este mismo curso, distinto del 2025 usado en la sección 14 — ver ROADMAP,
+Fase 9, entrada del 08/09/2026 para el origen completo). Mismo criterio de blindaje que la sección
+14: el contenido lingüístico en sí (categoría gramatical real, clasificación de la palabra, letra
+correcta) no se verifica por código — lo garantiza Claude; el código solo estructura el maquetado.
+
+### Categoría gramatical
+```html
+<div class="categoria-gramatical-bloque">
+  <div class="cg-fila">
+    <p class="cg-frase">El perro <span class="cg-resaltada">grande</span> corre por el parque.</p>
+    <span class="cg-palabra">grande</span>
+    <span class="cg-casillas">
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Sustantivo</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Verbo</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Adjetivo</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Determinante</label>
+    </span>
+  </div>
+  <!-- una .cg-fila por item -->
+</div>
+```
+**Blindaje real** (`renderCategoriaGramatical()`, `renderer-lengua.js`): la palabra objetivo se
+resalta dentro de `datos.items[].frase` por coincidencia EXACTA de texto (`String.indexOf`, sin
+regex) — si `datos.items[].palabra` no aparece tal cual dentro de `frase` (mayúsculas/minúsculas
+incluidas), se imprime la frase sin resaltar en vez de fallar; si no hay `frase`, esa línea se
+omite y solo se imprime la palabra suelta. Reutiliza `.casilla-test`/`.cs-casilla-item` (sección 4
+y 9C) para las 4 categorías fijas. Disponible desde 3º (`esConCategoriaGramatical`).
+
+### Formación de palabras
+```html
+<div class="clasificar-silabas-bloque">
+  <div class="cs-fila-clasificar">
+    <span class="cs-palabra">florero</span>
+    <span class="cs-casillas">
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Simple</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Derivada</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>Compuesta</label>
+    </span>
+  </div>
+</div>
+```
+Reutiliza literalmente las clases de `clasificar_silabas` (sección 9C) — misma estructura visual,
+solo cambian las 3 categorías (Simple/Derivada/Compuesta en vez de Mono/Bi/Tri/Poli). Sin CSS
+propio. Disponible desde 4º (`esConFormacionPalabras`).
+
+### Elección ortográfica
+```html
+<div class="eleccion-ortografica-bloque">
+  <div class="eo-fila">
+    <span class="eo-palabra">esta<span class="hueco hueco-corto eo-hueco-inline"></span>a</span>
+    <span class="eo-opciones">
+      <label class="cs-casilla-item"><span class="casilla-test"></span>b</label>
+      <label class="cs-casilla-item"><span class="casilla-test"></span>v</label>
+    </span>
+  </div>
+  <!-- si "datos.items[].opciones" está vacío, .eo-opciones no se imprime -->
+</div>
+```
+**Blindaje real** (`renderEleccionOrtografica()`, `renderer-lengua.js`): `datos.items[].palabra`
+lleva un único `"_"` en el punto exacto de la letra a decidir — el código lo divide por ese
+carácter (soporta más de un `"_"` en la misma palabra, cada uno se convierte en su propio hueco) e
+inserta `<span class="hueco hueco-corto eo-hueco-inline">` en su lugar; una palabra sin `"_"` se
+descarta (esa fila no se imprime). `datos.items[].opciones` es opcional (entre 0 y 4 alternativas).
+Disponible desde 2º (`esConEleccionOrtografica`).
+
+**Verificación de los 3 tipos de esta tanda**: `node --check`, render unitario con datos de
+ejemplo (incluyendo casos límite: palabra objetivo no encontrada en la frase, item sin frase,
+palabra sin `"_"`, múltiples `"_"` en la misma palabra, `opciones` vacío) y capturas Playwright en
+color y en blanco y negro sobre una ficha completa junto con `numeros_romanos` (sección 9E).
+**Pendiente, igual que toda tanda nueva**: confirmar con una ficha real generada por Claude a
+través de la API.

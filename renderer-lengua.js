@@ -693,9 +693,225 @@ function renderContenidoLibre(datos = {}) {
   return typeof datos.html === 'string' ? datos.html : '';
 }
 
+// ── Relacionar columnas (backlog Megapack Kumubox, 08/09/2026) ─────────
+// Emparejar cada elemento de la columna A (sinónimos, antónimos, frases
+// hechas, sustantivo↔adjetivo...) con el que le corresponde en la columna
+// B. Blindaje: el orden de la columna B que se IMPRIME nunca es el mismo
+// que el de la columna A que manda Claude (si las dos llegaran ya
+// emparejadas en el mismo orden, el ejercicio se resolvería solo mirando
+// la fila) — el propio código la desordena con una baraja determinista
+// (misma entrada → mismo orden de salida, para que la ficha no cambie
+// entre una vista previa y la impresión) y, si el azar deja algún
+// elemento en su fila original, lo intercambia con el siguiente.
+function hashTexto(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function barajaDeterminista(n, semilla) {
+  const indices = Array.from({ length: n }, (_, i) => i);
+  let s = (semilla % 2147483647) || 1;
+  if (s < 0) s += 2147483646;
+  const siguiente = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(siguiente() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  for (let i = 0; i < n; i++) {
+    if (indices[i] === i && n > 1) {
+      const j = (i + 1) % n;
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+  }
+  return indices;
+}
+
+function renderRelacionar(datos) {
+  const columnaA = Array.isArray(datos.columnaA) ? datos.columnaA.slice(0, 10) : [];
+  const columnaB = Array.isArray(datos.columnaB) ? datos.columnaB.slice(0, 10) : [];
+  const n = Math.min(columnaA.length, columnaB.length);
+  if (n < 2) return '';
+
+  const semilla = hashTexto(columnaA.slice(0, n).join('|') + '#' + columnaB.slice(0, n).join('|')) + 1;
+  const orden = barajaDeterminista(n, semilla);
+
+  const filasA = columnaA.slice(0, n).map((texto, i) => `
+    <div class="relacionar-fila-a">
+      <span class="relacionar-hueco"></span>
+      <span class="relacionar-num">${i + 1}.</span>
+      <span class="relacionar-texto">${escapeHtml(texto)}</span>
+    </div>`).join('');
+
+  const filasB = orden.map((origen, posicion) => `
+    <div class="relacionar-fila-b">
+      <span class="relacionar-letra">${String.fromCharCode(97 + posicion)})</span>
+      <span class="relacionar-texto">${escapeHtml(columnaB[origen])}</span>
+    </div>`).join('');
+
+  return `<div class="relacionar-bloque">
+    <div class="relacionar-columna">${filasA}</div>
+    <div class="relacionar-columna">${filasB}</div>
+  </div>`;
+}
+
+// ── Clasificar sílabas (backlog Megapack Kumubox, 08/09/2026) ──────────
+// Practicar conteo/clasificación silábica de una lista de palabras. El
+// sistema NO calcula el número real de sílabas de cada palabra (exigiría
+// reproducir en código las reglas de división silábica del español, sin
+// margen de error) — como en "crucigrama", la corrección del contenido la
+// garantiza Claude; el código solo estructura el maquetado. "modo":
+// "contar" deja un hueco numérico por palabra; "clasificar" añade 4
+// casillas (Mono/Bi/Tri/Poli) para que el alumno marque una.
+function renderClasificarSilabas(datos) {
+  const palabras = Array.isArray(datos.palabras) ? datos.palabras.slice(0, 12) : [];
+  if (palabras.length === 0) return '';
+  const modo = datos.modo === 'clasificar' ? 'clasificar' : 'contar';
+
+  if (modo === 'clasificar') {
+    const categorias = ['Mono', 'Bi', 'Tri', 'Poli'];
+    const filas = palabras.map(p => {
+      const casillas = categorias.map(c => `
+        <label class="cs-casilla-item"><span class="casilla-test"></span>${c}</label>`).join('');
+      return `<div class="cs-fila-clasificar">
+        <span class="cs-palabra">${escapeHtml(p)}</span>
+        <span class="cs-casillas">${casillas}</span>
+      </div>`;
+    }).join('');
+    return `<div class="clasificar-silabas-bloque">${filas}</div>`;
+  }
+
+  const filas = palabras.map(p => `
+    <div class="cs-fila-contar">
+      <span class="cs-palabra">${escapeHtml(p)}</span>
+      <span class="hueco hueco-corto"></span>
+    </div>`).join('');
+  return `<div class="clasificar-silabas-bloque">${filas}</div>`;
+}
+
+// ── Acentuación / tildes (backlog Megapack Kumubox, 08/09/2026) ────────
+// El alumno reescribe cada palabra colocando la tilde donde corresponda.
+// Se imprime la palabra ya separada en sílabas (con "·") pero SIN ninguna
+// tilde — el sistema nunca decide ni imprime dónde va (exigiría
+// reproducir en código las reglas completas de acentuación española sin
+// margen de error); en su lugar deja un hueco para que el alumno escriba
+// la palabra ya acentuada correctamente.
+function renderAcentuacion(datos) {
+  const palabras = Array.isArray(datos.palabras) ? datos.palabras.slice(0, 14) : [];
+  if (palabras.length === 0) return '';
+
+  const filas = palabras.map(p => {
+    const silabas = Array.isArray(p.silabas) && p.silabas.length > 0
+      ? p.silabas.map(s => escapeHtml(s)).join('·')
+      : escapeHtml(p.palabra || '');
+    return `<div class="acentuacion-fila">
+      <span class="acentuacion-silabas">${silabas}</span>
+      <span class="hueco hueco-largo"></span>
+    </div>`;
+  }).join('');
+
+  return `<div class="acentuacion-bloque">${filas}</div>`;
+}
+
+// ── Categoría gramatical (backlog Megapack Kumubox 2026, 08/09/2026) ───
+// El alumno identifica la categoría gramatical (sustantivo/verbo/adjetivo/
+// determinante) de una palabra dentro de una frase. El sistema NO decide
+// la categoría correcta (exigiría análisis morfosintáctico completo, con
+// ambigüedades reales según el contexto, ej. "canto" sustantivo o verbo) —
+// Claude garantiza el contenido; el código solo resalta la palabra objetivo
+// dentro de la frase (por coincidencia exacta de texto) y estructura las 4
+// casillas de respuesta, mismo patrón que "clasificar_silabas" en modo
+// "clasificar".
+const CATEGORIAS_GRAMATICALES = ['Sustantivo', 'Verbo', 'Adjetivo', 'Determinante'];
+
+function renderCategoriaGramatical(datos) {
+  const items = Array.isArray(datos.items) ? datos.items.slice(0, 12) : [];
+  if (items.length === 0) return '';
+
+  const filas = items.map(it => {
+    const palabra = String(it.palabra || '').trim();
+    if (!palabra) return '';
+    const frase = String(it.frase || '').trim();
+    // Resalta la palabra objetivo dentro de la frase con una búsqueda de
+    // texto exacta (sin regex) — si no aparece tal cual, se imprime la
+    // frase sin resaltar en vez de fallar.
+    let fraseHtml = '';
+    if (frase) {
+      const idx = frase.indexOf(palabra);
+      fraseHtml = idx === -1
+        ? escapeHtml(frase)
+        : `${escapeHtml(frase.slice(0, idx))}<span class="cg-resaltada">${escapeHtml(palabra)}</span>${escapeHtml(frase.slice(idx + palabra.length))}`;
+    }
+    const casillas = CATEGORIAS_GRAMATICALES.map(c => `
+      <label class="cs-casilla-item"><span class="casilla-test"></span>${c}</label>`).join('');
+    return `<div class="cg-fila">
+      ${fraseHtml ? `<p class="cg-frase">${fraseHtml}</p>` : ''}
+      <span class="cg-palabra">${escapeHtml(palabra)}</span>
+      <span class="cg-casillas">${casillas}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="categoria-gramatical-bloque">${filas}</div>`;
+}
+
+// ── Formación de palabras (backlog Megapack Kumubox 2026, 08/09/2026) ──
+// Clasificar palabras en simples/derivadas/compuestas. Mismo patrón que
+// "clasificar_silabas" en modo "clasificar" (reutiliza directamente sus
+// clases CSS, solo cambian las 3 categorías) — el sistema no verifica la
+// clasificación real, la garantiza Claude.
+const CATEGORIAS_FORMACION_PALABRAS = ['Simple', 'Derivada', 'Compuesta'];
+
+function renderFormacionPalabras(datos) {
+  const palabras = Array.isArray(datos.palabras) ? datos.palabras.slice(0, 14) : [];
+  if (palabras.length === 0) return '';
+
+  const filas = palabras.map(p => {
+    const casillas = CATEGORIAS_FORMACION_PALABRAS.map(c => `
+      <label class="cs-casilla-item"><span class="casilla-test"></span>${c}</label>`).join('');
+    return `<div class="cs-fila-clasificar">
+      <span class="cs-palabra">${escapeHtml(p)}</span>
+      <span class="cs-casillas">${casillas}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="clasificar-silabas-bloque">${filas}</div>`;
+}
+
+// ── Elección ortográfica (backlog Megapack Kumubox 2026, 08/09/2026) ───
+// Completar una palabra eligiendo la letra correcta entre un cierre de
+// opciones (b/v, g/j, h, ll/y...). El sistema NUNCA decide qué opción es
+// correcta — Claude la garantiza; el código solo separa la palabra en el
+// punto marcado con "_" e imprime el hueco y las opciones dadas.
+function renderEleccionOrtografica(datos) {
+  const items = Array.isArray(datos.items) ? datos.items.slice(0, 16) : [];
+  if (items.length === 0) return '';
+
+  const filas = items.map(it => {
+    const palabra = String(it.palabra || '');
+    if (!palabra.includes('_')) return '';
+    const palabraHtml = palabra.split('_').map(p => escapeHtml(p))
+      .join('<span class="hueco hueco-corto eo-hueco-inline"></span>');
+    const opciones = Array.isArray(it.opciones) ? it.opciones.slice(0, 4) : [];
+    const casillas = opciones.map(o => `
+      <label class="cs-casilla-item"><span class="casilla-test"></span>${escapeHtml(String(o))}</label>`).join('');
+    return `<div class="eo-fila">
+      <span class="eo-palabra">${palabraHtml}</span>
+      ${casillas ? `<span class="eo-opciones">${casillas}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="eleccion-ortografica-bloque">${filas}</div>`;
+}
+
 const RENDERERS_LENGUA_POR_TIPO = {
   trazo_letra: (datos) => renderTrazoLetra(datos),
   contenido_libre: (datos) => renderContenidoLibre(datos),
+  relacionar: (datos) => renderRelacionar(datos),
+  clasificar_silabas: (datos) => renderClasificarSilabas(datos),
+  acentuacion: (datos) => renderAcentuacion(datos),
+  categoria_gramatical: (datos) => renderCategoriaGramatical(datos),
+  formacion_palabras: (datos) => renderFormacionPalabras(datos),
+  eleccion_ortografica: (datos) => renderEleccionOrtografica(datos),
 };
 
 function renderEjercicioLengua(ejercicio, indice) {
