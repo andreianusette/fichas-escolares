@@ -914,11 +914,24 @@ const RENDERERS_LENGUA_POR_TIPO = {
   eleccion_ortografica: (datos) => renderEleccionOrtografica(datos),
 };
 
+// Cabecera de sección (22/09/2026): mismo formato que Matemáticas — título
+// corto opcional ("titulo") + instrucción pequeña a la derecha. Sin "titulo",
+// la cabecera sale exactamente como antes. (Copiada y no importada de
+// renderer-matematicas.js: cada renderer de asignatura es autocontenido.)
+function cabeceraEjercicioLengua(numero, titulo, instruccion) {
+  const tituloLimpio = typeof titulo === 'string' ? titulo.trim().slice(0, 40) : '';
+  if (!tituloLimpio) {
+    return `<p class="enunciado"><span class="numero-ejercicio">${numero}</span><span class="texto-enunciado">${escapeHtml(instruccion || '')}</span></p>`;
+  }
+  const textoInstruccion = String(instruccion || '').trim();
+  return `<p class="enunciado enunciado-con-titulo"><span class="numero-ejercicio">${numero}</span><span class="titulo-ejercicio">${escapeHtml(tituloLimpio)}</span>${textoInstruccion ? `<span class="texto-enunciado instruccion-ejercicio">${escapeHtml(textoInstruccion)}</span>` : ''}</p>`;
+}
+
 function renderEjercicioLengua(ejercicio, indice) {
   const render = RENDERERS_LENGUA_POR_TIPO[ejercicio.tipo] || RENDERERS_LENGUA_POR_TIPO.contenido_libre;
   const contenido = render(ejercicio.datos || {});
   return `<div class="ejercicio">
-    <p class="enunciado"><span class="numero-ejercicio">${indice + 1}</span><span class="texto-enunciado">${escapeHtml(ejercicio.enunciado || '')}</span></p>
+    ${cabeceraEjercicioLengua(indice + 1, ejercicio.titulo, ejercicio.enunciado)}
     ${contenido}
   </div>`;
 }

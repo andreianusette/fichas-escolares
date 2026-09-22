@@ -1,6 +1,56 @@
 # ROADMAP DEL PROYECTO — Generador de Fichas Escolares
 
-*Última actualización (08/09/2026, misma tarde, tras el análisis del Megapack 2026): el usuario
+*Última actualización (22/09/2026, última hora): decisiones del usuario sobre lo que quedó pendiente
+del formato nuevo — (1) **relleno gris muy suave en los iconos**: implementado (capa de relleno
+`#ededed` bajo el trazo, solo en formas cerradas; provisional hasta que los SVG se sustituyan por las
+ilustraciones de Gemini del banco de imágenes); (2) **frases de ánimo y caritas**: se dejan para
+cuando se conecte la base de datos de imágenes, todo junto, y en ese momento **se retirará la regla
+"sin autoevaluación ni caritas"**; (3) **título de la ficha**: se queda como está, cuanto más corto y
+conciso mejor (se descarta la cabecera grande tipo "FICHA DE SUMAS"). Ver Fase 4, "Formato de sección
+con marco", apartado "Decisiones del usuario".
+
+Antes de esto (22/09/2026, noche): nueva referencia visual suelta — una "Ficha de sumas" de
+1º muy cuidada, en blanco y negro (`Docs/referencias-visuales/ficha_sola_120.pdf`). Su contenido ya
+estaba cubierto, pero se adoptó su **formato para TODAS las fichas** (Fase 4, Opción A): cada
+ejercicio pasa a ser una sección con marco redondeado; cabecera con número en círculo + **título
+corto** ("Cuenta y suma", campo nuevo opcional "titulo" en Matemáticas y Lengua) + instrucción en
+pequeño a la derecha; el cálculo mental pasa a **tarjetas en rejilla** con casilla grande. Además, un
+tipo nuevo `operacion_dibujos` (suma/resta con dibujos en horizontal, 1º-2º — **56 renderers**) y el
+modo `"dibujos"` de `mismo_resultado` (unir montones de dibujos con su suma). Ver Fase 4, "Formato de
+sección con marco". Validado igual que la tanda anterior; pendiente de ficha real vía API.
+
+Antes de esto (22/09/2026, tarde): el usuario subió dos PDFs escaneados de fichas reales de
+Matemáticas de 1º, 1ª evaluación (`bloque_1.pdf`, 57 págs., y `bloque_2_mate_1_1a_evaluación.pdf`,
+44 págs. — mayoritariamente Santillana Refuerzo/Ampliación/Plan de mejora, más Educaplanet, Aulapt y
+fichas propias de un CEIP), pidiendo (1) tipos de ejercicio nuevos y (2) aprender de su aspecto
+visual. Análisis completo guardado en el Project (`ANALISIS_PDFS_BLOQUE1_BLOQUE2.md`). Implementada
+la **Octava ampliación** (Fase 3): 11 tipos nuevos — los 44 renderers pasan a ser **55** — más 10
+modos visuales nuevos sobre tipos existentes (marcos temáticos y arcos de salto en las series,
+problema razonado paso a paso, tabla de sumar/restar en libreta, escena revuelta para contar,
+pictograma, reloj digital/en palabras, estimar capacidad, colocar en columna con casillas D|U...).
+Hallazgo visual principal, anotado en la Fase 4: casi todas esas fichas son en blanco y negro — la
+vistosidad viene de las formas (vagones, casitas, arcos, casillas redondeadas), no del color, y buena
+parte es alcanzable con CSS/SVG propio. Validado con `node --check`, render con casos límite,
+regresión byte a byte de los tipos existentes, Playwright color/B-N, arranque real del servidor y
+selector visual — pendiente, como toda tanda nueva, confirmar con fichas reales vía API.
+
+Antes de esto (19/09/2026): retomando el catálogo de tipos de ejercicio pendientes de una
+sesión anterior (proyecto "IMAGENES FICHAS"), que proponía empezar por el reloj analógico como
+primer candidato "nuevo tipo de imagen", se comprobó primero (paso 1 de la skill
+`fichas-nuevo-tipo-ejercicio`) que ese resumen estaba desactualizado: `reloj_analogico`,
+`dinero_euros`, `pesar_con_balanza`, `medir_capacidad` y `medir_con_regla` ya estaban todos
+implementados y validados. Se preguntó al usuario por cuál de los candidatos genuinamente
+pendientes seguir y se eligió **cuerpos geométricos 3D** — donde, tras la misma comprobación, solo
+faltaban los **desarrollos planos** (identificar/propiedades/clasificar ya estaban cubiertos por
+`figura_geometrica`). Se añadió un quinto modo, `"desarrollo"`, al tipo `figura_geometrica`
+existente (3º-6º), con un catálogo cerrado de 5 desarrollos planos (`cubo`, `prisma`, `piramide`,
+`cono`, `cilindro` — la `esfera` se excluye a propósito) reutilizando el patrón de "relacionar dos
+columnas" de Lengua. Ver detalle completo en la Fase 3, "Sexta ampliación". Validado con
+`node --check`, render unitario con casos límite y Playwright color/B-N — pendiente, como toda
+tanda nueva, confirmar con una ficha real vía API. Queda pendiente el **reloj digital**, del mismo
+catálogo original, no abordado en esta tanda.
+
+Antes de esto (08/09/2026, misma tarde, tras el análisis del Megapack 2026): el usuario
 planteó una duda de UX que no estaba recogida en el roadmap — con 41 tipos de ejercicio ya
 implementados en Matemáticas, el docente no tiene forma de saber cuáles existen al rellenar
 "Instrucciones especiales". Tras valorar tres caminos, se decidió un pop-up modal con botones (uno
@@ -1017,6 +1067,123 @@ array vacío, números fuera de rango 1-3999 filtrados, negativos normalizados c
 negro. **Pendiente, igual que toda tanda nueva**: confirmar con una ficha real generada por Claude
 a través de la API.
 
+### Sexta ampliación (19/09/2026): modo "desarrollo" en figura_geometrica
+
+Origen: retomando el catálogo del Megapack Kumubox (sesión previa, proyecto "IMAGENES FICHAS")
+que había señalado "relojes (analógico y digital)", "monedas y billetes", "básculas/balanzas",
+"jarras/botellas con nivel", "regla graduada" y "cuerpos geométricos 3D y sus desarrollos planos"
+como candidatos a nuevo tipo de imagen. Antes de implementar nada (paso 1 de la skill
+`fichas-nuevo-tipo-ejercicio`: comparar contra lo ya implementado para evitar duplicados), se
+revisó el catálogo actual y se confirmó que **casi todos esos candidatos ya estaban cubiertos**:
+`reloj_analogico` (validado 1º-4º desde el 30/08), `dinero_euros`, `pesar_con_balanza`,
+`medir_capacidad` y `medir_con_regla` ya existían. De "cuerpos geométricos 3D", identificar/
+propiedades/clasificar YA estaban cubiertos por `figura_geometrica` (catálogo `FIGURAS_3D` con
+caras/aristas/vértices) — el hueco real, confirmado también contra la auditoría del sentido
+espacial (07/09/2026, sección "B — el hueco más grande de los 6 sentidos"), era exclusivamente
+los **desarrollos planos** (relacionar un cuerpo con la figura que resulta al desplegarlo).
+
+Se añadió un quinto modo, `"desarrollo"`, al tipo de ejercicio ya existente `figura_geometrica`
+(no un tipo nuevo — es la misma familia, mismo catálogo `FIGURAS_3D`), disponible 3º-6º (se
+retrasa respecto a las figuras 3D sueltas, disponibles desde 2º, porque emparejar cuerpo↔desarrollo
+exige ya cierta visualización espacial). Nuevo catálogo cerrado `DESARROLLOS_3D` en
+`renderer-matematicas.js` con el desarrollo plano "de libro de texto" de los 5 cuerpos
+DESARROLLABLES: `cubo` (cruz de 6 cuadrados), `prisma` (cruz de rectángulos), `piramide` (cuadrado
+central + 4 triángulos), `cono` (círculo + sector circular) y `cilindro` (rectángulo + 2 círculos).
+La `esfera` se excluye a propósito y de forma permanente (no tiene desarrollo plano real sin
+deformarla) — si Claude la incluye por error en `datos.cuerpos`, se filtra en silencio igual que
+cualquier nombre no reconocido, mismo criterio que el resto de blindajes del fichero.
+
+Formato del ejercicio: dos columnas para relacionar cuerpo↔desarrollo (icono, no texto), copiando
+el patrón ya existente `renderRelacionar` de Lengua — incluida la baraja determinista (`hashText`
++ generador congruencial lineal con semilla fija, sin `Math.random`, para que el orden de la
+columna de desarrollos no cambie entre vista previa e impresión y nunca coincida fila a fila con
+la columna de cuerpos). Las funciones se copiaron en vez de importarse desde `renderer-lengua.js`,
+siguiendo la convención ya existente del proyecto de que cada renderizador de asignatura es
+autocontenido (ningún `import` cruzado entre los dos ficheros).
+
+Validado: `node --check` en los tres ficheros tocados (`renderer-matematicas.js`, `server.js`,
+`public/style.css`); render unitario con datos simulados y casos límite (2-4 cuerpos válidos,
+`esfera` incluida y filtrada, solo `esfera` → no imprime nada, array vacío, `datos` vacío,
+`datos.cuerpos` no-array, duplicados y nombres no reconocidos, más de 4 cuerpos recortados a 4);
+capturas Playwright en color y en blanco y negro sobre una ficha completa con el `style.css` real
+(el desarrollo del cono necesitó un segundo ajuste — el primer cálculo del sector circular daba
+una forma deforme; corregido calculando los dos puntos del arco a 150°/-150° desde el centro,
+mismo método que `svgAngulo`). Documentación del contrato HTML/CSS en
+`REFERENCIA_CLASES_HTML_FICHAS.md`, sección 8tredecies (ampliada). **Pendiente, igual que toda
+tanda nueva**: confirmar con una ficha real generada por Claude a través de la API — y, con eso,
+queda pendiente todavía en el sentido de la medida el **reloj digital** (candidato del mismo
+catálogo, no abordado en esta tanda).
+
+### Octava ampliación (22/09/2026): 11 tipos nuevos + 10 modos visuales (fichas reales de 1º)
+
+Origen: dos PDFs escaneados de fichas reales de aula de 1º (1ª evaluación), subidos por el usuario
+con dos peticiones: encontrar tipos de ejercicio nuevos y aprender de su aspecto visual. Paso 1 de la
+skill `fichas-nuevo-tipo-ejercicio`: cruzado contra `RENDERERS_POR_TIPO` real (44 tipos) — mucho de lo
+que aparece ya estaba cubierto (pirámide, laberinto de operaciones, recta numérica, tabla 0-99,
+colorea según el resultado, reloj, problemas...). Análisis completo y catálogo visual en el Project,
+`ANALISIS_PDFS_BLOQUE1_BLOQUE2.md`. El usuario pidió implementar todas las tandas propuestas y
+también "los nuevos modos visuales de plantear un ejercicio aunque el código por detrás sea el mismo".
+**Los 44 renderers pasan a ser 55.** Todos con blindaje (b) — el código calcula o verifica, Claude
+solo elige números de partida:
+
+| Tipo | Cursos | Blindaje |
+|------|--------|----------|
+| `abaco` (leer / representar) | 1º-3º | Bolitas por varilla derivadas de las cifras. |
+| `barritas_decenas` (contar / dibujar / unir) | 1º-2º | Barritas y cubitos derivados del número. |
+| `numero_en_letras` (a_letras / a_numero / mixto / unir) | 1º-4º | `numeroALetras()` determinista 0-999.999 (dieciséis, veintidós, veintiún mil, ciento un mil...). Claude nunca escribe las palabras. |
+| `anterior_posterior` (vecinos / anterior / posterior, paso) | 1º-3º | Números por debajo de 0 descartados. |
+| `casita_descomposicion` (casita / árbol) | 1º-3º | El número de arriba se recalcula siempre como suma de las partes. |
+| `maquina_operador` (doble, triple, mitad, +N, −N, ×N, :N; flechas / tabla) | 1º-4º | Descarta mitades de impares, restas bajo 0 y divisiones no exactas. |
+| `clasificar_numeros` (rodear con clave de lápices / escribir N números) | 1º-4º | El código escribe el texto de cada condición y comprueba qué números la cumplen; reduce casillas si no hay suficientes. |
+| `mismo_resultado` (resultado / unir parejas / diana) | 1º-4º | Evaluador aritmético propio (enteros, + − × :, sin `eval`); calcula resultados y descarta parejas/dianas incoherentes. |
+| `operacion_cifras_ocultas` | 2º-6º | Resultado calculado; como mucho una cifra oculta por columna → siempre solución única. |
+| `suma_asociativa` (primeros / decena, ejemplo resuelto) | 1º-3º | Agrupación y ejemplo calculados por código. |
+| `camino_resultados` | 1º-4º | Camino único generado por código (solo derecha/abajo); distractores fuera de toda la progresión. |
+
+**Modos visuales nuevos sobre tipos existentes** (mismo tipo, otra forma de presentarlo):
+- `serie_numerica`: `"marco"` (catálogo cerrado `MARCOS_TEMATICOS`: caja, casita, vagón, hoja, globo,
+  nube, estrella) y `"arcos": true` (arco con el salto encima de cada pareja; el salto lo deduce el
+  código de los números visibles y, si no forman progresión exacta, no se dibuja).
+- `problema`: `"modo": "razonado"` (formato Santillana Refuerzo: subraya la pregunta → datos y
+  dibújalos → "hay que averiguar el total / la diferencia" → sumar/restar → rodea la operación
+  correcta entre a+b y a−b, construidas por código → frase de solución) y `"modo": "inventar"`.
+  Encabezado fijo propio para cada modo. 1º-3º.
+- `operacion_vertical`: `"colocar": true` — operación en horizontal + rejilla vacía con cabecera D|U
+  (1º-3º; en 1º-2º no se parte en ejercicios sueltos).
+- `tabla_multiplicar`: `"operacion": "suma"/"resta"` — tabla del +N / −N en formato libreta de anillas.
+- `tabla_frecuencia` (iconos): `"revuelto": true` — escena desordenada determinista para contar por tipos.
+- `grafico_barras`: `"modo": "pictograma"` (cada icono vale N, con clave). 1º-4º.
+- `reloj_analogico`: `"respuesta": "digital"/"palabras"` en modo leer; `"mostrar": "digital"/"palabras"`
+  en modo dibujar (hora objetivo calculada por `horaEnPalabras()`/`relojDigital()`).
+- `medir_capacidad`: `"modo": "estimar"` — más/menos de 1 litro con catálogo cerrado
+  `RECIPIENTES_ESTIMAR` (cuchara, vaso, taza, yogur, cubo, bañera, regadera, garrafa) cuya respuesta
+  ya está en el código.
+
+Piezas comunes nuevas: `.casilla-respuesta` (casilla redondeada en vez de raya), `.du-cabecera`
+(pastilla D|U), `.linea-pauta`, rejilla común de "unir con flechas" (`unirRejilla()`, filas alineadas
+aunque las piezas midan distinto) y clave de lápices de colores (`svgLapiz()`; en B/N el nombre del
+color escrito al lado es lo que manda).
+
+Integración: gating por curso en `construirSystemPromptMatematicas()` (flags `esConAbaco`, etc.) con
+un bloque de prompt por tipo; equivalencia en el prompt entre los nombres del selector que son MODOS
+(no tipos) y su tipo+modo; 20 entradas nuevas en el selector visual de `index.html` (11 tipos + 9
+modos). CSS en `style.css`, sección 10, con override B/N en cada bloque y las cifras sueltas añadidas
+a la excepción de la letra ligada. Contrato HTML en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 9G.
+
+Validado: `node --check` (renderer, `server.js`, `<script>` de `index.html`); render simulado de los 11
+tipos y los 10 modos con casos límite (arrays vacíos, textos sin cifras, valores fuera de rango,
+operadores no válidos, intento de inyección en una operación, dianas sin acierto...) — todos caen a
+"no imprime nada" sin romper la ficha; `numeroALetras()` comprobado con 32 casos difíciles; prompt
+de los 6 cursos comprobado (cada tipo presente tiene su bloque y ningún bloque aparece sin su tipo);
+**regresión: HTML idéntico byte a byte al renderer anterior** para 14 ejercicios de tipos existentes
+en los 6 cursos; Playwright color y B/N sobre fichas completas con el `style.css` real (dos ajustes
+atrapados en esta pasada: filas de "unir" desalineadas y la casilla superior de la casita, que no
+ocupaba todo el ancho); arranque real del servidor (`/`, `/api/iconos`, `/api/ficha-en-blanco`) y
+selector visual (49/52/52/40/36/36 botones de 1º a 6º, inserción del texto correcta).
+**Pendiente, igual que toda tanda nueva**: confirmar con fichas reales generadas por Claude vía API.
+No abordado (depende del banco de ilustraciones, Fase 4): orientación espacial con personajes,
+mascota con bocadillo, escenas para comparar, historias en viñetas, colorear un dibujo por código.
+
 ---
 
 ### Selector visual de tipos de ejercicio — pop-up en el formulario (08/09/2026)
@@ -1115,6 +1282,165 @@ de forma independiente (Twinkl/Santillana el 04/08 y 30/08, Kumubox ahora) — r
 caso aislado de una comparación concreta. Sigue sin decidirse ni actuarse: mismo criterio que las
 dos entradas anteriores, esto queda anotado para cuando se retome la Fase 4 con su propia sesión
 de decisión de alcance, no se abre ni se implementa nada ahora.
+
+**Comprobación de conector de generación de imágenes (08/09/2026)**: el usuario preguntó si existe
+algún plugin/conector que Claude pueda activar para generar imágenes con IA (a raíz de un vídeo que
+afirmaba que Claude sí genera imágenes — no es así, ver `support.claude.com/articles/9002504`:
+Claude no genera fotos/ilustraciones como las herramientas especializadas, solo puede analizar
+imágenes subidas y construir visuales con código, SVG/HTML). Se buscó en el catálogo de conectores
+MCP disponibles (`SearchMcpRegistry`, palabras clave "image generation", "AI image", "illustration
+generator", "text to image", "canva", "dall-e", "midjourney"): **no hay ningún conector dedicado a
+generación de imágenes por IA** en el catálogo. El más cercano es **Canva** (no instalado en esta
+organización), pero sus herramientas listadas apuntan a buscar/crear desde plantillas/autorrellenar/
+exportar diseños existentes — no hay confirmación de que exponga aquí la función "Magic Media"
+(generar imagen desde texto) que Canva sí tiene puertas adentro. Sin vía limpia por conector, el
+camino sigue siendo el ya existente: el docente (o el usuario) genera la imagen donde quiera y la
+sube con el botón "🖼️ Añadir imagen" (Opción D, más abajo), que ya funciona hoy sin depender de
+ningún conector nuevo. Anotado aquí para no repetir la búsqueda si se vuelve a preguntar — revisar
+si en el futuro aparece un conector de generación de imágenes en el catálogo.
+
+**Cuarta referencia independiente (08/09/2026)**: el usuario trajo un vídeo de un profesor
+(canal "Jaime Profe IA", `academiajaimeprofeia.com`) que promociona una Gem de Gemini para generar
+fichas/apuntes en LaTeX vía Canvas. Analizada la transcripción completa y la landing page de acceso
+(comunidad gratuita de WhatsApp + programa de pago "Profe Escala" con plazas cerradas — funnel
+freemium estándar, sin señales de fraude, documentación legal presente). Conclusión técnica: no es
+un "agente entrenado" como lo presenta, es un prompt de sistema guardado (Gem) sin ninguna capa de
+verificación — el propio autor reconoce que tiene que comprobar a mano el solucionario que genera
+la IA, y el vídeo muestra varios errores de generación en directo. Lo relevante para esta fase: el
+usuario, tras ver ejemplos muy visuales (reinos de la naturaleza, cuerpo humano, animales de granja
+con ilustraciones reales, no solo CSS/SVG), expresó el deseo de que esta app llegue también a ese
+nivel de vistosidad. Dato técnico nuevo que sí cambia el análisis: el vídeo menciona explícitamente
+que esas ilustraciones vienen de "un modelo de imagen" que Gemini incorpora de forma nativa (el
+propio Google, generación de imagen dentro del chat) — no de ningún conector ni plugin externo. Es
+decir, la diferencia real no es de conectores disponibles (ver comprobación anterior en esta misma
+fase) sino de que **Gemini y ChatGPT sí tienen generación de imágenes nativa integrada en su chat, y
+Claude no** — confirmado por búsqueda el mismo día en `support.claude.com`. Esta es ya la CUARTA vez
+que surge la misma observación de forma independiente (Twinkl/Santillana 04/08 y 30/08, Kumubox
+08/09 por la mañana, este vídeo 08/09 por la tarde) — con la maestra habiendo confirmado además que
+no es un capricho estético sino que ayuda al niño a entender mejor el contenido (30/08). Sigue sin
+decidirse ni actuarse — mismo criterio que las tres entradas anteriores — pero con cuatro señales
+independientes convergiendo en tan poco tiempo, esto refuerza la recomendación ya dada de dedicarle
+pronto una sesión propia de decisión de alcance a esta Fase 4, en vez de seguir aplazándola
+indefinidamente. Camino práctico disponible ya mismo, sin esperar a esa decisión: generar la
+ilustración en Gemini/ChatGPT (o donde sea) y subirla a mano con el botón "🖼️ Añadir imagen"
+(Opción D) — funciona hoy, no depende de que Claude tenga generación de imágenes propia.
+
+### Formato de sección con marco, título corto y tarjetas (22/09/2026, noche)
+**Estado: ✅ Implementado y verificado (datos simulados) · pendiente de ficha real vía API**
+
+Origen: una ficha real de 1º muy cuidada en B/N ("Ficha de sumas", guardada en
+`Docs/referencias-visuales/ficha_sola_120.pdf`; análisis en el Project,
+`ANALISIS_PDFS_BLOQUE1_BLOQUE2.md`, sección 5). Su contenido (suma con dibujos, unir dibujo con suma,
+sumas sencillas) ya estaba cubierto; lo que la hace bonita es la presentación, y el usuario pidió
+aplicarla a todas las fichas a la vez. Cambios:
+
+- **Marco de sección para cada `.ejercicio`** (`style.css`, sección 11): borde gris redondeado,
+  relleno interior. Es CSS sobre `.ficha .ejercicio`, así que afecta a Matemáticas, Lengua y también
+  al pipeline legacy sin tocar su HTML. Compatible con el redimensionado manual y los botones de
+  edición (pista, imagen, eliminar). En B/N el marco pasa a negro.
+- **Título corto + instrucción**: campo nuevo OPCIONAL `"titulo"` (2-4 palabras) en el esquema JSON
+  de Matemáticas y de Lengua (`server.js`). Si llega, la cabecera es número en círculo + título grande
+  + la instrucción (`enunciado`) en pequeño a la derecha (`cabeceraEjercicio()` en
+  `renderer-matematicas.js`, `cabeceraEjercicioLengua()` en `renderer-lengua.js`, recortado a 40
+  caracteres). Si NO llega, el HTML sale idéntico al de antes (comprobado byte a byte). En 1º-2º el
+  título va también en Playwrite ES (letra ligada), por la decisión ya tomada con la maestra de que
+  todo texto que lee el niño modele esa letra; en 3º-6º, en Fredoka.
+- **Cálculo mental en tarjetas**: `calculo_mental` deja de ser una lista numerada con raya y pasa a
+  una rejilla de tarjetas — con casilla grande en 1º-3º y raya en 4º-6º (resultados con decimales o
+  porcentajes). Único cambio de aspecto de un tipo existente en esta tanda.
+- **Tipo nuevo `operacion_dibujos`** (1º-2º): "🍎🍎 + 🍎🍎🍎 = □" en horizontal, en tarjetas; en la
+  resta el código dibuja SOLO el minuendo y el niño tacha los que se quitan ("tacha y resta").
+  **Corregido el mismo día a petición del usuario**: la primera versión tachaba el código los
+  objetos del sustraendo, lo que le daba al niño la respuesta hecha. Además, un ejercicio lleva un
+  solo tipo de operación (si Claude mezcla sumas y restas, se quedan las del signo de la primera),
+  y el prompt exige que el "titulo" describa exactamente el contenido (el usuario vio "Cuenta y suma"
+  con una resta dentro en la ficha de prueba).
+  Blindaje total: cantidades derivadas de `numeros` (0-10), restas imposibles descartadas; con 6 o
+  más dibujos se usan iconos más pequeños para que la tarjeta no salte de línea.
+- **Modo `"dibujos"` de `mismo_resultado`** (1º-2º en el prompt): dos montones de dibujos a la
+  izquierda, sumas desordenadas a la derecha; los montones los dibuja el código a partir de la propia
+  suma. Descarta sumas repetidas o con los sumandos cambiados de orden.
+- De paso: en B/N el círculo del número conservaba un anillo naranja (`box-shadow`) — corregido.
+- Selector visual: "Cuenta y suma con dibujos" y "Une el dibujo con la suma" (1º-2º), con su
+  equivalencia tipo/modo en el prompt.
+
+Validado: `node --check` (dos renderers, `server.js`, script de `index.html`); casos límite (título
+vacío o larguísimo, HTML inyectado en título/enunciado/operación → escapado, restas imposibles,
+sumas de dibujos no válidas); regresión byte a byte de los tipos existentes sin "titulo" en los 6
+cursos; prompt de los 6 cursos; Playwright color y B/N de una ficha que reproduce la de referencia,
+una de Lengua y una de 5º sin títulos.
+
+**Decisiones del usuario sobre lo que quedó pendiente (22/09/2026, última hora):**
+- **Iconos rellenos de gris muy suave — ✅ implementado.** `iconoConRelleno()` en
+  `renderer-matematicas.js`, aplicado dentro de `renderIconos()` (así llega a todos los ejercicios que
+  dibujan objetos). Añade al principio de cada SVG una capa `<g class="icono-relleno">` con copias SIN
+  trazo de las formas cerradas, rellenas de `#ededed` (gris muy claro, para que no haga manchón al
+  fotocopiar). El dibujo original queda encima, intacto, así que un relleno nunca tapa una línea. Las
+  líneas abiertas no se rellenan (detección con un pequeño analizador de trazados SVG:
+  `trazadoCerrado()`), ni los elementos con relleno propio (ojos negros). Resultado: 78 de los 84
+  iconos ganan relleno; 6 (autobús, coche, barco…) siguen solo con línea porque sus formas son
+  abiertas. Revisado icono a icono en una galería (original frente a relleno). Regresión: HTML idéntico
+  al anterior salvo esa capa. **Provisional**: el plan sigue siendo sustituir los SVG por las
+  ilustraciones de Gemini del banco de imágenes (piloto `ICONOS_IMAGEN`, más arriba), más "reales"
+  para los niños.
+- **Frases de ánimo y caritas — ⏸ aplazadas** a cuando se conecte la base de datos de imágenes: irán
+  todo junto con las ilustraciones, y en ese momento se retirará la regla "sin autoevaluación ni
+  caritas" (hoy en el `SYSTEM_PROMPT` y en `CONTEXTO_FICHAS_ESCOLARES.md`).
+- **Cabecera grande de la ficha — ❌ descartada.** El título de la ficha se queda como está: cuanto más
+  corto y conciso, mejor.
+- Decoración kawaii (estrella, nube, lápiz con cara): banco de ilustraciones, junto con lo anterior.
+
+**Hallazgo con material real (22/09/2026)**: al analizar 101 páginas de fichas reales de 1º (ver Fase
+3, "Octava ampliación") se comprobó que casi todas son en blanco y negro: su vistosidad viene de las
+formas (números dentro de vagones, casitas, hojas; arcos de salto; casillas redondeadas; pauta),
+de la mascota que da pistas con un bocadillo y de la línea de dibujo — no del color. Consecuencias:
+(1) buena parte de esa vistosidad ya se ha llevado al código con CSS/SVG propio (catálogo
+`MARCOS_TEMATICOS` y demás modos visuales de esa ampliación); (2) responde en parte a la duda
+abierta sobre el color del banco de ilustraciones: debe ser ante todo dibujo de línea en B/N, con el
+color como extra; (3) el encargo más rentable para el banco es acotado — 4-6 personajes fijos
+reutilizables (señalando, pensando, saludando) para el bocadillo de pista, más escenas para contar
+y comparar.
+
+**Decisión (08/09/2026, cierre de sesión)**: se sigue aplazando la Fase 4 en este hilo — el usuario
+prioriza terminar primero el banco de ilustraciones (Opción C) que está trabajando en otro hilo/IA
+aparte, antes de retomar aquí. Motivo explícito: le genera cierta inseguridad técnica abordarlo
+("mieditis"), así que prefiere ir paso a paso en ese otro hilo antes de mezclarlo con este. Cuando
+esa pieza esté lista, retomar la Fase 4 aquí para decidir cómo se integra con este proyecto.
+
+**Tres preguntas del usuario sobre cómo encajará todo esto (14/09/2026)**: con el banco de
+ilustraciones ya generando volumen real en el otro hilo, el usuario preguntó en este hilo (a) cómo
+se conecta la generación de fichas a esa base de datos de imágenes, (b) si se podría construir un
+selector para que el docente elija una imagen concreta del banco en vez de que el código elija por
+defecto, con el mismo arrastre/redimensionado que las imágenes subidas a mano (Opción D), y (c) si
+existe un botón de "Eliminar ejercicio" (pregunta suelta, sin relación con el banco, resuelta aparte
+más abajo en esta misma fecha). Respuesta dada, sin tocar código todavía — son preguntas de estado,
+no una orden de implementación:
+
+- **(a) Conexión actual: ninguna.** No existe base de datos de imágenes en este proyecto, ni lado
+  servidor ni cliente que la consuma. El trabajo del otro hilo (ver nota técnica más abajo) es
+  totalmente independiente de este código por ahora — coherente con la decisión del 08/09/2026 de
+  no mezclar ambos hilos hasta que el banco esté listo.
+- **(b) Selector de imagen del banco: no existe, pero el patrón ya está resuelto.** La Opción D
+  (más abajo) ya implementa exactamente el comportamiento que se pide — bloque flotante
+  arrastrable y redimensionable colgado de `.ficha`. Para un selector del banco, la única pieza
+  nueva sería el ORIGEN de la imagen (un visor/buscador por asignatura-curso-tema en vez de
+  `<input type="file">`); una vez elegida, se insertaría con el mismo
+  `insertarImagenFlotante()` de siempre — mismo arrastre, mismo redimensionado, mismo botón de
+  borrado. Sin decidir todavía si el código sugiere/inserta algo automáticamente o si es siempre
+  manual (el docente abre el selector y elige) — queda como diseño pendiente de la Fase 4, no
+  bloqueante mientras el banco no esté conectado.
+
+**Nota técnica sobre cómo se está construyendo el banco en el otro hilo (14/09/2026)**: el usuario
+aporta el pipeline concreto que está usando, para que quede anotado de cara a cuando llegue el
+momento de conectarlo aquí. Backend/almacenamiento: **Supabase**. Generación: un **cuaderno de
+Google Colab**, con saldo de pago en **Google AI Studio**, que llama a **Gemini** para generar las
+imágenes. Cuando Gemini no consigue generar una imagen concreta desde el cuaderno de Colab, el
+usuario NO reintenta la generación por ese mismo camino — cambia a **Gemini gratuito con una cuenta
+distinta** y genera esa imagen concreta "a mano" fuera del cuaderno; después la sube igualmente al
+banco. Es decir, el pipeline automático (Colab+AI Studio) es el camino principal, con un fallback
+manual puntual para los casos que ese camino no resuelve. Ninguna de estas piezas vive en este
+repositorio ni se ha tocado código aquí a raíz de este dato — es contexto para la futura integración
+de la Fase 4, no una tarea abierta todavía.
 
 Pregunta planteada: hoy solo hay una variable de diferenciación visual
 (`curso-inicial`, 1º-3º vs el resto — tipografía). No hay ninguna diferencia
@@ -1244,6 +1570,98 @@ ejercicios. Rehecho como bloque flotante:
       fijas respecto a `.ficha`, no se ha comprobado todavía si una imagen
       colocada cerca del final de la página 1 se comporta bien si el salto
       de página cae encima suyo.
+
+### Piloto: iconos de conteo como ILUSTRACIÓN REAL en vez de SVG esquemático (15/09/2026)
+**Estado: 🧪 Mecanismo diseñado y verificado en sandbox · NO commiteado todavía al proyecto real,
+a petición explícita del usuario — pendiente de más imágenes del banco antes de aplicarlo**
+
+El usuario enseñó una ilustración de manzana generada con Gemini en el otro hilo (banco de
+ilustraciones, Fase 4) y trasladó feedback de la maestra: los iconos SVG actuales (`ICONOS` en
+`renderer-matematicas.js`, ~130 iconos siluteados a trazo negro) son esquemáticos y "hay que hacer
+adivinanza en muchos" — una ilustración real se reconoce mucho mejor. Pregunta: ¿cómo podríamos
+sustituir los SVG por estas imágenes, no solo la manzana sino las que vayan llegando del banco?
+
+**Mecanismo diseñado y probado** (en el sandbox de esta sesión, NO en el proyecto real todavía):
+- `renderIconos(nombreIcono, cantidad)` es el punto ÚNICO del que dependen todos los ejercicios que
+  "cuentan objetos" — conteo (`conteo_svg`), resta con dibujos, problema con dibujos en 1º-2º. Si se
+  resuelve ahí, cualquier ejercicio que ya use ese nombre de icono (p. ej. "manzana") recibe la
+  imagen real automáticamente, sin tocar cada renderizador ni cada tipo de ejercicio por separado.
+- Catálogo nuevo y separado `ICONOS_IMAGEN` (nombre → ruta del archivo en `public/imagenes-iconos/`),
+  en paralelo al `ICONOS` (SVG) que ya existía. Una función `marcadoIcono(nombre)` decide: si el
+  nombre tiene imagen en `ICONOS_IMAGEN`, se usa esa (`<img>`); si no, cae al SVG de siempre. Añadir
+  una imagen nueva es una sola línea — no hace falta tocar ningún renderizador.
+- El selector visual de iconos que ya tiene el docente antes de generar (`/api/iconos`,
+  `ICONOS_SVG`, ver Fase 6) se reescribió para pasar también por `marcadoIcono()` — así el docente
+  ve en el selector exactamente la misma imagen que saldrá en la ficha, sea SVG o ilustración real.
+- Imagen de prueba (la manzana): recortada a su contenido real (sin margen sobrante transparente),
+  centrada en cuadrado y guardada a 240×240 (4x el tamaño de impresión de 60×60, para que no se vea
+  pixelada al imprimir). Debe ser solo trazo negro/blanco, igual que los SVG — la ficha se imprime
+  en blanco y negro, así que una ilustración a color se vería como mancha gris.
+- Verificado con Playwright generando una ficha real de 1º con dos ejercicios de conteo
+  (`renderizarFichaMatematicas`): "manzana" sale como imagen real (6 repeticiones correctas),
+  "estrella" (sin imagen en el catálogo todavía) sigue cayendo al SVG de siempre — confirma que la
+  sustitución es "por nombre de icono", sin romper nada de lo que no tiene imagen aún.
+
+**Por qué NO está commiteado**: el usuario paró la respuesta a media prueba — de momento solo hay
+UNA imagen lista (la manzana) y no tiene sentido tocar el código de producción por una sola
+sustitución; prefiere esperar a tener más imágenes del banco listas y aplicarlas de una vez. Queda
+aquí anotado el mecanismo ya resuelto para cuando llegue ese momento — es solo cuestión de (a)
+recibir las imágenes (recortadas/preparadas igual que la manzana de prueba), (b) añadir cada una a
+`ICONOS_IMAGEN` con su ruta, sin más cambios de código.
+
+- [x] Mecanismo diseñado: `ICONOS_IMAGEN` + `marcadoIcono()`, con fallback automático al SVG para
+      cualquier icono sin imagen todavía.
+- [x] Selector visual del docente (`/api/iconos`) actualizado para mostrar la imagen real cuando
+      exista, coherente con lo que sale en la ficha.
+- [x] Verificado con Playwright: ficha real de conteo, imagen real para "manzana", SVG para
+      "estrella" (sin imagen), ambos conviviendo sin conflicto.
+- [ ] **Sin commitear al proyecto real** — a petición explícita del usuario, hasta tener más
+      imágenes del banco listas.
+- [ ] Pendiente de decidir cuando se retome: ¿se van SUSTITUYENDO los SVG existentes uno a uno
+      (mismo nombre de icono, ej. "manzana") según lleguen mejores versiones del banco, o se
+      AÑADEN además iconos nuevos que el catálogo SVG no tenía? Probablemente ambas cosas, pero sin
+      decidir el orden/prioridad todavía.
+- [ ] Pendiente: cómo recibir las imágenes del otro hilo de forma cómoda para lotes grandes (¿subida
+      manual aquí, tanda a tanda, o en algún momento conectar directamente con Supabase? — ver nota
+      de contexto de Supabase/Colab/Gemini más arriba en esta misma fase, 14/09/2026).
+
+### Botón "🗑️ Eliminar ejercicio" (14/09/2026)
+**Estado: ✅ Implementado y verificado**
+
+Pregunta suelta del usuario (sin relación con el banco de ilustraciones, ver preguntas de arriba en
+esta misma fecha): no existía ningún control dedicado para borrar un ejercicio completo si al
+docente no le convencía — solo la posibilidad genérica de seleccionarlo a mano y borrarlo por ser
+`contenteditable`, incómoda de acertar. Pedido explícitamente: un botón dedicado, oculto en
+impresión, mismo criterio que el resto de controles de edición de esta fase.
+
+Implementado copiando el patrón ya probado de `añadirBotonesPista()`/`añadirBotonesImagen()` (mismo
+archivo, mismas líneas de invocación tras `resultado.html`): un botón por `.ejercicio`, visible solo
+al pasar el ratón en modo edición, `contenteditable="false"` para no comportarse como texto.
+Diferencias deliberadas frente a esos dos:
+
+- **Pide confirmación** (`confirm()`) antes de borrar — a diferencia de quitar una imagen suelta
+  (daño mínimo, se puede volver a subir), aquí se pierde contenido generado por la IA que el
+  docente no recupera con un clic si se equivoca.
+- **Color distinto** (`--calido-rosa` en vez de azul/naranja) para que se lea a simple vista como
+  la acción "peligrosa" del grupo de tres botones que ya conviven en cada ejercicio.
+- **Posición a la izquierda** (`left:-12px`) en vez de a la derecha, donde ya viven los otros dos
+  botones (pista a `right:-12px`, imagen a `right:24px`) — los tres caben sin solaparse.
+- Solo se engancha en el flujo de generación real (`/api/generar-ficha`), igual que los otros dos
+  — la ficha en blanco no tiene ejercicios de los que colgar el botón.
+
+Verificado con Playwright (carga real del `index.html` editado, sin depender del servidor): botón
+creado por ejercicio, oculto por defecto (`display:none`), visible en `:hover` con el color
+correcto, `confirm()` cancelado no borra nada, `confirm()` aceptado borra solo ese ejercicio y dejar
+el resto intacto, oculto también en `@media print` emulado.
+
+- [x] Botón "🗑️" por ejercicio, mismo patrón visual/técnico que "+" (pista) y "🖼️" (imagen).
+- [x] Confirmación antes de borrar (`confirm()`), a diferencia del borrado directo de imágenes.
+- [x] Oculto en impresión.
+- [x] Verificado con Playwright: aparición en hover, cancelar/aceptar el confirm, aislamiento del
+      resto de ejercicios, ocultación en impresión.
+- [x] Committeado a `public/index.html` y `public/style.css` en el ordenador del usuario.
+- [ ] Pendiente, sin urgencia (igual que el resto de esta fase): confirmarlo con una ficha real
+      generada por la app, no solo con el HTML de prueba inyectado a mano para el test.
 
 ---
 
@@ -1424,6 +1842,45 @@ no se ha tocado en esta sesión:
 - [ ] Autenticación de usuarios, histórico de fichas (Supabase), despliegue
       (Railway) — pospuesto hasta tener más cursos y asignaturas validados.
 - [ ] Expansión a Secundaria/Bachillerato y a Latinoamérica — largo plazo.
+
+**09/09/2026 — principio de diseño: minimizar datos guardados en servidor,
+para no asumir más carga de protección de datos de la imprescindible**
+(decisión tomada con el usuario, sin código todavía — matiza el punto de
+arriba sobre "histórico de fichas (Supabase)"):
+
+El servidor no guardará nunca contenido generado (fichas completas,
+instrucciones especiales del docente, nada que pueda referirse a un alumno
+concreto). Lo único que se guarda por cuenta es lo estrictamente necesario
+para el acceso y el cobro:
+- Usuario + contraseña (autenticación).
+- Dato de pago, gestionado por el proveedor de pago (Stripe u otro
+  conforme a PCI-DSS) — no se maneja ni almacena tarjeta directamente.
+- Un contador de fichas generadas, para aplicar el límite de la
+  suscripción.
+
+Sin histórico de fichas en servidor: si el docente quiere conservarlas, las
+guarda él mismo en su ordenador (ya lo hace hoy, exportando a PDF) — esto
+sustituye a la idea original de "histórico de fichas (Supabase)" del punto
+de arriba, que queda descartada a propósito.
+
+⚠️ Aviso (no es asesoría legal): usuario + contraseña + dato de pago siguen
+siendo datos personales bajo RGPD/LOPDGDD — esta arquitectura no elimina
+toda obligación de protección de datos, pero sí evita la categoría más
+delicada (contenido que puede referirse a menores concretos). Apoyarse en
+proveedores ya conformes (pago, autenticación) en vez de construir gestión
+de contraseñas/tarjetas a mano reduce mucho la carga propia.
+
+**Forma legal considerada: Comunidad de Bienes** — valorada por el usuario
+como la opción fiscalmente más sencilla para empezar, sin confirmar
+todavía. **VeriFactu**: no está claro si aplica a la forma legal elegida
+ni desde qué fecha (dato de referencia general, no confirmado para este
+caso: calendario por fases con sociedades desde el 1/1/2026 y autónomos en
+estimación directa desde el 1/7/2026).
+
+- [ ] Pendiente: confirmar con un gestor/abogado (a) si la forma legal
+      correcta es Comunidad de Bienes u otra, (b) si VeriFactu aplica y
+      desde cuándo, y (c) si la arquitectura de datos de arriba es
+      suficiente en RGPD/LOPDGDD o falta algún documento/registro más.
 
 ---
 
@@ -2432,6 +2889,253 @@ límite: palabra objetivo no encontrada en la frase, item sin frase, palabra sin
 en la misma palabra, `opciones` vacío) y capturas Playwright en color y blanco/negro sobre una
 ficha completa junto con `numeros_romanos`. **Pendiente, igual que toda tanda nueva**: confirmar
 con una ficha real generada por Claude a través de la API.
+
+### Playwrite ES reaparece: letra ligada para el ENUNCIADO de 1º-2º, no el modelo de trazo (14/09/2026)
+
+Origen distinto al resto de esta fase: no partió de "buscar una letra más escolar" para el trazo,
+sino de la maestra reportando (a través del usuario) que la letra por defecto del enunciado en
+1º-2º "no aparecía" — al investigar (ver también Fase 3/CSS, sección "Tipografía por curso") se
+confirmó que Nunito sí se aplicaba y cargaba correctamente (verificado con Playwright: render real,
+`document.fonts` con `status: 'loaded'`, estilo calculado = `Nunito, sans-serif`), pero la maestra
+aclaró el verdadero motivo: no le bastaba con una fuente redondeada, necesitaba una que **uniera
+las letras entre sí con un rabito** (letra ligada de verdad), como la que ya se investigó a fondo
+más arriba en esta misma fase para el trazo.
+
+En vez de reabrir toda la búsqueda de fuentes desde cero, se recuperó **Playwrite ES** — la misma
+fuente que se probó y se retiró el 05/09/2026 para el modelo grande de `trazo_letra` (ver más
+arriba). Aquel descarte fue solo porque sus bucles no coincidían con el esqueleto punteado a mano,
+no un problema de la fuente en sí. Para el ENUNCIADO (texto corrido, no una letra suelta) el
+problema que motivó aquel descarte no existe: el rabito que une una letra con la siguiente aparece
+solo dentro de una frase, sin necesitar el truco de la "letra fantasma" que hacía falta para
+mostrar una sola letra aislada. Reverificado desde cero, no solo reutilizado de memoria:
+
+- Licencia SIL OFL 1.1 confirmada por partida doble: cabecera del propio archivo (`Google Inc.`,
+  vía el paquete `@fontsource/playwrite-es@5.3.0`, publicado hace un mes) y la propia Google Fonts
+  Blog (`fonts.googleblog.com`, superfamilia Playwrite de TypeTogether, estudio "Primarium" de 18
+  meses sobre caligrafía escolar en más de 40 países, con variante propia por país — Playwrite ES
+  ajustada al estándar español).
+- Cobertura de caracteres española reverificada con `fontTools` (tabla `cmap`): ñ/Ñ, todas las
+  vocales acentuadas, ü/Ü, ¿¡ — todo presente.
+- Verificado con render real (Playwright, no solo teoría): un enunciado completo de ejemplo
+  ("Lee la frase y rodea el nombre del animal...") muestra el enlace entre letras con claridad,
+  dentro de palabras como "gato", "duerme" o "alfombra" — captura enviada al usuario antes de
+  tocar código.
+
+**Implementación** (código, no depende de que el modelo la recuerde — mismo criterio que el resto
+del pipeline JSON+renderizador):
+- Fuente autoalojada en `public/fonts/playwrite-es/PlaywriteES-Regular.woff2` + `OFL.txt`, con su
+  `@font-face` en `style.css` (reinstalada; se había retirado por quedar sin uso el 05/09/2026).
+- Nueva regla `.ficha.fuente-nunito .texto-enunciado { font-family: 'Playwrite ES', cursive; }` en
+  `style.css` (sección "Tipografía por curso") — se aplica SOLO al texto del enunciado, no a
+  `.numero-ejercicio` (la pastilla numerada) ni a `.operacion-columna` (números de las
+  operaciones), que siguen en Nunito por legibilidad de cifras sueltas. No hizo falta tocar
+  `renderer-matematicas.js` ni `renderer-lengua.js`: como la regla cuelga de la clase
+  `fuente-nunito` que esos dos renderizadores YA asignaban en 1º-2º, la fuente ligada se activó
+  sola en cuanto se guardó el CSS.
+- Verificado con render real de los dos renderizadores (Playwright, color y blanco/negro): una
+  ficha completa de Lengua (`renderizarFichaLengua`, tipo `contenido_libre`) y una de Matemáticas
+  (`renderizarFichaMatematicas`, tipo `calculo_mental`) — en ambas el enunciado sale en Playwrite
+  ES ligada, y los números/operaciones siguen legibles sin cursiva.
+
+**Decisión explícita del usuario**: Playwrite ES queda como la fuente POR DEFECTO del enunciado en
+1º-2º para CUALQUIER asignatura que use el pipeline JSON+renderizador — hoy Matemáticas y Lengua
+Castellana, y las que se vayan migrando según la Fase 5. Al migrar una asignatura nueva a ese
+pipeline, si su renderizador reutiliza el mismo patrón de marcado que ya usan Matemáticas y Lengua
+(`<p class="enunciado"><span class="numero-ejercicio">...</span><span class="texto-enunciado">
+...</span></p>`, con la clase `fuente-nunito` asignada por curso), la letra ligada queda aplicada
+gratis, sin tocar CSS. El pipeline legacy (Conocimiento del Medio, Educación Física, Música,
+Inglés) también hereda esto automáticamente: se corrigió el mismo día (ver Fase 5) un bug real en
+`server.js` por el que esas 4 asignaturas nunca añadían la clase `fuente-nunito`/`fuente-quicksand`
+en ningún curso — ahora el propio código la fuerza tras recibir el HTML del modelo, así que
+también les llega la letra ligada en 1º-2º sin cambios adicionales.
+
+- [x] Reverificada licencia OFL de Playwrite ES (partida doble) y cobertura española completa.
+- [x] Verificado con render real (Playwright) que el rabito de unión aparece solo en texto corrido,
+      sin el truco de la letra fantasma que hacía falta para una letra suelta.
+- [x] Reinstalada la fuente (`public/fonts/playwrite-es/`) y aplicada solo a `.texto-enunciado` en
+      `style.css`, sin tocar los renderizadores — activada automáticamente vía la clase
+      `fuente-nunito` ya existente.
+- [x] Verificado con las dos fichas reales (Lengua y Matemáticas, color y B/N) que el enunciado usa
+      Playwrite ES y los números/operaciones no se ven afectados.
+- [x] **Mostrado a la maestra y aprobado (14/09/2026, mismo día)**: el usuario le enseñó la
+      muestra de esta misma entrada (enunciado real en Playwrite ES, sin llegar a generar una
+      ficha completa) y le pareció bien. Quedó una duda suya sobre el peso: la muestra mostraba
+      el enunciado en dos pesos, 400 (normal) y 300 (más fino). Decisión: **peso 400**, por
+      motivo práctico más que estético — una ficha escolar se fotocopia con frecuencia, y un
+      trazo cursivo ya de por sí fino (300) pierde cuerpo en fotocopias sucesivas; 400 mantiene
+      algo más de contraste sin dejar de leerse como letra ligada, mejor también para niños que
+      todavía están aprendiendo a leer. No hizo falta ningún cambio de código: la implementación
+      ya usaba 400 desde el principio (`public/fonts/playwrite-es/PlaywriteES-Regular.woff2`,
+      única variante instalada) — la muestra con peso 300 fue solo para poder comparar, ese
+      archivo no se instaló en el proyecto.
+- [x] Confirmado con fichas reales generadas por la app (15/09/2026) — ver las dos entradas
+      siguientes: esta confirmación fue justo la que sacó a la luz que el alcance se había
+      quedado corto (solo el enunciado, no el desarrollo) y, después, un incidente de
+      sincronización que revirtió el arreglo una vez aplicado.
+- [ ] Pendiente (backlog bajo, igual que con Nunito/Quicksand): si en el futuro se quiere el mismo
+      criterio para 3º-4º, decidir si es también Playwrite ES o una letra ligada distinta — no
+      pedido todavía, no se ha tocado nada de 3º en adelante.
+
+### Ampliación: la letra ligada tenía que cubrir también el DESARROLLO del ejercicio, no solo el enunciado (15/09/2026)
+**Estado: ✅ Implementado y verificado (Matemáticas y Lengua) · revisión visual pendiente de más
+tipos de ejercicio de Matemáticas, ver más abajo · ⚠️ ver también la entrada siguiente sobre un
+incidente de reversión de este mismo cambio**
+
+La maestra probó la letra ligada por primera vez en una ficha real (no una muestra suelta) y avisó
+del hueco: el enunciado salía perfecto en Playwrite ES, pero el CONTENIDO del ejercicio (lo que el
+niño realmente lee) seguía en Nunito. Envió una ficha de ejemplo (`Lengua_1_C_018.pdf`, tipo
+`contenido_libre`, "Lectura de frases cortas") — el enunciado "Lee estas frases con atención." en
+letra ligada, pero las tres frases sueltas debajo ("Mi papá lee el libro.", etc.) en la fuente por
+defecto. Motivo pedagógico explícito: en 1º-2º se está enseñando la letra ligada, así que CUALQUIER
+texto corrido que el niño lea dentro de un ejercicio debería modelarla, no solo la instrucción de
+cabecera.
+
+**Causa técnica**: la regla del 14/09/2026 se limitaba a `.texto-enunciado` (el span del enunciado)
+a propósito, para no arrastrar los números de `.operacion-columna` a una cursiva. Pero eso dejaba
+fuera todo lo demás — y en `contenido_libre` (Lengua) ese "todo lo demás" es HTML libre que escribe
+el propio Claude, sin ninguna clase CSS propia (simples `<p>` sueltos) — no había ningún selector al
+que "engancharse" para arreglarlo con una excepción puntual.
+
+**Solución**: en vez de una lista de clases a las que SÍ aplicar la letra ligada (frágil: nunca
+cubriría contenido libre sin clase, y habría que acordarse de añadir cada tipo de ejercicio nuevo),
+se invirtió el criterio — la letra ligada se aplica por HERENCIA CSS normal a todo `.ejercicio`
+(`.ficha.fuente-nunito .ejercicio { font-family: 'Playwrite ES'; }`), y son las cifras sueltas de
+Matemáticas las que se sacan explícitamente de vuelta a Nunito, una por una, en `style.css`. Con
+este enfoque, cualquier contenido de texto corrido —incluido el HTML libre que escribe Claude en
+`contenido_libre`, sin clase ninguna— hereda la letra ligada automáticamente sin tocar código cada
+vez.
+
+Se auditaron los renderizadores para inventariar qué clases imprimen SOLO cifras/dígitos (nunca una
+frase) en Matemáticas — `renderer-matematicas.js`, 30 tipos de ejercicio, más de 250 clases CSS en
+total — y se sacaron explícitamente a Nunito (regla que apunta al propio elemento, por eso gana
+siempre a la herencia, sin depender del orden en el CSS): números de operaciones en columna/reparto/
+división larga, cifras de comparar-números, cuadro numérico, recta numérica, ecuación sencilla,
+MCD/MCM, descomposición numérica, resta con barritas, números romanos, número del día, dinero,
+tabla de frecuencia/gráficos, proporcionalidad, regla, ángulos, coordenadas, capacidad, balanza,
+reloj, quesitos y tabla de multiplicar (lista completa comentada en `style.css`, sección "Letra
+ligada en el enunciado de 1º-2º"). El texto narrativo de un problema (`bloque-enunciado`, tipo
+`problema`) SÍ pasa a letra ligada — es una frase que el niño lee, igual que en Lengua, no una cifra
+suelta.
+
+**Verificado con Playwright** (render real del `style.css` editado, contra marcado idéntico al que
+generan los renderizadores): enunciado de Lengua y Matemáticas en Playwrite ES; una frase suelta sin
+clase propia (como las que escribe Claude en `contenido_libre`) también hereda Playwrite ES —
+confirma que la corrección llega justo a lo que se había quedado fuera; números de operación en
+columna, signo de operación y hueco de resultado en Nunito; texto narrativo de un problema guiado en
+Playwrite ES; cifras sueltas de "comparar números" en Nunito. Captura enviada al usuario.
+
+- [x] Identificada la causa: la regla anterior solo cubría `.texto-enunciado`, no el resto del
+      contenido del ejercicio — y `contenido_libre` (Lengua) no tiene clases propias a las que
+      enganchar una excepción puntual.
+- [x] Reescrita la regla en `style.css`: `.ejercicio` hereda Playwrite ES por defecto; excepción
+      explícita de vuelta a Nunito para las clases puramente numéricas de Matemáticas (lista
+      completa en el propio CSS, comentada por tipo de ejercicio).
+- [x] Verificado con Playwright: enunciado, contenido libre sin clase, texto narrativo de problema
+      → Playwrite ES; números de operación, signo, hueco de resultado, cifras de comparar-números
+      → Nunito.
+- [x] Committeado a `public/style.css` en el ordenador del usuario — **ver la entrada siguiente: el
+      primer commit se revirtió solo, hubo que repetirlo**.
+- [ ] **Pendiente, sí con algo más de prioridad que el resto de esta fase** (a diferencia del resto,
+      esto es un repaso de cobertura, no una decisión de diseño abierta): la lista de más de 50
+      clases numéricas excluidas es un primer repaso a partir de leer el código, no una revisión
+      visual exhaustiva de los 30 tipos de ejercicio de Matemáticas uno a uno. Falta comprobar con
+      fichas reales de varios tipos (sobre todo los menos probados hasta ahora: ángulos, balanza,
+      capacidad, coordenadas, probabilidad, simetría, reloj analógico) si queda alguna cifra suelta
+      en Playwrite ES por no estar en la lista — se corrige añadiendo la clase que falte a la misma
+      lista del CSS, cambio pequeño y sin riesgo cuando se detecte.
+
+### Incidente: cambios ya commiteados desaparecieron del ordenador del usuario sin que nadie los borrara a mano (15/09/2026)
+**Estado: ⚠️ Resuelto puntualmente (recommiteado y reconfirmado) · causa raíz sin confirmar —
+recomendación dada al usuario para evitar que se repita**
+
+El usuario probó la ampliación de arriba con dos fichas reales nuevas (`Mates_1_C_033.pdf`,
+`Lengua_1_C_020.pdf`) y seguía viendo el comportamiento ANTERIOR al de esta MISMA sesión (solo el
+enunciado en letra ligada; el desarrollo y el texto del problema en Nunito) — pese a haber
+desconectado y reconectado el servidor. Se releyó `style.css` directamente del ordenador del usuario
+para comprobar: en efecto, la regla `.ficha.fuente-nunito .ejercicio` y todo el bloque de excepciones
+numéricas habían desaparecido — el archivo estaba de vuelta exactamente al estado anterior a esa
+edición (mismo tamaño en bytes, mismo comentario antiguo "Se limita a .texto-enunciado"), pero con
+fecha de modificación MÁS RECIENTE que la del commit original — es decir: algo reescribió el archivo
+con contenido antiguo DESPUÉS del commit, no es que el commit hubiera fallado silenciosamente.
+
+Al revisar este mismo `ROADMAP_FICHAS_ESCOLARES.md` para documentar el incidente, se encontró que
+también él había perdido contenido — pero de forma más desconcertante: el checklist "Mostrado a la
+maestra y aprobado (peso 400)" de la sesión ANTERIOR (14/09/2026) y la entrada "Ampliación... DESARROLLO
+del ejercicio" de esta misma sesión habían desaparecido, mientras que OTRAS entradas de esta misma
+sesión, escritas antes y después de esas dos en el tiempo (el botón "Eliminar ejercicio", el
+contexto de Supabase/Colab en la Fase 4), seguían intactas. Es decir: no se perdió "todo lo último”
+de forma limpia — se perdieron fragmentos concretos, en dos zonas distintas del documento, mientras
+el resto (incluso escrito después) se mantuvo.
+
+**Lectura de esta pista**: no encaja con un simple "se deshizo el último cambio" — encaja mejor con
+una sincronización por bloques/diferencial que, ante guardados rápidos y sucesivos sobre un
+documento de más de 200 KB, sube o revierte fragmentos concretos del archivo de forma independiente
+en vez de el archivo entero. Primera hipótesis (descartada, ver actualización más abajo): OneDrive,
+por la ruta del proyecto dentro de `Documents`.
+
+**Actualización tras preguntar al usuario (mismo día)**: el usuario confirma que esa carpeta es
+puramente local — sin OneDrive, sin Drive, sin ningún servicio de sincronización en la nube
+conectado. Descarta por completo la hipótesis de OneDrive/nube. Quedan dos hipótesis abiertas, sin
+poder confirmar ninguna desde aquí: (a) algo local de Windows con comportamiento de "restaurar" —
+antivirus/Windows Defender con protección en tiempo real, indexado de búsqueda, o el propio File
+History si está activado — reaccionando a escrituras rápidas y sucesivas sobre un archivo grande;
+(b) un problema del propio mecanismo con el que Claude escribe en el ordenador del usuario (el
+puente remoto-dispositivos), con alguna condición de carrera bajo escrituras muy seguidas — en ese
+caso la causa sería de este lado, no del ordenador del usuario. Como salvaguarda permanente
+independientemente de la causa real: a partir de ahora, tras cualquier commit de un archivo de este
+proyecto, se relee inmediatamente el archivo real para confirmar que el contenido persiste antes de
+darlo por terminado — así, aunque la causa no esté identificada, no debería volver a pasar
+desapercibido.
+
+**Acción tomada**: se releyeron ambos archivos reales del ordenador del usuario, se reaplicó todo el
+contenido que faltaba en los dos (mismo contenido de las veces anteriores, no reescrito de memoria) y
+se volvieron a commitear — confirmado con una relectura inmediata después de cada commit que el
+cambio persiste en ese momento.
+
+**Confirmado por el usuario con una ficha real nueva (15/09/2026, mismo día)**: `Lengua_1_C_022.pdf`
+("Ejercicios variados de Lengua") — enunciados, el texto de lectura recuadrado, las frases para
+completar, los elementos de "unir con flecha" y las palabras a ordenar/contar sílabas, todo en
+Playwrite ES ligada; sin cifras sueltas en este ejemplo con las que comprobar la parte de Matemáticas
+todavía. El usuario confirma además que el contenido pedagógico de esta ficha ya convence a la
+maestra — ver Fase 5 para la ampliación de tipos de ejercicio de Lengua que viene a continuación.
+
+- [x] Diagnosticado: pérdida de fragmentos concretos en dos archivos, con fecha de modificación más
+      reciente que el commit y sin afectar a todo lo escrito después — patrón más compatible con
+      una sincronización por bloques que con un simple "deshacer el último cambio". Hipótesis de
+      OneDrive descartada por el usuario (carpeta puramente local, sin ningún servicio de
+      sincronización conectado).
+- [x] Reaplicado todo el contenido que faltaba en `style.css` y en dos zonas de este roadmap
+      (checklist de peso 400 y entrada de "desarrollo del ejercicio"); confirmado con relectura
+      inmediata tras cada commit.
+- [x] Confirmado por el usuario con una ficha real nueva de Lengua: el desarrollo del ejercicio ya
+      sale en letra ligada, no solo el enunciado.
+- [x] Adoptada salvaguarda permanente: relectura del archivo real inmediatamente después de cada
+      commit a partir de ahora, para detectar una posible reversión al momento en vez de con retraso.
+- [ ] Pendiente, sin urgencia ya (mitigado con la salvaguarda de arriba): confirmar la causa real
+      (algo local de Windows, o el propio mecanismo de escritura remota) para eliminarla de raíz —
+      de momento sigue sin poder confirmarse cuál de las dos es.
+- [ ] Pendiente: confirmar visualmente en una ficha real de Matemáticas (con cifras) que las
+      excepciones numéricas se mantienen también tras este incidente — no verificado todavía con
+      una ficha nueva después de la reversión, solo con la de Lengua.
+
+**Prioridad elevada (15/09/2026, aviso del usuario al cerrar la sesión)**: el usuario recuerda algo
+importante que cambia el peso de este incidente — esta carpeta local no es solo el sitio donde
+trabajamos con Claude, es la que se sube a git y la base real del despliegue de la app en
+producción. Una reversión silenciosa aquí no es solo "se me desconfiguró el CSS": si pasara justo
+antes de un `git add`/`commit` sin detectarse, podría subirse una versión con un arreglo
+silenciosamente deshecho, con historial de git de por medio. Sube la prioridad de encontrar la
+causa real (ver pendiente de arriba), aunque de momento se mitiga con la relectura tras cada commit
+ya adoptada.
+
+**Salvaguarda adicional sugerida al usuario, independiente de Claude**: antes de cualquier
+`git commit`, revisar `git status`/`git diff` y comprobar que los cambios que Claude dice haber
+hecho aparecen realmente ahí — si un archivo sale "sin cambios" cuando debería tener modificaciones,
+es la señal de que la reversión ha vuelto a pasar. Git lo delata solo, por comparación contra el
+último commit real.
+
+- [ ] Pendiente: la próxima vez que el usuario prepare un `git commit` de este proyecto, comprobar
+      con `git status`/`git diff` que no falta nada de lo committeado por Claude en esta sesión —
+      primera prueba real de la salvaguarda sugerida.
 
 ---
 

@@ -576,9 +576,9 @@ a partir de `datos.ejemplo`, nunca Claude.
 
 ---
 
-## 8tredecies. Figuras geométricas — 2D y 3D (13/08/2026)
+## 8tredecies. Figuras geométricas — 2D y 3D (13/08/2026; modo "desarrollo" añadido 19/09/2026)
 
-Cuatro modos, todos dentro del tipo de ejercicio `figura_geometrica`.
+Cinco modos, todos dentro del tipo de ejercicio `figura_geometrica`.
 
 **Identificar** (icono + hueco para el nombre, sin revelarlo):
 ```html
@@ -639,13 +639,45 @@ imprime el resultado, solo la estructura.
 </div>
 ```
 
+**Desarrollo plano** (19/09/2026, disponible 3º-6º): emparejar cada cuerpo
+geométrico con su desarrollo plano (la figura que resulta al desplegarlo).
+Reutiliza el layout de dos columnas de "Relacionar columnas" (Lengua, ver
+sección más abajo) con iconos en vez de texto — misma baraja determinista
+para que la columna de desarrollos nunca salga en el mismo orden que la de
+cuerpos:
+```html
+<div class="relacionar-bloque desarrollo-plano-bloque">
+  <div class="relacionar-columna">
+    <div class="relacionar-fila-a">
+      <span class="relacionar-hueco"></span>
+      <span class="relacionar-num">1.</span>
+      <span class="desarrollo-icono"><svg>...cuerpo...</svg></span>
+    </div>
+    <!-- una fila por cuerpo -->
+  </div>
+  <div class="relacionar-columna">
+    <div class="relacionar-fila-b">
+      <span class="relacionar-letra">a)</span>
+      <span class="desarrollo-icono"><svg>...desarrollo...</svg></span>
+    </div>
+    <!-- una fila por desarrollo, en el orden de la baraja determinista -->
+  </div>
+</div>
+```
+Catálogo cerrado en `DESARROLLOS_3D` (`renderer-matematicas.js`): `cubo`,
+`prisma`, `piramide`, `cono`, `cilindro`. La `esfera` se excluye a
+propósito (no tiene desarrollo plano real en el sentido en que lo trabaja
+Primaria) y se filtra en silencio si Claude la incluye por error — igual
+que cualquier nombre no reconocido. Entre 2 y 4 cuerpos, sin duplicados.
+
 El catálogo de figuras (`FIGURAS_2D` / `FIGURAS_3D` en
 `renderer-matematicas.js`) es independiente del catálogo `ICONOS` de conteo
 (objetos para contar en 1º-2º) — comparten estilo de trazo (silueteado,
 solo negro) pero significan cosas distintas: unos son "objetos para contar",
 estos son "figuras curriculares con propiedades" (lados/vértices, caras/
 aristas/vértices). Figuras 3D disponibles a partir de 2º (en 1º solo 2D);
-modo "perimetro_area" disponible solo en 4º-6º — ver `construirSystemPromptMatematicas()` en `server.js`.
+modo "perimetro_area" disponible solo en 4º-6º; modo "desarrollo" disponible
+solo en 3º-6º — ver `construirSystemPromptMatematicas()` en `server.js`.
 
 ---
 
@@ -1089,6 +1121,104 @@ Claude NUNCA escribe un numeral romano, solo elige números arábigos (1-3999) y
 ("a_romano", "a_arabigo" o "mixto", que alterna por índice de fila). Números fuera de 1-3999 se
 descartan; negativos se normalizan con `Math.abs()` antes del filtro (mismo criterio que
 `descomposicion_numerica`). Disponible desde 3º (`esConNumerosRomanos`) — currículo real.
+
+## 9G. Octava ampliación — fichas reales de 1º (22/09/2026)
+
+11 tipos nuevos y 10 modos visuales sobre tipos existentes (origen y validación en el ROADMAP, Fase
+3, "Octava ampliación"). CSS en `style.css`, sección 10, con override B/N en cada bloque.
+
+### Piezas comunes
+```html
+<span class="casilla-respuesta"></span>                 <!-- casilla redondeada (el "□" de los cuadernos) -->
+<span class="casilla-respuesta casilla-ancha"></span>   <!-- para números de 2+ cifras -->
+<span class="casilla-respuesta casilla-ejemplo">6</span><!-- casilla ya resuelta como modelo -->
+<span class="du-cabecera"><span>D</span><span>U</span></span>
+<span class="linea-pauta"></span>                       <!-- renglón de dos líneas para escribir palabras -->
+<span class="marco-tematico marco-vagon [marco-hueco]">
+  <svg viewBox="0 0 80 72">…<path class="marco-forma"/>…<circle class="marco-detalle"/>…</svg>
+  <span class="marco-contenido" style="top:42%"><b>52</b></span>
+</span>
+<div class="unir-bloque" style="grid-template-columns: repeat(2, max-content)">
+  <div class="unir-fila unir-fila-izq">…<span class="unir-punto"></span></div>
+  <div class="unir-fila"><span class="unir-punto"></span>…</div>   <!-- fila a fila, alineadas -->
+</div>
+```
+Marcos disponibles (`MARCOS_TEMATICOS`): `caja`, `casita`, `vagon`, `hoja`, `globo`, `nube`,
+`estrella`. Relleno/trazo por clase (`.marco-forma`, `.marco-detalle`, `.marco-linea`), nunca inline,
+para que el B/N los pueda anular.
+
+### Tipos nuevos (contenedor raíz → piezas)
+- `abaco` → `.abaco-bloque > .abaco-tarjeta` (SVG con `.abaco-base`, `.abaco-varilla`,
+  `.abaco-bolita.abaco-bolita-{U|D|C}`; `.abaco-respuesta` o `.abaco-numero-dado`).
+- `barritas_decenas` → `.base10-bloque > .base10-tarjeta` (SVG `.base10-cubo`/`.base10-suelto`,
+  `.base10-respuesta`, `.base10-numero-dado`, `.base10-caja-dibujo`); modo unir → `.unir-bloque`.
+- `numero_en_letras` → `.letras-bloque > .letras-fila[.letras-fila-a-numero]` (`.letras-numero`,
+  `.letras-palabra`, `.letras-flecha`, `.linea-pauta`); modo unir → `.unir-bloque` de 3 columnas.
+- `anterior_posterior` → `.vecinos-bloque > .vecinos-grupo` (marcos + `.vecino-flecha`,
+  `.vecinos-nota` si el paso no es 1).
+- `casita_descomposicion` → `.casitas-bloque > .casita-descomp` (`.casita-tejado`, `.casita-arriba`,
+  `.casita-abajo`, `.casita-celda[.casita-celda-vacia]`) o `.arbol-descomp` (`.arbol-raiz`,
+  `svg.arbol-ramas`, `.arbol-partes`).
+- `maquina_operador` → `.maquina-bloque > .maquina-columna > .maquina-fila` (`.maquina-flecha`, flecha
+  por `::after`) o `table.maquina-tabla` (`.maquina-etiqueta`, `.maquina-celda[-vacia]`).
+- `clasificar_numeros` → `.clasificar-bloque` con `.clave-lapices > .clave-lapiz` (`svg.lapiz`,
+  `.clave-color-nombre`, `.clave-condicion`) + `.mural-numeros > .numero-suelto`; modo escribir →
+  `.clasificar-grupo` (`.clasificar-cartel`, `.clasificar-flecha`, casillas).
+- `mismo_resultado` → `.unir-bloque` (`.unir-op`) o `.dianas-bloque > .diana > .diana-rejilla`
+  (`.diana-op`, `.diana-centro`).
+- `operacion_cifras_ocultas` → `.cifras-bloque > .cifras-operacion > .cifras-fila`
+  (`.cifras-signo`, `.cifras-celda[.cifras-oculta|.cifras-vacia]`, `.cifras-linea`).
+- `suma_asociativa` → `.asociativa-bloque > .asociativa` (`.asoc-fila1`, `.asoc-flechas` con
+  `.asoc-agrupa`/`.asoc-baja`, `.asoc-fila2`, `.asoc-num`).
+- `camino_resultados` → `.camino-bloque` (`.camino-salida`, `.camino-rejilla > .camino-fila >
+  .camino-celda`, `.camino-meta`). Primera celda = salida, última = meta (resaltadas por CSS).
+
+### Modos visuales sobre tipos existentes
+- `serie_numerica` con `marco`/`arcos` → `.serie-numerica.serie-tematica` con marcos y
+  `.serie-salto` (`.serie-salto-etiqueta`, `path.serie-salto-arco`).
+- `problema` razonado/inventar → `.bloque-razonado` (`.razonado-texto`, `.razonado-paso`,
+  `.razonado-dato`, `.razonado-dibujo`, `.razonado-marcas`, `.razonado-operaciones > .razonado-op`,
+  `.razonado-solucion` con `.etiqueta-solucion` y `.razonado-frase`; `.inventar-fila`).
+- `operacion_vertical` con `colocar` → `.colocar-bloque > .colocar-operacion` (`.colocar-texto`,
+  `.colocar-rejilla`, `.colocar-con-signo`, `.colocar-signo`, `.colocar-fila > .colocar-celda`,
+  `.colocar-linea`).
+- `tabla_multiplicar` con `operacion` suma/resta → `.tabla-multiplicar-bloque.tm-libreta`.
+- `tabla_frecuencia` con `revuelto` → `.escena-revuelta > .escena-icono` (posición absoluta).
+- `grafico_barras` pictograma → `.pictograma-bloque` (`table.pictograma`, `.picto-etiqueta`,
+  `.picto-iconos`, `.picto-clave`).
+- `reloj_analogico` → `.reloj-digital` (`.rd-hueco` o `.rd-cifras`, `.rd-puntos`), `.reloj-palabras`,
+  `.reloj-objetivo`.
+- `medir_capacidad` estimar → `.estimar-bloque > .estimar-tarjeta` (SVG del catálogo
+  `RECIPIENTES_ESTIMAR` + dos `.opcion-item`).
+
+## 9H. Sección con marco, título corto y tarjetas (22/09/2026, noche)
+
+Todo `.ejercicio` lleva marco redondeado por CSS (`style.css`, sección 11). Cabecera con título
+(solo si el ejercicio trae `"titulo"`; si no, la de siempre, sección 4):
+```html
+<p class="enunciado enunciado-con-titulo">
+  <span class="numero-ejercicio">1</span>
+  <span class="titulo-ejercicio">Cuenta y suma</span>
+  <span class="texto-enunciado instruccion-ejercicio">Cuenta los objetos y escribe el resultado.</span>
+</p>
+```
+Cálculo mental en tarjetas (sustituye a la lista `ol.ejercicio-lista` en `calculo_mental`):
+```html
+<div class="tarjetas-calculo">
+  <div class="tarjeta-calculo"><span class="tc-texto">3 + 2 =</span><span class="casilla-respuesta casilla-grande"></span></div>
+  <!-- en 4º-6º, <span class="hueco hueco-corto"></span> en vez de la casilla -->
+</div>
+```
+Suma/resta con dibujos (`operacion_dibujos`):
+```html
+<div class="od-bloque">
+  <div class="od-tarjeta [od-compacta]"><span class="od-grupo">…iconos…</span><span class="od-signo">+</span><span class="od-grupo">…</span><span class="od-signo">=</span><span class="casilla-respuesta casilla-grande"></span></div>
+  <div class="od-tarjeta od-resta"><span class="od-grupo">…iconos del minuendo, SIN tachar (lo tacha el niño)…</span><span class="od-texto">6 − 3 = <span class="casilla-respuesta casilla-grande"></span></span></div>
+</div>
+```
+Unir dibujos con su suma (`mismo_resultado`, modo `dibujos`): `.unir-bloque` (sección 9G) con
+`<span class="od-montones"><span class="od-grupo">…</span><span class="od-grupo">…</span></span>` en la
+columna izquierda y `.unir-op` en la derecha.
 
 ---
 

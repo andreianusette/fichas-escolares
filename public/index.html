@@ -289,6 +289,26 @@
       { nombre: 'Descomposición de números', descripcion: 'Descomponer un número en unidades, decenas, centenas...', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
       { nombre: 'Números romanos', descripcion: 'Leer, escribir o convertir números romanos.', categoria: 'numerico', cursos: ['3º','4º','5º','6º'] },
       { nombre: 'MCD y MCM', descripcion: 'Máximo común divisor y/o mínimo común múltiplo de varios números.', categoria: 'numerico', cursos: ['5º','6º'] },
+      { nombre: 'Pirámide numérica', descripcion: 'Completar una pirámide donde cada casilla es la suma de las dos de abajo.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Laberinto de operaciones', descripcion: 'Seguir un camino de sumas y restas encadenadas hasta el final.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Acertijo numérico', descripcion: 'Adivinar un número secreto combinando varias pistas encadenadas.', categoria: 'numerico', cursos: TODOS_LOS_CURSOS_MATE },
+      // Octava ampliación (22/09/2026) — debe coincidir con el gating de server.js
+      { nombre: 'Ábaco', descripcion: 'Leer un número en el ábaco o dibujar sus bolitas.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Barritas de decenas', descripcion: 'Contar o dibujar decenas y unidades con barritas y cubitos.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Número en letras', descripcion: 'Escribir cómo se lee un número, o su cifra a partir de las palabras.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Anterior y posterior', descripcion: 'Escribir los números vecinos, dentro de casitas o vagones.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Casitas de descomposición', descripcion: 'Dobles, mitades y "amigos del 10" en casitas o árboles.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Máquina de operaciones', descripcion: 'Aplicar una regla (doble, triple, mitad, +10...) a varios números.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Clasificar números', descripcion: 'Rodear con colores los números que cumplen una condición, o escribirlos.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Une operaciones y resultados', descripcion: 'Unir cada operación con su resultado o con otra que dé lo mismo.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Cifras ocultas', descripcion: 'Descubrir las cifras que faltan en una suma o resta en columna.', categoria: 'numerico', cursos: ['2º','3º','4º','5º','6º'] },
+      { nombre: 'Suma agrupando', descripcion: 'Sumar tres números juntando primero dos (o buscando la decena).', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Camino de números', descripcion: 'Colorear el camino que sigue una serie hasta llegar a la meta.', categoria: 'numerico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Serie con dibujos', descripcion: 'Una serie numérica dentro de un tren, casitas u hojas, con los saltos dibujados.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Coloca y suma', descripcion: 'Pasar una operación de horizontal a columna, con casillas D y U.', categoria: 'numerico', cursos: ['1º','2º','3º'] },
+      { nombre: 'Cuenta y suma con dibujos', descripcion: 'Sumas y restas con dibujos en horizontal, cada una en su tarjeta.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Une el dibujo con la suma', descripcion: 'Unir dos montones de dibujos con la suma que representan.', categoria: 'numerico', cursos: ['1º','2º'] },
+      { nombre: 'Tabla de sumar o restar', descripcion: 'La tabla del +1, del −2... en formato libreta.', categoria: 'numerico', cursos: ['1º','2º'] },
 
       // Sentido de la medida
       { nombre: 'Reloj analógico', descripcion: 'Leer o dibujar horas en un reloj de agujas.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
@@ -296,6 +316,8 @@
       { nombre: 'Medir con regla', descripcion: 'Medir longitudes dibujadas con una regla.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Pesar con balanza', descripcion: 'Comparar o calcular pesos con una balanza dibujada.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Medir capacidad', descripcion: 'Ejercicios sobre litros, medio litro y capacidad de recipientes.', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Reloj digital o en palabras', descripcion: 'Escribir la hora en un reloj digital o con palabras ("las tres y media").', categoria: 'medida', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: '¿Más o menos de 1 litro?', descripcion: 'Estimar si en cada recipiente cabe más o menos de un litro.', categoria: 'medida', cursos: ['1º','2º','3º'] },
       { nombre: 'Conversión de unidades', descripcion: 'Convertir entre unidades de longitud, peso, capacidad o tiempo.', categoria: 'medida', cursos: ['3º','4º','5º','6º'] },
 
       // Sentido espacial
@@ -312,12 +334,16 @@
       // Sentido estocástico
       { nombre: 'Tabla de frecuencias', descripcion: 'Recoger y organizar datos en una tabla de frecuencias.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Gráfico de barras', descripcion: 'Leer o construir un gráfico de barras.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Pictograma', descripcion: 'Leer un gráfico hecho con dibujos, donde cada dibujo vale varias unidades.', categoria: 'estocastico', cursos: ['1º','2º','3º','4º'] },
+      { nombre: 'Cuenta en una escena', descripcion: 'Objetos mezclados en una escena para contar cada tipo y completar la tabla.', categoria: 'estocastico', cursos: ['1º','2º','3º','4º'] },
       { nombre: 'Probabilidad', descripcion: 'Estimar o comparar la probabilidad de sucesos.', categoria: 'estocastico', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Gráfico de sectores', descripcion: 'Leer o construir un gráfico circular de sectores ("quesitos").', categoria: 'estocastico', cursos: ['5º','6º'] },
       { nombre: 'Media, moda y mediana', descripcion: 'Calcular medidas de centralización de un conjunto de datos.', categoria: 'estocastico', cursos: ['5º','6º'] },
 
       // Resolución de problemas y refuerzo
       { nombre: 'Problema de matemáticas', descripcion: 'Un problema con enunciado y solución, con o sin dibujo.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
+      { nombre: 'Problema paso a paso', descripcion: 'Subrayar la pregunta, dibujar los datos, elegir sumar o restar y responder con una frase.', categoria: 'problemas', cursos: ['1º','2º','3º'] },
+      { nombre: 'Inventa la pregunta', descripcion: 'A partir de una situación, inventar preguntas con "más" y "menos".', categoria: 'problemas', cursos: ['1º','2º','3º'] },
       { nombre: 'Preguntas tipo test', descripcion: 'Preguntas de respuesta múltiple para elegir la opción correcta.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Ejercicio con dibujo', descripcion: 'Un ejercicio apoyado en una ilustración.', categoria: 'problemas', cursos: TODOS_LOS_CURSOS_MATE },
       { nombre: 'Crucigrama matemático', descripcion: 'Crucigrama con pistas y vocabulario matemático.', categoria: 'problemas', cursos: ['2º','3º','4º','5º','6º'] }
@@ -520,6 +546,31 @@
       seleccion.removeAllRanges();
       seleccion.addRange(rango);
       bocadillo.focus();
+    }
+
+    // ── Botón "🗑️ Eliminar ejercicio" (14/09/2026) ──────────────────────
+    // Mismo patrón que añadirBotonesPista()/añadirBotonesImagen(): un botón
+    // por .ejercicio, solo visible al pasar el ratón (ver style.css), que
+    // borra el bloque completo. A diferencia de quitar una imagen suelta
+    // (botonBorrar de abajo, sin confirmación porque el "daño" es mínimo),
+    // aquí se pide confirmación: se pierde contenido generado por la IA que
+    // el docente no puede recuperar con un solo clic si se equivoca.
+    function añadirBotonesBorrarEjercicio(contenedor) {
+      contenedor.querySelectorAll('.ejercicio').forEach(ejercicio => {
+        if (ejercicio.querySelector('.btn-borrar-ejercicio')) return;
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn-borrar-ejercicio';
+        boton.setAttribute('contenteditable', 'false');
+        boton.title = 'Eliminar este ejercicio';
+        boton.textContent = '🗑️';
+        boton.addEventListener('click', () => {
+          if (confirm('¿Eliminar este ejercicio? No se puede deshacer.')) {
+            ejercicio.remove();
+          }
+        });
+        ejercicio.appendChild(boton);
+      });
     }
 
     // ── Imagen propia del docente — bloque flotante (10/08/2026 v2) ─────
@@ -750,6 +801,7 @@
           protegerElementosEstructurales(contenedor);
           añadirBotonesPista(contenedor);
           añadirBotonesImagen(contenedor);
+          añadirBotonesBorrarEjercicio(contenedor);
           añadirBotonImagenGeneral(contenedor);
           cambiarModoTinta();
         } else {

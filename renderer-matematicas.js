@@ -157,6 +157,62 @@ function buscarFigura(nombre) {
   return FIGURAS_2D[nombre] || FIGURAS_3D[nombre] || null;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// DESARROLLOS PLANOS (19/09/2026) — catálogo cerrado del desarrollo plano
+// "de libro de texto" de cada cuerpo geométrico DESARROLLABLE. La esfera se
+// excluye a propósito: no tiene un desarrollo plano real en el sentido en
+// que lo trabaja Primaria (no se puede aplanar sin deformarla), así que
+// nunca aparece aquí aunque Claude la incluya por error en "cuerpos" — se
+// filtra en renderFiguraDesarrollo() igual que cualquier nombre no
+// reconocido. Mismo trazo negro sin relleno que el resto de iconos de
+// FIGURAS_3D para que el estilo sea coherente en la ficha.
+const SVG_DESARROLLO_CUBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 40 30\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.4\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"0\" width=\"10\" height=\"10\"/><rect x=\"0\" y=\"10\" width=\"10\" height=\"10\"/><rect x=\"10\" y=\"10\" width=\"10\" height=\"10\"/><rect x=\"20\" y=\"10\" width=\"10\" height=\"10\"/><rect x=\"30\" y=\"10\" width=\"10\" height=\"10\"/><rect x=\"10\" y=\"20\" width=\"10\" height=\"10\"/></svg>";
+const SVG_DESARROLLO_PRISMA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 48 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.4\" stroke-linejoin=\"round\"><rect x=\"12\" y=\"0\" width=\"12\" height=\"8\"/><rect x=\"0\" y=\"8\" width=\"12\" height=\"8\"/><rect x=\"12\" y=\"8\" width=\"12\" height=\"8\"/><rect x=\"24\" y=\"8\" width=\"12\" height=\"8\"/><rect x=\"36\" y=\"8\" width=\"12\" height=\"8\"/><rect x=\"12\" y=\"16\" width=\"12\" height=\"8\"/></svg>";
+const SVG_DESARROLLO_PIRAMIDE = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 30 30\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.4\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"10\" width=\"10\" height=\"10\"/><path d=\"M10 10 L20 10 L15 0 Z\"/><path d=\"M10 20 L20 20 L15 30 Z\"/><path d=\"M10 10 L10 20 L0 15 Z\"/><path d=\"M20 10 L20 20 L30 15 Z\"/></svg>";
+// Sector circular (superficie lateral desenrollada) + círculo pequeño (base):
+// apex del sector en (35,21), radio 17, abierto 300° con la "boca" (60°
+// restantes) mirando hacia la base, para que se lea como un abanico/porción
+// grande y no como una forma deforme. Puntos del arco calculados a 150° y
+// -150° desde el apex (ver comentario del mismo cálculo en svgAngulo).
+const SVG_DESARROLLO_CONO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 54 42\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.4\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"21\" r=\"7\"/><path d=\"M35 21 L20.3 12.5 A17 17 0 1 1 20.3 29.5 Z\"/></svg>";
+const SVG_DESARROLLO_CILINDRO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 44 40\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.4\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"8\" width=\"24\" height=\"20\"/><circle cx=\"22\" cy=\"4\" r=\"4\"/><circle cx=\"22\" cy=\"32\" r=\"4\"/></svg>";
+
+const DESARROLLOS_3D = {
+  cubo:     SVG_DESARROLLO_CUBO,
+  prisma:   SVG_DESARROLLO_PRISMA,
+  piramide: SVG_DESARROLLO_PIRAMIDE,
+  cono:     SVG_DESARROLLO_CONO,
+  cilindro: SVG_DESARROLLO_CILINDRO
+};
+
+// Baraja determinista para emparejar cuerpo↔desarrollo (misma idea que
+// renderRelacionar en renderer-lengua.js — copiada, no importada: cada
+// renderer de asignatura es autocontenido en este proyecto — de forma que
+// la ficha no cambia entre una vista previa y la impresión, y la columna de
+// desarrollos nunca sale en el mismo orden que la de cuerpos).
+function hashTextoFig(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+function barajaDeterministaFig(n, semilla) {
+  const indices = Array.from({ length: n }, (_, i) => i);
+  let s = (semilla % 2147483647) || 1;
+  if (s < 0) s += 2147483646;
+  const siguiente = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(siguiente() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  for (let i = 0; i < n; i++) {
+    if (indices[i] === i && n > 1) {
+      const j = (i + 1) % n;
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+  }
+  return indices;
+}
+
 function escapeHtml(valor) {
   return String(valor ?? '')
     .replace(/&/g, '&amp;')
@@ -175,8 +231,77 @@ function splitEnteroDecimal(numero) {
 }
 
 
+// ── Relleno gris suave de los iconos (22/09/2026) ────────────────────────
+// Petición del usuario, inspirada en una ficha real muy cuidada: los dibujos
+// con un relleno gris MUY suave se leen mejor que la línea sola, sin hacer
+// manchón al fotocopiar. Medida provisional: los SVG se sustituirán por
+// ilustraciones del banco de imágenes (Gemini, Fase 4).
+// Cómo se hace sin estropear ningún dibujo:
+//  1. Solo se rellenan formas CERRADAS (círculo, elipse, rectángulo, polígono
+//     y trazados cuyo final vuelve a su inicio). Una línea abierta rellena
+//     crea manchas con forma rara, así que se deja tal cual.
+//  2. El relleno va en una capa APARTE, copiada al principio del SVG y sin
+//     trazo: el dibujo original queda encima, intacto — un relleno nunca
+//     puede tapar una línea negra que estuviera debajo.
+//  3. Los elementos con un relleno propio (p. ej. ojos negros) no se tocan.
+// Se calcula una sola vez por icono (caché) al primer uso.
+const GRIS_RELLENO_ICONO = '#ededed';
+
+function trazadoCerrado(d) {
+  const tokens = String(d).match(/[a-zA-Z]|-?\d*\.?\d+(?:e-?\d+)?/g);
+  if (!tokens) return false;
+  let i = 0, cmd = null, x = 0, y = 0, sx = 0, sy = 0, subtrazos = 0, abiertos = 0, dibujado = false;
+  const cerrarSubtrazo = (explicito) => {
+    if (!dibujado) return;
+    subtrazos++;
+    if (!explicito && Math.hypot(x - sx, y - sy) > 0.35) abiertos++;
+    dibujado = false;
+  };
+  const num = () => parseFloat(tokens[i++]);
+  const ARGS = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 0 };
+  while (i < tokens.length) {
+    if (/[a-zA-Z]/.test(tokens[i])) { cmd = tokens[i++]; if (cmd === 'z' || cmd === 'Z') { cerrarSubtrazo(true); x = sx; y = sy; continue; } }
+    if (!cmd) return false;
+    const rel = cmd === cmd.toLowerCase(), c = cmd.toLowerCase();
+    if (!(c in ARGS) || c === 'z') return false;
+    const v = []; for (let k = 0; k < ARGS[c]; k++) { if (i >= tokens.length) return false; v.push(num()); }
+    if (v.some(Number.isNaN)) return false;
+    if (c === 'm') { cerrarSubtrazo(false); x = rel ? x + v[0] : v[0]; y = rel ? y + v[1] : v[1]; sx = x; sy = y; cmd = rel ? 'l' : 'L'; continue; }
+    if (c === 'h') x = rel ? x + v[0] : v[0];
+    else if (c === 'v') y = rel ? y + v[0] : v[0];
+    else { const n = v.length; x = rel ? x + v[n - 2] : v[n - 2]; y = rel ? y + v[n - 1] : v[n - 1]; }
+    dibujado = true;
+  }
+  cerrarSubtrazo(false);
+  return subtrazos > 0 && abiertos === 0;
+}
+
+const cacheIconosRellenos = new Map();
+function iconoConRelleno(svg) {
+  if (cacheIconosRellenos.has(svg)) return cacheIconosRellenos.get(svg);
+  const copias = [];
+  const re = /<(circle|ellipse|rect|polygon|path)\b([^>]*?)\/?>/g;
+  let m;
+  while ((m = re.exec(svg)) !== null) {
+    const [, etiqueta, attrs] = m;
+    const fill = attrs.match(/\bfill="([^"]*)"/);
+    if (fill && fill[1] !== 'none') continue;                  // ya tiene relleno propio
+    if (etiqueta === 'path') {
+      const d = attrs.match(/\bd="([^"]*)"/);
+      if (!d || !trazadoCerrado(d[1])) continue;               // línea abierta: no se rellena
+    }
+    const limpios = attrs.replace(/\b(fill|stroke|stroke-width|class)="[^"]*"/g, '').trim();
+    copias.push(`<${etiqueta} ${limpios} fill="${GRIS_RELLENO_ICONO}" stroke="none"/>`);
+  }
+  const resultado = copias.length
+    ? svg.replace(/(<svg\b[^>]*>)/, `$1<g class="icono-relleno">${copias.join('')}</g>`)
+    : svg;
+  cacheIconosRellenos.set(svg, resultado);
+  return resultado;
+}
+
 function renderIconos(nombreIcono, cantidad) {
-  const svg = ICONOS[nombreIcono] || ICONOS.estrella;
+  const svg = iconoConRelleno(ICONOS[nombreIcono] || ICONOS.estrella);
   const n = Math.max(1, Math.min(10, parseInt(cantidad, 10) || 1));
   return svg.repeat(n);
 }
@@ -334,6 +459,7 @@ function renderDivisionVertical(datos) {
 const UMBRAL_ICONOS_OPERACION = 10;
 
 function renderOperacionVertical(datos) {
+  if (datos.colocar === true) return renderColocarEnColumna(datos);
   const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones : [];
   if (operaciones.length === 0) return '';
 
@@ -422,16 +548,24 @@ function renderConteoSvg(datos) {
   return `<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:10px 0; max-width:340px; margin-left:auto; margin-right:auto;">${renderIconos(datos.icono, datos.cantidad)}</div>`;
 }
 
-function renderCalculoMental(datos) {
+// Tarjetas en rejilla (22/09/2026): cada operación en su tarjeta, con una
+// casilla grande en 1º-3º y una raya en 4º-6º (resultados más largos, con
+// decimales o porcentajes, que no caben cómodos en una casilla).
+function renderCalculoMental(datos, curso) {
   const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones : [];
-  const items = operaciones
-    .map(op => `<li>${escapeHtml(op.texto)} <span class="hueco hueco-corto"></span></li>`)
+  if (operaciones.length === 0) return '';
+  const conCasilla = ['1º', '2º', '3º'].includes(curso);
+  const tarjetas = operaciones
+    .map(op => `<div class="tarjeta-calculo"><span class="tc-texto">${escapeHtml(op.texto)}</span>${conCasilla ? casillaRespuesta('casilla-grande') : '<span class="hueco hueco-corto"></span>'}</div>`)
     .join('');
-  return `<ol class="ejercicio-lista">${items}</ol>`;
+  return `<div class="tarjetas-calculo">${tarjetas}</div>`;
 }
 
 // El formato visual del problema lo decide el CURSO (código), no Claude.
 function renderProblema(datos, curso) {
+  // Modos de la octava ampliación (22/09/2026), cursos guiados (1º-3º).
+  if (datos.modo === 'razonado') return renderProblemaRazonado(datos);
+  if (datos.modo === 'inventar') return renderProblemaInventar(datos);
   const texto = escapeHtml(datos.texto);
   const esGuiado = ['1º', '2º', '3º'].includes(curso);
   const esConDibujos = ['1º', '2º'].includes(curso);
@@ -531,6 +665,26 @@ function renderSerieNumerica(datos) {
   const numeros = Array.isArray(datos.numeros) ? datos.numeros : [];
   if (numeros.length === 0) return '';
 
+  // Modos visuales (22/09/2026): "marco" mete cada número en un dibujo del
+  // catálogo MARCOS_TEMATICOS (vagones, casitas, hojas...) y "arcos" dibuja
+  // el salto (+2, −1...) sobre cada pareja. La etiqueta del salto la calcula
+  // el código a partir de los números visibles (pasoDeSerie) — si no forman
+  // una progresión exacta, no se dibuja ningún arco.
+  const marco = MARCOS_TEMATICOS[datos.marco] ? datos.marco : null;
+  const paso = datos.arcos === true ? pasoDeSerie(numeros) : null;
+  if (marco || paso !== null) {
+    const etiqueta = paso !== null ? (paso > 0 ? `+${paso}` : `−${Math.abs(paso)}`) : '';
+    const piezas = numeros.map((n, i) => {
+      const esHueco = n === null || n === undefined || n === '';
+      const celda = marco
+        ? marcoTematico(marco, esHueco ? '' : `<b>${escapeHtml(n)}</b>`, esHueco)
+        : `<span class="serie-celda${esHueco ? ' serie-hueco' : ''}">${esHueco ? '' : escapeHtml(n)}</span>`;
+      const union = i < numeros.length - 1 ? (paso !== null ? arcoSalto(etiqueta) : '<span class="serie-flecha">→</span>') : '';
+      return celda + union;
+    }).join('');
+    return `<div class="serie-numerica serie-tematica">${piezas}</div>`;
+  }
+
   const celdas = numeros.map((n, i) => {
     const esHueco = n === null || n === undefined || n === '';
     const contenido = esHueco ? '' : escapeHtml(n);
@@ -566,9 +720,13 @@ function renderTablaFrecuenciaIconos(datos) {
   const categorias = Array.isArray(datos.categorias) ? datos.categorias : [];
   if (categorias.length === 0) return '';
 
-  const iconosHtml = categorias
-    .map(c => `<span class="tf-grupo-iconos">${renderIconos(c.icono, c.cantidad)}</span>`)
-    .join('');
+  // "revuelto" (22/09/2026): todos los objetos mezclados en una escena, como
+  // en los cuadernos reales — el niño busca y cuenta cada tipo.
+  const iconosHtml = datos.revuelto === true
+    ? escenaRevuelta(categorias)
+    : categorias
+      .map(c => `<span class="tf-grupo-iconos">${renderIconos(c.icono, c.cantidad)}</span>`)
+      .join('');
 
   const filasTabla = categorias.map(c => `
     <tr>
@@ -665,7 +823,20 @@ function renderRelojAnalogico(datos) {
     <circle cx="55" cy="55" r="2.5" fill="#000"/>
   </svg>`;
 
-  const respuesta = modo === 'leer' ? `<span class="reloj-respuesta">___ : ___</span>` : '';
+  // Modos 22/09/2026: la respuesta puede pedirse en reloj digital o en
+  // palabras ("las tres y media"); en modo "dibujar" el sistema puede mostrar
+  // la hora objetivo en digital o en palabras — calculada SIEMPRE por código
+  // a partir de hora/minuto (horaEnPalabras, relojDigital), nunca por Claude.
+  let respuesta = '';
+  if (modo === 'leer') {
+    if (datos.respuesta === 'digital') respuesta = relojDigital(hora, minuto, true);
+    else if (datos.respuesta === 'palabras') respuesta = `<span class="reloj-palabras">${lineaPauta()}</span>`;
+    else respuesta = `<span class="reloj-respuesta">___ : ___</span>`;
+  } else if (datos.mostrar === 'digital') {
+    respuesta = relojDigital(hora, minuto, false);
+  } else if (datos.mostrar === 'palabras') {
+    respuesta = `<span class="reloj-objetivo">${horaEnPalabras(hora, minuto)}</span>`;
+  }
 
   return `<div class="reloj-bloque">${svg}${respuesta}</div>`;
 }
@@ -699,6 +870,7 @@ function numeroDesdeJSON(valor) {
 }
 
 function renderGraficoBarras(datos) {
+  if (datos.modo === 'pictograma') return renderPictograma(datos);
   const categorias = Array.isArray(datos.categorias) ? datos.categorias : [];
   if (categorias.length === 0) return '';
 
@@ -1004,16 +1176,25 @@ function renderTablaMultiplicar(datos) {
   let tabla = parseInt(datos.tabla, 10);
   if (!Number.isInteger(tabla) || tabla < 1 || tabla > 10) tabla = 1;
 
-  const filaHtml = (factor) => `<div class="tm-fila">
-      <span class="tm-texto">${tabla} × ${factor} =</span>
+  // "operacion" (22/09/2026): además de multiplicar, la "tabla del +N" y la
+  // "tabla del −N" de 1º (1 + 0 ... 1 + 9 / 2 − 2 ... 11 − 2), como en los
+  // cuadernos reales. Las 10 filas las genera siempre el código.
+  const operacion = ['suma', 'resta'].includes(datos.operacion) ? datos.operacion : 'multiplicacion';
+  const textoFila = (k) => operacion === 'suma' ? `${tabla} + ${k - 1} =`
+    : operacion === 'resta' ? `${tabla + k - 1} − ${tabla} =`
+    : `${tabla} × ${k} =`;
+  const filaHtml = (k) => `<div class="tm-fila">
+      <span class="tm-texto">${textoFila(k)}</span>
       <span class="hueco hueco-corto"></span>
     </div>`;
 
   const columnaIzquierda = [1, 2, 3, 4, 5].map(filaHtml).join('');
   const columnaDerecha = [6, 7, 8, 9, 10].map(filaHtml).join('');
+  const titulo = operacion === 'suma' ? `Tabla del +${tabla}` : operacion === 'resta' ? `Tabla del −${tabla}` : `Tabla del ${tabla}`;
+  const libreta = operacion !== 'multiplicacion' || datos.estilo === 'libreta';
 
-  return `<div class="tabla-multiplicar-bloque">
-    <p class="tabla-multiplicar-titulo">Tabla del ${tabla}</p>
+  return `<div class="tabla-multiplicar-bloque${libreta ? ' tm-libreta' : ''}">
+    <p class="tabla-multiplicar-titulo">${titulo}</p>
     <div class="tabla-multiplicar-columnas">
       <div class="tm-columna">${columnaIzquierda}</div>
       <div class="tm-columna">${columnaDerecha}</div>
@@ -1188,11 +1369,49 @@ function renderFiguraPerimetroArea(datos) {
   </div>`;
 }
 
+// "desarrollo" → emparejar cada cuerpo geométrico con su desarrollo plano
+// (relacionar dos columnas, como renderRelacionar en Lengua, pero con
+// iconos en vez de texto). Blindaje: solo cuerpos con desarrollo plano
+// REAL definido en DESARROLLOS_3D — la esfera y cualquier nombre no
+// reconocido se descartan en silencio en vez de romper el ejercicio; con
+// menos de 2 cuerpos válidos no hay nada que emparejar, así que no se
+// imprime nada. El orden de la columna de desarrollos lo decide una baraja
+// determinista (nunca coincide fila a fila con la columna de cuerpos), no
+// Claude — igual que en Lengua, para que el ejercicio no se resuelva solo
+// mirando la fila.
+function renderFiguraDesarrollo(datos) {
+  let cuerpos = Array.isArray(datos.cuerpos) ? datos.cuerpos : [];
+  cuerpos = [...new Set(cuerpos)].filter(nombre => DESARROLLOS_3D[nombre]).slice(0, 4);
+  if (cuerpos.length < 2) return '';
+
+  const semilla = hashTextoFig(cuerpos.join('|')) + 1;
+  const orden = barajaDeterministaFig(cuerpos.length, semilla);
+
+  const filasCuerpo = cuerpos.map((nombre, i) => `
+    <div class="relacionar-fila-a">
+      <span class="relacionar-hueco"></span>
+      <span class="relacionar-num">${i + 1}.</span>
+      <span class="desarrollo-icono">${FIGURAS_3D[nombre].svg}</span>
+    </div>`).join('');
+
+  const filasDesarrollo = orden.map((origen, posicion) => `
+    <div class="relacionar-fila-b">
+      <span class="relacionar-letra">${String.fromCharCode(97 + posicion)})</span>
+      <span class="desarrollo-icono">${DESARROLLOS_3D[cuerpos[origen]]}</span>
+    </div>`).join('');
+
+  return `<div class="relacionar-bloque desarrollo-plano-bloque">
+    <div class="relacionar-columna">${filasCuerpo}</div>
+    <div class="relacionar-columna">${filasDesarrollo}</div>
+  </div>`;
+}
+
 function renderFiguraGeometrica(datos) {
   if (datos.modo === 'identificar') return renderFiguraIdentificar(datos);
   if (datos.modo === 'propiedades') return renderFiguraPropiedades(datos);
   if (datos.modo === 'clasificar') return renderFiguraClasificar(datos);
   if (datos.modo === 'perimetro_area') return renderFiguraPerimetroArea(datos);
+  if (datos.modo === 'desarrollo') return renderFiguraDesarrollo(datos);
   return '';
 }
 
@@ -1866,6 +2085,7 @@ function svgRecipiente(capacidadMax, nivelActual, alto) {
   </svg>`;
 }
 function renderMedirCapacidad(datos) {
+  if (datos.modo === 'estimar') return renderEstimarCapacidad(datos);
   const modo = datos.modo === 'comparar' ? 'comparar' : 'leer';
   const unidad = escapeHtml(datos.unidad || 'ml');
 
@@ -2030,12 +2250,1077 @@ function renderNumerosRomanos(datos) {
   return `<div class="numeros-romanos-bloque">${filas}</div>`;
 }
 
+// ==========================================================================
+// TIPOS NUEVOS — Séptima ampliación (19/09/2026, backlog identificado en
+// PDFs "Personalización Matemáticas 1º" de Santillana España, páginas
+// 92-109 — ver ROADMAP). Tres tipos genuinamente nuevos, sentido
+// algebraico/numérico/razonamiento, sin equivalente en el catálogo previo.
+// ==========================================================================
+
+// ── Pirámide numérica (sentido algebraico/numérico) ─────────────────────
+// Blindaje (b): el código SIEMPRE calcula la pirámide entera a partir de la
+// base (fila inferior) que da Claude — cada casilla es la suma de las dos
+// que tiene debajo, calculada aquí, nunca confiando en que Claude sume bien.
+// Claude solo decide (1) los números de la base y (2) qué casillas quedan
+// ocultas (pueden ser de la base o de filas superiores — así el hueco puede
+// caer "abajo", "arriba" o "en medio", como pedía el recurso original).
+function renderPiramideNumerica(datos) {
+  let piramides = Array.isArray(datos.piramides) ? datos.piramides.slice(0, 4) : [];
+
+  const bloques = piramides.map(p => {
+    let base = Array.isArray(p.base) ? p.base.slice(0, 6) : [];
+    base = base.map(n => Math.round(Math.abs(numeroDesdeJSON(n)))).filter(n => n > 0 && n <= 99);
+    if (base.length < 3) return '';
+
+    // La fila 0 es la base; cada fila siguiente tiene una casilla menos,
+    // calculada aquí sumando parejas adyacentes de la fila de abajo.
+    const filas = [base];
+    while (filas[filas.length - 1].length > 1) {
+      const anterior = filas[filas.length - 1];
+      const siguiente = [];
+      for (let i = 0; i < anterior.length - 1; i++) siguiente.push(anterior[i] + anterior[i + 1]);
+      filas.push(siguiente);
+    }
+
+    let ocultar = Array.isArray(p.ocultar) ? p.ocultar : null;
+    const ocultarSet = new Set();
+    if (ocultar) {
+      ocultar.forEach(par => {
+        if (!Array.isArray(par) || par.length !== 2) return;
+        const [f, c] = par;
+        if (Number.isInteger(f) && Number.isInteger(c) && f >= 0 && f < filas.length &&
+            c >= 0 && c < filas[f].length) {
+          ocultarSet.add(f + '-' + c);
+        }
+      });
+    } else {
+      // Por defecto (modo clásico): la base se da entera, todo lo de
+      // encima queda oculto para que el alumno lo calcule subiendo.
+      for (let f = 1; f < filas.length; f++) {
+        for (let c = 0; c < filas[f].length; c++) ocultarSet.add(f + '-' + c);
+      }
+    }
+
+    // Se pinta de arriba a abajo (fila más alta primero) para que la forma
+    // triangular salga bien en el HTML/CSS.
+    const filasHtml = filas.slice().reverse().map((fila, iInv) => {
+      const f = filas.length - 1 - iInv;
+      const celdas = fila.map((valor, c) => {
+        const oculta = ocultarSet.has(f + '-' + c);
+        return oculta
+          ? `<span class="piramide-celda piramide-celda-vacia"></span>`
+          : `<span class="piramide-celda">${valor}</span>`;
+      }).join('');
+      return `<div class="piramide-fila">${celdas}</div>`;
+    }).join('');
+
+    return `<div class="piramide-numerica">${filasHtml}</div>`;
+  }).filter(Boolean).join('');
+
+  if (!bloques) return '';
+  return `<div class="piramide-numerica-bloque">${bloques}</div>`;
+}
+
+// ── Laberinto de operaciones encadenadas (sentido algebraico — patrones) ──
+// Blindaje (b): el código SIEMPRE calcula cada resultado intermedio
+// aplicando la cadena de operaciones sobre el número inicial — Claude solo
+// elige el número de inicio y la lista de operaciones (+N/-N), nunca
+// escribe él mismo ningún resultado intermedio.
+function renderLaberintoOperaciones(datos) {
+  let laberintos = Array.isArray(datos.laberintos) ? datos.laberintos.slice(0, 3) : [];
+
+  const bloques = laberintos.map(l => {
+    const inicio = Math.round(numeroDesdeJSON(l.inicio));
+    if (!Number.isFinite(inicio)) return '';
+
+    let operaciones = Array.isArray(l.operaciones) ? l.operaciones.slice(0, 10) : [];
+    operaciones = operaciones
+      .map(op => String(op).trim())
+      .filter(op => /^[+-]\d{1,3}$/.test(op));
+    if (operaciones.length < 4) return '';
+
+    // resultados[0] = inicio; resultados[i] = resultados[i-1] tras aplicar
+    // operaciones[i-1]. Cálculo íntegro aquí, nunca confiando en Claude.
+    const resultados = [inicio];
+    operaciones.forEach(op => {
+      resultados.push(resultados[resultados.length - 1] + parseInt(op, 10));
+    });
+
+    let ocultar = Array.isArray(l.ocultar) ? l.ocultar : null;
+    const ocultarSet = new Set();
+    if (ocultar) {
+      ocultar.forEach(i => {
+        if (Number.isInteger(i) && i >= 0 && i < resultados.length) ocultarSet.add(i);
+      });
+    } else {
+      // Por defecto: se da el inicio, todo lo demás queda oculto.
+      for (let i = 1; i < resultados.length; i++) ocultarSet.add(i);
+    }
+
+    // Layout en zigzag (efecto "laberinto"): filas de 4 casillas, dirección
+    // alternada fila a fila mediante una clase CSS que invierte flex-direction.
+    const PASOS_POR_FILA = 4;
+    const nodos = resultados.map((valor, i) => {
+      const casilla = ocultarSet.has(i)
+        ? `<span class="laberinto-casilla laberinto-casilla-vacia"></span>`
+        : `<span class="laberinto-casilla">${valor}</span>`;
+      if (i === 0) return casilla;
+      return `<span class="laberinto-flecha">${operaciones[i - 1]}</span>${casilla}`;
+    });
+
+    const filasHtml = [];
+    for (let i = 0; i < nodos.length; i += PASOS_POR_FILA) {
+      const filaNodos = nodos.slice(i, i + PASOS_POR_FILA);
+      const filaIndex = Math.floor(i / PASOS_POR_FILA);
+      const claseInvertida = filaIndex % 2 === 1 ? ' laberinto-fila-invertida' : '';
+      filasHtml.push(`<div class="laberinto-fila${claseInvertida}">${filaNodos.join('')}</div>`);
+    }
+
+    return `<div class="laberinto-operaciones">${filasHtml.join('')}</div>`;
+  }).filter(Boolean).join('');
+
+  if (!bloques) return '';
+  return `<div class="laberinto-operaciones-bloque">${bloques}</div>`;
+}
+
+// ── Acertijo numérico por pistas (razonamiento/lógica) ───────────────────
+// Formato visual propio (camino de pistas encadenadas), distinto de
+// "detective_numeros" (lista simple) aunque el contenido pedagógico sea
+// parecido — se mantienen como tipos independientes (ver ROADMAP,
+// Séptima ampliación). Igual que en "detective_numeros", "datos.numero" (si
+// viaja) es solo para que Claude compruebe la coherencia de las pistas —
+// el renderizador lo IGNORA por completo, nunca lo imprime.
+function renderAcertijoNumerico(datos) {
+  let acertijos = Array.isArray(datos.acertijos) ? datos.acertijos.slice(0, 4) : [];
+
+  const bloques = acertijos.map((a, i) => {
+    let pistas = Array.isArray(a.pistas) ? a.pistas.slice(0, 6) : [];
+    pistas = pistas.filter(p => typeof p === 'string' && p.trim());
+    if (pistas.length < 3) return '';
+
+    const nodos = pistas.map((p, iPista) => `<div class="acertijo-nodo">
+        <span class="acertijo-nodo-numero">${iPista + 1}</span>
+        <span class="acertijo-nodo-texto">${escapeHtml(p.trim())}</span>
+      </div>${iPista < pistas.length - 1 ? '<span class="acertijo-conector"></span>' : ''}`).join('');
+
+    return `<div class="acertijo-numerico-caso">
+      <p class="acertijo-titulo">Acertijo ${i + 1}</p>
+      <div class="acertijo-camino">${nodos}</div>
+      <p class="acertijo-respuesta">El número secreto es: <span class="hueco hueco-corto"></span></p>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  if (!bloques) return '';
+  return `<div class="acertijo-numerico-bloque">${bloques}</div>`;
+}
+
+
+// ════════════════════════════════════════════════════════════════════════
+// OCTAVA AMPLIACIÓN (22/09/2026) — fichas reales de 1º (1ª evaluación,
+// "bloque_1.pdf" y "bloque_2_mate_1_1a_evaluación.pdf", mayoritariamente
+// Santillana Refuerzo/Ampliación). Ver ROADMAP, Fase 3, "Octava ampliación",
+// y Docs/ANALISIS_PDFS_BLOQUE1_BLOQUE2 (Project). Solo se toma el patrón
+// pedagógico y el lenguaje visual — ni texto ni ilustración copiados.
+//
+// Criterio de blindaje de toda la tanda: siempre que la respuesta sea un
+// algoritmo cerrado (contar decenas, escribir un número en letras, aplicar un
+// operador, comprobar una condición...), el código lo calcula o lo verifica
+// él solo y Claude se limita a elegir los números de partida.
+// ════════════════════════════════════════════════════════════════════════
+
+// Generador pseudoaleatorio determinista (misma idea que barajaDeterministaFig):
+// misma entrada → misma ficha, para que la vista previa y la impresión sean
+// idénticas. Nunca Math.random() en un renderer.
+function crearAleatorio(semillaTexto) {
+  let s = (hashTextoFig(String(semillaTexto)) % 2147483647) || 1;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+function enteroValido(valor, min, max) {
+  // numeroDesdeJSON() convierte cualquier texto sin cifras en 0 — aquí eso
+  // colaría un "0" inventado, así que un texto sin ningún dígito se descarta.
+  if (valor === null || valor === undefined || valor === '') return null;
+  if (typeof valor === 'string' && !/\d/.test(valor)) return null;
+  const n = Math.round(numeroDesdeJSON(valor));
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return n;
+}
+
+// Ejercicios de "unir con flechas": rejilla común para que la fila i de cada
+// columna quede siempre a la misma altura, aunque las piezas midan distinto
+// (una barrita de decenas es mucho más alta que un número en una caja).
+// "columnas" es un array de columnas, cada una un array de celdas HTML.
+function unirRejilla(columnas) {
+  const filas = Math.max(...columnas.map(c => c.length));
+  let celdas = '';
+  for (let f = 0; f < filas; f++) {
+    columnas.forEach((col, c) => {
+      celdas += `<div class="unir-fila${c === 0 ? ' unir-fila-izq' : ''}">${col[f] || ''}</div>`;
+    });
+  }
+  return `<div class="unir-bloque" style="grid-template-columns: repeat(${columnas.length}, max-content)">${celdas}</div>`;
+}
+
+// ── Cabecera de sección (22/09/2026) ─────────────────────────────────────
+// Formato tomado de fichas reales muy cuidadas: cada ejercicio es una sección
+// con marco, con el número en un círculo, un TÍTULO corto en grande ("Cuenta
+// y suma") y la INSTRUCCIÓN en pequeño a la derecha. El título es opcional
+// (campo "titulo" del ejercicio): si Claude no lo manda, la cabecera queda
+// exactamente como antes. Se recorta a 40 caracteres por si llega una frase
+// larga donde se esperaban 2-4 palabras.
+function cabeceraEjercicio(numero, titulo, instruccion) {
+  const tituloLimpio = typeof titulo === 'string' ? titulo.trim().slice(0, 40) : '';
+  if (!tituloLimpio) {
+    return `<p class="enunciado"><span class="numero-ejercicio">${numero}</span><span class="texto-enunciado">${escapeHtml(instruccion)}</span></p>`;
+  }
+  const textoInstruccion = String(instruccion || '').trim();
+  return `<p class="enunciado enunciado-con-titulo"><span class="numero-ejercicio">${numero}</span><span class="titulo-ejercicio">${escapeHtml(tituloLimpio)}</span>${textoInstruccion ? `<span class="texto-enunciado instruccion-ejercicio">${escapeHtml(textoInstruccion)}</span>` : ''}</p>`;
+}
+
+// Casilla de respuesta redondeada (el "□" de los cuadernos), en vez de raya.
+function casillaRespuesta(extraClase = '') {
+  return `<span class="casilla-respuesta${extraClase ? ' ' + extraClase : ''}"></span>`;
+}
+
+// Cabecera "D | U" (o "C | D | U") en pastilla oscura, como en los cuadernos.
+function cabeceraPosicional(numCifras) {
+  const etiquetas = ['U', 'D', 'C', 'UM'].slice(0, numCifras).reverse();
+  return `<span class="du-cabecera">${etiquetas.map(e => `<span>${e}</span>`).join('')}</span>`;
+}
+
+// ── Número en letras (algoritmo determinista, sin ambigüedad) ────────────
+// Mismo criterio que numeroARomano(): Claude NUNCA escribe el número en
+// letras, lo calcula siempre el código. Cubre 0-999.999 con las reglas del
+// español: 16-29 en una palabra (dieciséis, veintidós, veintitrés,
+// veintiséis con tilde), "cien" solo exacto, "ciento" + resto, apócope de
+// "uno" ante "mil" (veintiún mil, treinta y un mil, ciento un mil).
+const LETRAS_0_29 = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+  'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve',
+  'veinte', 'veintiuno', 'veintidós', 'veintitrés', 'veinticuatro', 'veinticinco', 'veintiséis', 'veintisiete',
+  'veintiocho', 'veintinueve'];
+const LETRAS_DECENAS = ['', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+const LETRAS_CENTENAS = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
+  'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+
+function letrasMenorMil(n) {
+  if (n < 30) return LETRAS_0_29[n];
+  if (n < 100) {
+    const d = Math.floor(n / 10), u = n % 10;
+    return LETRAS_DECENAS[d] + (u ? ' y ' + LETRAS_0_29[u] : '');
+  }
+  if (n === 100) return 'cien';
+  const c = Math.floor(n / 100), resto = n % 100;
+  return LETRAS_CENTENAS[c] + (resto ? ' ' + letrasMenorMil(resto) : '');
+}
+
+function apocoparUno(texto) {
+  if (texto.endsWith('veintiuno')) return texto.slice(0, -9) + 'veintiún';
+  if (texto === 'uno' || texto.endsWith(' uno')) return texto.slice(0, -3) + 'un';
+  return texto;
+}
+
+function numeroALetras(n) {
+  n = Math.floor(Math.abs(n));
+  if (n < 1000) return letrasMenorMil(n);
+  if (n >= 1000000) return String(n);
+  const miles = Math.floor(n / 1000), resto = n % 1000;
+  const textoMiles = miles === 1 ? 'mil' : apocoparUno(letrasMenorMil(miles)) + ' mil';
+  return textoMiles + (resto ? ' ' + letrasMenorMil(resto) : '');
+}
+
+// ── Marcos temáticos (catálogo cerrado) ──────────────────────────────────
+// El recurso visual más repetido de los cuadernos reales: los números no van
+// en una caja cualquiera sino dentro de vagones, casitas, hojas, globos...
+// Mismo patrón que ICONOS: diccionario nombre → SVG, curado a mano. Relleno y
+// trazo van por clase CSS (no inline) para que el modo B/N los pueda anular.
+// "zona" es dónde queda centrado el número dentro del dibujo (en % del alto).
+const MARCOS_TEMATICOS = {
+  caja: { zona: 50, svg: '<rect class="marco-forma" x="4" y="6" width="72" height="58" rx="12"/>' },
+  casita: { zona: 66, svg: '<path class="marco-forma" d="M6 32 L40 5 L74 32 L74 66 L6 66 Z"/><rect class="marco-detalle" x="58" y="9" width="7" height="14"/>' },
+  vagon: { zona: 42, svg: '<rect class="marco-forma" x="5" y="8" width="70" height="44" rx="6"/><circle class="marco-detalle" cx="20" cy="58" r="7"/><circle class="marco-detalle" cx="60" cy="58" r="7"/><line class="marco-linea" x1="0" y1="40" x2="5" y2="40"/><line class="marco-linea" x1="75" y1="40" x2="80" y2="40"/>' },
+  hoja: { zona: 50, svg: '<path class="marco-forma" d="M40 3 C70 8 80 38 40 67 C0 38 10 8 40 3 Z"/><path class="marco-linea" d="M40 67 L40 70"/>' },
+  globo: { zona: 42, svg: '<ellipse class="marco-forma" cx="40" cy="30" rx="31" ry="27"/><path class="marco-linea" d="M40 57 q-5 6 0 13"/>' },
+  nube: { zona: 58, svg: '<path class="marco-forma" d="M18 64 C4 64 2 46 15 43 C12 28 30 20 38 30 C42 14 66 16 64 34 C80 34 80 64 64 64 Z"/>' },
+  estrella: { zona: 55, svg: '<path class="marco-forma" d="M40 3 L50 26 L76 27 L55 43 L63 68 L40 54 L17 68 L25 43 L4 27 L30 26 Z"/>' }
+};
+export const MARCOS_TEMATICOS_DISPONIBLES = Object.keys(MARCOS_TEMATICOS);
+
+function marcoTematico(nombre, contenidoHtml, esHueco) {
+  const marco = MARCOS_TEMATICOS[nombre] || MARCOS_TEMATICOS.caja;
+  const claseNombre = MARCOS_TEMATICOS[nombre] ? nombre : 'caja';
+  return `<span class="marco-tematico marco-${claseNombre}${esHueco ? ' marco-hueco' : ''}">
+    <svg viewBox="0 0 80 72" width="64" height="58" aria-hidden="true">${marco.svg}</svg>
+    <span class="marco-contenido" style="top:${marco.zona}%">${contenidoHtml}</span>
+  </span>`;
+}
+
+// Arco de salto entre dos casillas de una serie, con la etiqueta (+2, −1...)
+// encima — el mismo dibujo que ya usa recta_numerica, llevado a las series.
+function arcoSalto(etiqueta) {
+  return `<span class="serie-salto"><span class="serie-salto-etiqueta">${escapeHtml(etiqueta)}</span>
+    <svg viewBox="0 0 40 16" width="40" height="16" aria-hidden="true"><path class="serie-salto-arco" d="M3 15 Q20 -4 37 11"/><path class="serie-salto-arco" d="M37 11 l-5 -1 M37 11 l-1 -5"/></svg></span>`;
+}
+
+// Paso constante de una serie deducido SOLO de los números visibles. Si los
+// números visibles no encajan todos en una progresión aritmética, devuelve
+// null y no se dibuja ningún arco (mejor sin pista que con una pista falsa).
+function pasoDeSerie(numeros) {
+  const visibles = numeros
+    .map((n, i) => ({ i, n: n === null || n === undefined || n === '' ? null : numeroDesdeJSON(n) }))
+    .filter(x => x.n !== null);
+  if (visibles.length < 2) return null;
+  const a = visibles[0], b = visibles[1];
+  const paso = (b.n - a.n) / (b.i - a.i);
+  if (!Number.isFinite(paso) || paso === 0 || !Number.isInteger(paso)) return null;
+  const ok = visibles.every(x => x.n === a.n + (x.i - a.i) * paso);
+  return ok ? paso : null;
+}
+
+// ── Ábaco ────────────────────────────────────────────────────────────────
+// Blindaje total: el número de bolitas de cada varilla se deriva siempre de
+// las cifras del propio número — Claude solo elige el número.
+function svgAbaco(numero, numVarillas, conBolitas) {
+  const ancho = 30 + numVarillas * 36;
+  const alto = 150;
+  const cifras = String(numero).padStart(numVarillas, '0').slice(-numVarillas).split('').map(Number);
+  const etiquetas = ['C', 'D', 'U'].slice(3 - numVarillas);
+  let partes = `<rect class="abaco-base" x="4" y="118" width="${ancho - 8}" height="14" rx="3"/>`;
+  cifras.forEach((cifra, i) => {
+    const x = 24 + i * 36;
+    partes += `<line class="abaco-varilla" x1="${x}" y1="10" x2="${x}" y2="118"/>`;
+    partes += `<text x="${x}" y="146" font-size="13" font-weight="bold" text-anchor="middle" font-family="Arial">${etiquetas[i]}</text>`;
+    if (conBolitas) {
+      for (let k = 0; k < cifra; k++) {
+        const y = 110 - k * 11;
+        partes += `<ellipse class="abaco-bolita abaco-bolita-${etiquetas[i]}" cx="${x}" cy="${y}" rx="11" ry="5.2"/>`;
+      }
+    }
+  });
+  return `<svg width="${ancho}" height="${alto}" viewBox="0 0 ${ancho} ${alto}">${partes}</svg>`;
+}
+
+function renderAbaco(datos) {
+  const modo = datos.modo === 'representar' ? 'representar' : 'leer';
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 999)).filter(n => n !== null).slice(0, 4);
+  if (numeros.length === 0) return '';
+  const numVarillas = numeros.some(n => n >= 100) ? 3 : 2;
+
+  const tarjetas = numeros.map(n => {
+    if (modo === 'representar') {
+      return `<div class="abaco-tarjeta">
+        ${svgAbaco(n, numVarillas, false)}
+        <span class="abaco-numero-dado">${n}</span>
+      </div>`;
+    }
+    const respuesta = numVarillas === 3
+      ? `${casillaRespuesta()} centenas, ${casillaRespuesta()} decenas y ${casillaRespuesta()} unidades`
+      : `${casillaRespuesta()} decenas y ${casillaRespuesta()} unidades`;
+    return `<div class="abaco-tarjeta">
+      ${svgAbaco(n, numVarillas, true)}
+      <div class="abaco-respuesta"><p>${respuesta}</p><p class="abaco-igual">Número: ${casillaRespuesta('casilla-ancha')}</p></div>
+    </div>`;
+  }).join('');
+  return `<div class="abaco-bloque">${tarjetas}</div>`;
+}
+
+// ── Barritas de decena y cubitos (material base 10) ──────────────────────
+// Una barrita = 10 cubitos unidos en vertical; un cubito = 1 unidad. Blindaje
+// total: barras y cubitos se derivan del número (decenas / unidades).
+function svgBarritasDecenas(numero) {
+  const decenas = Math.floor(numero / 10), unidades = numero % 10;
+  const lado = 10;
+  let partes = '';
+  let x = 2;
+  for (let d = 0; d < decenas; d++) {
+    for (let k = 0; k < 10; k++) partes += `<rect class="base10-cubo" x="${x}" y="${2 + k * lado}" width="${lado}" height="${lado}"/>`;
+    x += lado + 5;
+  }
+  if (unidades > 0) x += 4;
+  for (let u = 0; u < unidades; u++) {
+    const col = Math.floor(u / 5), fila = u % 5;
+    partes += `<rect class="base10-cubo base10-suelto" x="${x + col * (lado + 3)}" y="${2 + (5 + fila) * lado}" width="${lado}" height="${lado}"/>`;
+  }
+  const ancho = x + (unidades > 5 ? 2 : 1) * (lado + 3) + 4;
+  return `<svg width="${ancho}" height="${10 * lado + 6}" viewBox="0 0 ${ancho} ${10 * lado + 6}">${partes}</svg>`;
+}
+
+function renderBarritasDecenas(datos) {
+  const modo = ['dibujar', 'unir'].includes(datos.modo) ? datos.modo : 'contar';
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 1, 99)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 4);
+  if (numeros.length === 0) return '';
+
+  if (modo === 'dibujar') {
+    const tarjetas = numeros.map(n => `<div class="base10-tarjeta">
+      <span class="base10-numero-dado">${n}</span>
+      <div class="base10-caja-dibujo"></div>
+    </div>`).join('');
+    return `<div class="base10-bloque">${tarjetas}</div>`;
+  }
+
+  if (modo === 'unir' && numeros.length >= 2) {
+    const orden = barajaDeterministaFig(numeros.length, hashTextoFig(numeros.join(',')));
+    return unirRejilla([
+      numeros.map(n => `<span class="unir-dibujo">${svgBarritasDecenas(n)}</span><span class="unir-punto"></span>`),
+      orden.map(i => `<span class="unir-punto"></span>${marcoTematico('caja', `<b>${numeros[i]}</b>`)}`)
+    ]);
+  }
+
+  const tarjetas = numeros.map(n => `<div class="base10-tarjeta">
+    ${svgBarritasDecenas(n)}
+    <div class="base10-respuesta">
+      <p>${casillaRespuesta()} decena${Math.floor(n / 10) === 1 ? '' : 's'} y ${casillaRespuesta()} unidades</p>
+      <p>${casillaRespuesta()} + ${casillaRespuesta()} = ${casillaRespuesta('casilla-ancha')}</p>
+    </div>
+  </div>`).join('');
+  return `<div class="base10-bloque">${tarjetas}</div>`;
+}
+
+// ── Número en letras ─────────────────────────────────────────────────────
+function lineaPauta() {
+  return `<span class="linea-pauta"></span>`;
+}
+
+function renderNumeroEnLetras(datos) {
+  const modo = ['a_numero', 'mixto', 'unir'].includes(datos.modo) ? datos.modo : 'a_letras';
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 999999)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 8);
+  if (numeros.length === 0) return '';
+
+  if (modo === 'unir' && numeros.length >= 2) {
+    const semilla = hashTextoFig(numeros.join('-'));
+    const ordenNombres = barajaDeterministaFig(numeros.length, semilla);
+    const ordenDU = barajaDeterministaFig(numeros.length, semilla + 7);
+    const conDU = datos.conDecenas !== false && numeros.every(n => n < 100);
+    const columnas = [
+      ordenNombres.map(i => `<span class="unir-texto">${numeroALetras(numeros[i])}</span><span class="unir-punto"></span>`),
+      numeros.map(n => `<span class="unir-punto"></span>${marcoTematico('caja', `<b>${n}</b>`)}${conDU ? '<span class="unir-punto"></span>' : ''}`)
+    ];
+    if (conDU) columnas.push(ordenDU.map(i => `<span class="unir-punto"></span><span class="unir-texto">${Math.floor(numeros[i] / 10)} D y ${numeros[i] % 10} U</span>`));
+    return unirRejilla(columnas);
+  }
+
+  const filas = numeros.map((n, i) => {
+    const aNumero = modo === 'a_numero' || (modo === 'mixto' && i % 2 === 1);
+    if (aNumero) {
+      return `<div class="letras-fila letras-fila-a-numero"><span class="letras-palabra">${numeroALetras(n)}</span><span class="letras-flecha">▶</span>${casillaRespuesta('casilla-ancha')}</div>`;
+    }
+    return `<div class="letras-fila"><span class="letras-numero">${n}</span><span class="letras-flecha">▶</span>${lineaPauta()}</div>`;
+  }).join('');
+  return `<div class="letras-bloque">${filas}</div>`;
+}
+
+// ── Anterior y posterior (números vecinos) ───────────────────────────────
+function renderAnteriorPosterior(datos) {
+  const modo = ['anterior', 'posterior'].includes(datos.modo) ? datos.modo : 'vecinos';
+  const paso = enteroValido(datos.paso, 1, 100) || 1;
+  const marco = MARCOS_TEMATICOS[datos.marco] ? datos.marco : 'casita';
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 999999)).filter(n => n !== null)
+    .filter(n => modo === 'posterior' || n - paso >= 0)
+    .slice(0, 8);
+  if (numeros.length === 0) return '';
+
+  const grupos = numeros.map(n => {
+    const ant = modo !== 'posterior' ? `${marcoTematico(marco, '', true)}<span class="vecino-flecha">◂</span>` : '';
+    const pos = modo !== 'anterior' ? `<span class="vecino-flecha">▸</span>${marcoTematico(marco, '', true)}` : '';
+    return `<div class="vecinos-grupo">${ant}${marcoTematico(marco, `<b>${n}</b>`)}${pos}</div>`;
+  }).join('');
+  const nota = paso !== 1 ? `<p class="vecinos-nota">De ${paso} en ${paso}</p>` : '';
+  return `<div class="vecinos-bloque">${nota}${grupos}</div>`;
+}
+
+// ── Problema razonado (formato Santillana "Refuerzo") ────────────────────
+// Pasos fijos: subraya la pregunta → escribe los datos y dibújalos → marca qué
+// hay que averiguar y qué operación → rodea la operación correcta → frase de
+// respuesta. Blindaje: las dos operaciones entre las que se elige las
+// construye el código a partir de "numeros" (a+b y a−b), en un orden que
+// depende del texto — así la correcta no siempre está en la misma posición.
+function renderProblemaRazonado(datos) {
+  const texto = escapeHtml(datos.texto);
+  const nums = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 2);
+  const filasDatos = (Array.isArray(datos.filasDatos) ? datos.filasDatos : []).slice(0, 3);
+
+  const bloqueDatos = filasDatos.length
+    ? filasDatos.map(f => `<div class="razonado-dato">
+        <span>${escapeHtml(f.etiqueta || '')}</span>${casillaRespuesta()}<span>${escapeHtml(f.unidad || '')}</span>
+        <span class="razonado-flecha">▶</span><span class="razonado-dibujo"></span>
+      </div>`).join('')
+    : '';
+
+  let bloqueOperaciones = '';
+  if (nums.length === 2) {
+    const [a, b] = nums;
+    const ops = [`${a} + ${b} =`];
+    if (a >= b) ops.push(`${a} − ${b} =`);
+    if (hashTextoFig(datos.texto || '') % 2 === 1) ops.reverse();
+    bloqueOperaciones = `<p class="razonado-paso">Rodea la operación que tienes que hacer y calcula.</p>
+      <div class="razonado-operaciones">${ops.map(o => `<span class="razonado-op">${o} ${casillaRespuesta()}</span>`).join('')}</div>`;
+  }
+
+  const frase = typeof datos.respuesta === 'string' && datos.respuesta.includes('___')
+    ? escapeHtml(datos.respuesta).split('___').join('<span class="hueco hueco-corto"></span>')
+    : `<span class="hueco hueco-largo"></span>`;
+
+  return `<div class="bloque-razonado">
+    <p class="razonado-texto">${texto}</p>
+    ${bloqueDatos ? `<p class="razonado-paso">Escribe los datos y dibújalos.</p>${bloqueDatos}` : ''}
+    <p class="razonado-paso">Vuelve a leer la pregunta. Después, piensa y marca.</p>
+    <div class="razonado-marcas">
+      <div><p>Hay que averiguar...</p>
+        <div class="opcion-item"><span class="casilla-test"></span> el total</div>
+        <div class="opcion-item"><span class="casilla-test"></span> la diferencia (lo que queda o lo que falta)</div></div>
+      <div><p>Hay que...</p>
+        <div class="opcion-item"><span class="casilla-test"></span> sumar</div>
+        <div class="opcion-item"><span class="casilla-test"></span> restar</div></div>
+    </div>
+    ${bloqueOperaciones}
+    <p class="razonado-solucion"><span class="etiqueta-solucion">Solución</span><span class="razonado-frase">${frase}</span></p>
+  </div>`;
+}
+
+function renderProblemaInventar(datos) {
+  const palabras = (Array.isArray(datos.palabras) && datos.palabras.length ? datos.palabras : ['más', 'menos']).slice(0, 3);
+  const filas = palabras.map(p => `<div class="inventar-fila">
+    <p>Utiliza la palabra <b>${escapeHtml(p)}</b> ▶</p>
+    <div class="espacio-respuesta pauta bajo"></div>
+  </div>`).join('');
+  return `<div class="bloque-razonado"><p class="razonado-texto">${escapeHtml(datos.texto)}</p>${filas}</div>`;
+}
+
+// ════════════════════════ TANDA 2 ════════════════════════════════════════
+
+// ── Casita / árbol de descomposición (number bonds) ──────────────────────
+// Número de arriba = suma de las partes de abajo. Blindaje: si Claude manda
+// "total" y "partes" que no cuadran, manda la suma de las partes (el total se
+// recalcula siempre). Sirve para el doble (3 → 3 y 3), la mitad (8 → ? y ?
+// iguales), los amigos del 10 y descomposiciones como 200 → 100 + 100.
+function renderCasitaDescomposicion(datos) {
+  const forma = datos.forma === 'arbol' ? 'arbol' : 'casita';
+  const casitas = (Array.isArray(datos.casitas) ? datos.casitas : []).slice(0, 8).map(c => {
+    const partes = (Array.isArray(c.partes) ? c.partes : []).map(p => enteroValido(p, 0, 99999)).filter(p => p !== null).slice(0, 3);
+    if (partes.length < 2) return null;
+    const total = partes.reduce((s, p) => s + p, 0);
+    const ocultar = ['total', 'parte1', 'parte2', 'parte3'].includes(c.ocultar) ? c.ocultar : 'total';
+    return { total, partes, ocultar };
+  }).filter(Boolean);
+  if (casitas.length === 0) return '';
+
+  const celda = (valor, oculto) => oculto ? `<span class="casita-celda casita-celda-vacia"></span>` : `<span class="casita-celda">${valor}</span>`;
+  const piezas = casitas.map(c => {
+    const arriba = celda(c.total, c.ocultar === 'total');
+    const abajo = c.partes.map((p, i) => celda(p, c.ocultar === `parte${i + 1}`)).join('');
+    if (forma === 'arbol') {
+      return `<div class="arbol-descomp"><div class="arbol-raiz">${arriba}</div>
+        <svg class="arbol-ramas" viewBox="0 0 100 24" width="${c.partes.length * 46}" height="22" preserveAspectRatio="none"><path d="M50 0 L${c.partes.length === 3 ? '10 24 M50 0 L50 24 M50 0 L90 24' : '18 24 M50 0 L82 24'}"/></svg>
+        <div class="arbol-partes">${abajo}</div></div>`;
+    }
+    return `<div class="casita-descomp"><span class="casita-tejado"></span><div class="casita-arriba">${arriba}</div><div class="casita-abajo">${abajo}</div></div>`;
+  }).join('');
+  return `<div class="casitas-bloque">${piezas}</div>`;
+}
+
+// ── Máquina de operador (doble, triple, mitad, +10, −2...) ───────────────
+// Validación por código: la mitad solo con pares, ":" solo con divisiones
+// exactas, "−" nunca por debajo de 0 — los números que no cumplen se
+// descartan. El resultado nunca se imprime (es el hueco).
+function parsearOperador(op) {
+  const t = String(op || '').trim().toLowerCase().replace('−', '-').replace('×', 'x').replace('*', 'x').replace('÷', ':');
+  if (t === 'doble') return { etiqueta: 'Doble de', aplicar: n => 2 * n, valido: () => true, palabra: true };
+  if (t === 'triple') return { etiqueta: 'Triple de', aplicar: n => 3 * n, valido: () => true, palabra: true };
+  if (t === 'mitad') return { etiqueta: 'Mitad de', aplicar: n => n / 2, valido: n => n % 2 === 0, palabra: true };
+  const m = t.match(/^([+\-x:])\s*(\d{1,4})$/);
+  if (!m) return null;
+  const k = parseInt(m[2], 10);
+  const simbolo = { '+': '+', '-': '−', 'x': '×', ':': ':' }[m[1]];
+  const fn = { '+': n => n + k, '-': n => n - k, 'x': n => n * k, ':': n => n / k }[m[1]];
+  const valido = { '+': () => true, '-': n => n - k >= 0, 'x': () => true, ':': n => k > 0 && n % k === 0 }[m[1]];
+  return { etiqueta: `${simbolo}${k}`, aplicar: fn, valido, palabra: false };
+}
+
+function renderMaquinaOperador(datos) {
+  const formato = datos.formato === 'tabla' ? 'tabla' : 'flechas';
+  const operadores = (Array.isArray(datos.operadores) ? datos.operadores : [datos.operador])
+    .map(parsearOperador).filter(Boolean).slice(0, 2);
+  if (operadores.length === 0) return '';
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 99999)).filter(n => n !== null)
+    .filter(n => operadores.every(op => op.valido(n))).slice(0, 10);
+  if (numeros.length === 0) return '';
+
+  if (formato === 'tabla') {
+    const op = operadores[0];
+    const cabecera = numeros.map(n => `<td class="maquina-celda">${n}</td>`).join('');
+    const fila = numeros.map(() => `<td class="maquina-celda maquina-celda-vacia"></td>`).join('');
+    return `<table class="maquina-tabla"><tr><th class="maquina-etiqueta">Número</th>${cabecera}</tr><tr><th class="maquina-etiqueta">${escapeHtml(op.etiqueta)}</th>${fila}</tr></table>`;
+  }
+
+  const columnas = operadores.map(op => {
+    const filas = numeros.map(n => `<div class="maquina-fila">
+      <span class="maquina-flecha">${op.palabra ? `${escapeHtml(op.etiqueta)} ${n}` : `${n} <b>${escapeHtml(op.etiqueta)}</b>`}</span>
+      ${casillaRespuesta('casilla-ancha')}
+    </div>`).join('');
+    return `<div class="maquina-columna">${filas}</div>`;
+  }).join('');
+  return `<div class="maquina-bloque">${columnas}</div>`;
+}
+
+// ── Clasificar números según una condición ───────────────────────────────
+// A diferencia de detective_numeros, aquí el código SÍ puede comprobar la
+// respuesta: cada condición es una regla cerrada. Las condiciones que no
+// cumple ningún número de la lista se descartan (no se imprime una clave de
+// color que no sirve para nada), y en modo "escribir" se reduce el número de
+// casillas si no existen tantos números que cumplan todas las condiciones.
+const COLORES_LAPIZ = {
+  rojo: '#ef4444', azul: '#3b82f6', verde: '#22c55e', amarillo: '#facc15', naranja: '#fb923c', morado: '#a855f7', marron: '#92400e'
+};
+
+function condicionNumero(c) {
+  const v = enteroValido(c.valor, 0, 99999), v2 = enteroValido(c.valor2, 0, 99999);
+  switch (c.tipo) {
+    case 'par': return { texto: 'Números pares', cumple: n => n % 2 === 0 };
+    case 'impar': return { texto: 'Números impares', cumple: n => n % 2 === 1 };
+    case 'unidades': return v === null || v > 9 ? null : { texto: `Números con ${v} unidad${v === 1 ? '' : 'es'}`, cumple: n => n % 10 === v };
+    case 'decenas': return v === null || v > 9 ? null : { texto: `Números con ${v} decena${v === 1 ? '' : 's'}`, cumple: n => Math.floor(n / 10) % 10 === v };
+    case 'mayor_que': return v === null ? null : { texto: `Mayores que ${v}`, cumple: n => n > v };
+    case 'menor_que': return v === null ? null : { texto: `Menores que ${v}`, cumple: n => n < v };
+    case 'entre': return v === null || v2 === null || v2 <= v ? null : { texto: `Entre ${v} y ${v2}`, cumple: n => n > v && n < v2 };
+    default: return null;
+  }
+}
+
+function svgLapiz(nombreColor) {
+  const color = COLORES_LAPIZ[nombreColor] || '#94a3b8';
+  return `<svg class="lapiz" viewBox="0 0 64 22" width="64" height="22" aria-hidden="true"><path d="M2 11 L14 3 L14 19 Z" fill="#f5deb3" stroke="#000" stroke-width="1.2"/><path d="M2 11 L6 8.3 L6 13.7 Z" fill="${color}"/><rect x="14" y="3" width="46" height="16" rx="2" fill="${color}" stroke="#000" stroke-width="1.2" class="lapiz-cuerpo"/></svg>`;
+}
+
+function renderClasificarNumeros(datos) {
+  const modo = datos.modo === 'escribir' ? 'escribir' : 'rodear';
+
+  if (modo === 'escribir') {
+    const grupos = (Array.isArray(datos.grupos) ? datos.grupos : []).slice(0, 4).map(g => {
+      const conds = (Array.isArray(g.condiciones) ? g.condiciones : []).map(condicionNumero).filter(Boolean);
+      if (conds.length === 0) return null;
+      let posibles = 0;
+      for (let n = 0; n <= 9999 && posibles < 12; n++) if (conds.every(c => c.cumple(n))) posibles++;
+      const cantidad = Math.min(enteroValido(g.cantidad, 1, 6) || 4, posibles);
+      if (cantidad === 0) return null;
+      return `<div class="clasificar-grupo"><span class="clasificar-cartel">${conds.map((c, i) => (i === 0 ? c.texto : c.texto.charAt(0).toLowerCase() + c.texto.slice(1))).join(' y ')}</span><span class="clasificar-flecha">▶</span>${Array.from({ length: cantidad }, () => casillaRespuesta('casilla-ancha')).join('')}</div>`;
+    }).filter(Boolean);
+    return grupos.length ? `<div class="clasificar-bloque">${grupos.join('')}</div>` : '';
+  }
+
+  const numeros = (Array.isArray(datos.numeros) ? datos.numeros : [])
+    .map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 16);
+  if (numeros.length === 0) return '';
+  const coloresUsados = new Set();
+  const condiciones = (Array.isArray(datos.condiciones) ? datos.condiciones : []).slice(0, 3).map(c => {
+    const cond = condicionNumero(c);
+    if (!cond || !numeros.some(cond.cumple)) return null;
+    let color = COLORES_LAPIZ[c.color] ? c.color : Object.keys(COLORES_LAPIZ).find(k => !coloresUsados.has(k));
+    if (coloresUsados.has(color)) color = Object.keys(COLORES_LAPIZ).find(k => !coloresUsados.has(k));
+    coloresUsados.add(color);
+    return { ...cond, color };
+  }).filter(Boolean);
+  if (condiciones.length === 0) return '';
+
+  const aleatorio = crearAleatorio(numeros.join(','));
+  const clave = condiciones.map(c => `<div class="clave-lapiz">${svgLapiz(c.color)}<span class="clave-color-nombre">${c.color}</span><span class="clave-condicion">${c.texto}</span></div>`).join('');
+  const nubeNumeros = numeros.map(n => `<span class="numero-suelto" style="margin-top:${Math.round(aleatorio() * 14)}px">${n}</span>`).join('');
+  return `<div class="clasificar-bloque"><div class="clave-lapices">${clave}</div><div class="mural-numeros">${nubeNumeros}</div></div>`;
+}
+
+// ── Operaciones con el mismo resultado ───────────────────────────────────
+// Evaluador aritmético mínimo y cerrado (enteros, + − × :, precedencia de ×
+// y : sobre + y −). Solo acepta dígitos y esos cuatro signos — cualquier otra
+// cosa devuelve null y esa operación se descarta. Nunca eval().
+function evaluarOperacion(texto) {
+  const limpio = String(texto || '').replace(/−/g, '-').replace(/[×x*]/gi, '×').replace(/÷/g, ':').replace(/\s+/g, '');
+  if (!/^\d+([+\-×:]\d+)*$/.test(limpio)) return null;
+  const tokens = limpio.match(/\d+|[+\-×:]/g);
+  const terminos = [];
+  let actual = parseInt(tokens[0], 10);
+  for (let i = 1; i < tokens.length; i += 2) {
+    const op = tokens[i], n = parseInt(tokens[i + 1], 10);
+    if (op === '×') actual *= n;
+    else if (op === ':') { if (n === 0 || actual % n !== 0) return null; actual /= n; }
+    else { terminos.push(actual); terminos.push(op); actual = n; }
+  }
+  terminos.push(actual);
+  let resultado = terminos[0];
+  for (let i = 1; i < terminos.length; i += 2) resultado = terminos[i] === '+' ? resultado + terminos[i + 1] : resultado - terminos[i + 1];
+  return resultado >= 0 ? resultado : null;
+}
+
+function textoOperacion(texto) {
+  return escapeHtml(String(texto).replace(/\s*([+\-−×x*:÷])\s*/g, ' $1 ').replace(/ - /g, ' − ').replace(/ [x*] /gi, ' × ').trim());
+}
+
+function renderMismoResultado(datos) {
+  if (datos.modo === 'dibujos') return renderUnirDibujosSuma(datos);
+  const modo = ['unir', 'diana'].includes(datos.modo) ? datos.modo : 'resultado';
+
+  if (modo === 'diana') {
+    const dianas = (Array.isArray(datos.dianas) ? datos.dianas : []).slice(0, 4).map(d => {
+      const objetivo = enteroValido(d.objetivo, 0, 99999);
+      const ops = (Array.isArray(d.operaciones) ? d.operaciones : []).filter(o => evaluarOperacion(o) !== null).slice(0, 4);
+      if (objetivo === null || ops.length < 2 || !ops.some(o => evaluarOperacion(o) === objetivo)) return null;
+      const celdas = ops.map(o => `<span class="diana-op">${textoOperacion(o)}</span>`);
+      return `<div class="diana"><div class="diana-rejilla">${celdas[0] || ''}${celdas[1] || ''}<span class="diana-centro">${objetivo}</span>${celdas[2] || ''}${celdas[3] || ''}</div></div>`;
+    }).filter(Boolean);
+    return dianas.length ? `<div class="dianas-bloque">${dianas.join('')}</div>` : '';
+  }
+
+  let izquierda, derecha;
+  if (modo === 'unir') {
+    const parejas = (Array.isArray(datos.parejas) ? datos.parejas : [])
+      .filter(p => Array.isArray(p) && p.length === 2)
+      .filter(p => evaluarOperacion(p[0]) !== null && evaluarOperacion(p[0]) === evaluarOperacion(p[1]))
+      .slice(0, 6);
+    if (parejas.length < 2) return '';
+    izquierda = parejas.map(p => textoOperacion(p[0]));
+    derecha = parejas.map(p => textoOperacion(p[1]));
+  } else {
+    const vistos = new Set();
+    const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : []).filter(o => {
+      const r = evaluarOperacion(o);
+      if (r === null || vistos.has(r)) return false;
+      vistos.add(r);
+      return true;
+    }).slice(0, 6);
+    if (ops.length < 2) return '';
+    izquierda = ops.map(textoOperacion);
+    derecha = ops.map(o => String(evaluarOperacion(o)));
+  }
+  const orden = barajaDeterministaFig(derecha.length, hashTextoFig(izquierda.join('|')));
+  return unirRejilla([
+    izquierda.map(t => `<span class="unir-op">${t}</span><span class="unir-punto"></span>`),
+    orden.map(i => `<span class="unir-punto"></span><span class="unir-op">${derecha[i]}</span>`)
+  ]);
+}
+
+// ── Escena revuelta (para contar por tipos) ──────────────────────────────
+// Los cuadernos reales mezclan todos los objetos en una escena para que el
+// niño busque y cuente cada tipo. Se hace sin ilustraciones: iconos del
+// catálogo colocados en una rejilla desordenada con un ligero desplazamiento
+// y giro, todo determinista. Las cantidades salen siempre de "categorias".
+function escenaRevuelta(categorias) {
+  const lista = [];
+  categorias.forEach(c => {
+    const n = Math.max(1, Math.min(10, parseInt(c.cantidad, 10) || 1));
+    for (let i = 0; i < n; i++) lista.push(c.icono);
+  });
+  const aleatorio = crearAleatorio(lista.join(','));
+  const columnas = Math.min(10, Math.max(5, Math.ceil(Math.sqrt(lista.length * 2))));
+  const filas = Math.ceil(lista.length / columnas);
+  const celdas = Array.from({ length: columnas * filas }, (_, i) => i);
+  for (let i = celdas.length - 1; i > 0; i--) { const j = Math.floor(aleatorio() * (i + 1)); [celdas[i], celdas[j]] = [celdas[j], celdas[i]]; }
+  const paso = 46;
+  const piezas = lista.map((icono, k) => {
+    const celda = celdas[k];
+    const x = (celda % columnas) * paso + Math.round(aleatorio() * 10);
+    const y = Math.floor(celda / columnas) * paso + Math.round(aleatorio() * 10);
+    const giro = Math.round((aleatorio() - 0.5) * 30);
+    return `<span class="escena-icono" style="left:${x}px; top:${y}px; transform:rotate(${giro}deg)">${renderIconos(icono, 1)}</span>`;
+  }).join('');
+  return `<div class="escena-revuelta" style="width:${columnas * paso + 14}px; height:${filas * paso + 14}px">${piezas}</div>`;
+}
+
+// ════════════════════════ TANDA 3 ════════════════════════════════════════
+
+// ── Operaciones con cifras ocultas ───────────────────────────────────────
+// El código calcula el resultado real y oculta cifras con dos reglas que
+// garantizan que siempre tiene solución única: como mucho UNA cifra oculta
+// por columna, y nunca todas las cifras de un mismo número.
+function renderOperacionCifrasOcultas(datos) {
+  const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : []).slice(0, 5).map(op => {
+    const signo = op.signo === '-' ? '-' : '+';
+    const nums = (Array.isArray(op.numeros) ? op.numeros : []).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 2);
+    if (nums.length < 2) return null;
+    let [a, b] = nums;
+    if (signo === '-' && b > a) [a, b] = [b, a];
+    const r = signo === '+' ? a + b : a - b;
+    return { signo, filas: [a, b, r] };
+  }).filter(Boolean);
+  if (ops.length === 0) return '';
+  const numOcultas = enteroValido(datos.ocultas, 1, 4) || 2;
+
+  const bloques = ops.map(op => {
+    const ancho = Math.max(...op.filas.map(n => String(n).length));
+    const cifras = op.filas.map(n => String(n).padStart(ancho, ' ').split(''));
+    const aleatorio = crearAleatorio(op.filas.join(op.signo));
+    const columnas = Array.from({ length: ancho }, (_, i) => i);
+    for (let i = columnas.length - 1; i > 0; i--) { const j = Math.floor(aleatorio() * (i + 1)); [columnas[i], columnas[j]] = [columnas[j], columnas[i]]; }
+    const ocultas = new Set();
+    const ocultasPorFila = [0, 0, 0];
+    for (const col of columnas) {
+      if (ocultas.size >= numOcultas) break;
+      // Nunca se ocultan todas las cifras de un número de 2+ cifras (queda al
+      // menos una de pista); en números de 1 cifra se permite ocultar esa.
+      const candidatas = [0, 1, 2].filter(f => cifras[f][col] !== ' ' && ocultasPorFila[f] < Math.max(1, String(op.filas[f]).length - 1));
+      if (candidatas.length === 0) continue;
+      const fila = candidatas[Math.floor(aleatorio() * candidatas.length)];
+      ocultas.add(`${fila}-${col}`);
+      ocultasPorFila[fila]++;
+    }
+    const filaHtml = (f, signo) => `<div class="cifras-fila"><span class="cifras-signo">${signo}</span>${cifras[f].map((c, col) => {
+      if (c === ' ') return '<span class="cifras-celda cifras-vacia"></span>';
+      return ocultas.has(`${f}-${col}`) ? '<span class="cifras-celda cifras-oculta"></span>' : `<span class="cifras-celda">${c}</span>`;
+    }).join('')}</div>`;
+    return `<div class="cifras-operacion">${filaHtml(0, '')}${filaHtml(1, op.signo === '+' ? '+' : '−')}<div class="cifras-linea"></div>${filaHtml(2, '')}</div>`;
+  }).join('');
+  return `<div class="cifras-bloque">${bloques}</div>`;
+}
+
+// ── Suma agrupando sumandos (propiedad asociativa / "busca la decena") ───
+function renderSumaAsociativa(datos) {
+  const buscarDecena = datos.agrupar === 'decena';
+  const sumas = (Array.isArray(datos.sumas) ? datos.sumas : []).slice(0, 6).map(s => {
+    const n = (Array.isArray(s) ? s : []).map(x => enteroValido(x, 0, 999)).filter(x => x !== null);
+    return n.length === 3 ? n : null;
+  }).filter(Boolean);
+  if (sumas.length === 0) return '';
+
+  const piezas = sumas.map((s, idx) => {
+    let par = 0;
+    if (buscarDecena && (s[0] + s[1]) % 10 !== 0 && (s[1] + s[2]) % 10 === 0) par = 1;
+    const ejemplo = datos.ejemplo === true && idx === 0;
+    const parcial = s[par] + s[par + 1];
+    const suelto = par === 0 ? s[2] : s[0];
+    const caja = ejemplo ? `<span class="casilla-respuesta casilla-ejemplo">${parcial}</span>` : casillaRespuesta();
+    const cajaFinal = ejemplo ? `<span class="casilla-respuesta casilla-ejemplo">${parcial + suelto}</span>` : casillaRespuesta();
+    const cols = par === 0 ? '1 / 4' : '3 / 6';
+    const colSuelto = par === 0 ? '5' : '1';
+    const segunda = par === 0 ? `${caja}<span>+</span><span class="asoc-num">${suelto}</span>` : `<span class="asoc-num">${suelto}</span><span>+</span>${caja}`;
+    return `<div class="asociativa">
+      <div class="asoc-fila1"><span class="asoc-num">${s[0]}</span><span>+</span><span class="asoc-num">${s[1]}</span><span>+</span><span class="asoc-num">${s[2]}</span></div>
+      <div class="asoc-flechas"><span class="asoc-agrupa" style="grid-column:${cols}">↘ ↙</span><span class="asoc-baja" style="grid-column:${colSuelto}">↓</span></div>
+      <div class="asoc-fila2">${segunda}<span>=</span>${cajaFinal}</div>
+    </div>`;
+  }).join('');
+  return `<div class="asociativa-bloque">${piezas}</div>`;
+}
+
+// ── Camino de resultados ─────────────────────────────────────────────────
+// Rejilla de números; el alumno colorea las casillas de la serie (de N en N)
+// para encontrar el camino desde la salida hasta la meta. El código genera
+// él solo un camino válido (solo pasos a la derecha o hacia abajo, de la
+// esquina superior izquierda a la inferior derecha) y rellena el resto con
+// números que NO pertenecen a la serie — nunca puede haber dos caminos.
+function renderCaminoResultados(datos) {
+  const paso = enteroValido(datos.paso, 1, 100) || 2;
+  const inicio = enteroValido(datos.inicio, 0, 9999) ?? 0;
+  let longitud = enteroValido(datos.longitud, 5, 13) || 9;
+  const serie = Array.from({ length: longitud }, (_, i) => inicio + i * paso);
+  const columnas = Math.ceil((longitud + 1) / 2);
+  const filas = longitud + 1 - columnas;
+  const aleatorio = crearAleatorio(`${inicio}-${paso}-${longitud}`);
+
+  const movimientos = [...Array(columnas - 1).fill('R'), ...Array(filas - 1).fill('D')];
+  for (let i = movimientos.length - 1; i > 0; i--) { const j = Math.floor(aleatorio() * (i + 1)); [movimientos[i], movimientos[j]] = [movimientos[j], movimientos[i]]; }
+  const rejilla = Array.from({ length: filas }, () => Array(columnas).fill(null));
+  let f = 0, c = 0;
+  rejilla[0][0] = serie[0];
+  movimientos.forEach((m, i) => { if (m === 'R') c++; else f++; rejilla[f][c] = serie[i + 1]; });
+
+  const enSerie = new Set(serie);
+  const margen = Math.max(paso * 2, 10);
+  const minimo = Math.max(0, inicio - margen), maximo = serie[serie.length - 1] + margen;
+  for (let fi = 0; fi < filas; fi++) for (let co = 0; co < columnas; co++) {
+    if (rejilla[fi][co] !== null) continue;
+    let n, intentos = 0;
+    // Con paso > 1 se excluye toda la progresión (también antes y después del
+    // camino), para que un distractor nunca parezca la continuación válida.
+    const prohibido = x => enSerie.has(x) || (paso > 1 && (x - inicio) % paso === 0);
+    do { n = minimo + Math.floor(aleatorio() * (maximo - minimo + 1)); intentos++; } while (prohibido(n) && intentos < 80);
+    if (prohibido(n)) n = inicio + 1 + ((fi * columnas + co) % (paso > 1 ? paso - 1 : 1)) + paso * (fi + co);
+    if (prohibido(n)) n = maximo + 1 + fi + co;
+    rejilla[fi][co] = n;
+  }
+  const iconoMeta = ICONOS[datos.iconoMeta] ? datos.iconoMeta : 'estrella';
+  const celdas = rejilla.map(fila => `<div class="camino-fila">${fila.map(n => `<span class="camino-celda">${n}</span>`).join('')}</div>`).join('');
+  return `<div class="camino-bloque">
+    <span class="camino-salida">SALIDA ▶</span>
+    <div class="camino-rejilla">${celdas}</div>
+    <span class="camino-meta">▶ ${renderIconos(iconoMeta, 1)}</span>
+  </div>`;
+}
+
+// ── Pictograma (modo de grafico_barras) ──────────────────────────────────
+// Cada icono vale "valorIcono" unidades. Si un valor no es múltiplo exacto,
+// se redondea al múltiplo más cercano ANTES de dibujar: en este modo el
+// dibujo es el dato (el enunciado pide leerlo), así que dibujo y clave
+// siempre cuadran entre sí.
+function renderPictograma(datos) {
+  const categorias = (Array.isArray(datos.categorias) ? datos.categorias : []).slice(0, 6);
+  if (categorias.length === 0) return '';
+  const valorIcono = enteroValido(datos.valorIcono, 1, 100) || 1;
+  const icono = ICONOS[datos.icono] ? datos.icono : 'estrella';
+  const filas = categorias.map(c => {
+    const cuantos = Math.max(0, Math.min(10, Math.round(numeroDesdeJSON(c.valor) / valorIcono)));
+    return `<tr><th class="picto-etiqueta">${escapeHtml(c.etiqueta)}</th><td class="picto-iconos">${cuantos ? renderIconos(icono, cuantos) : ''}</td></tr>`;
+  }).join('');
+  return `<div class="pictograma-bloque">
+    <table class="pictograma">${filas}</table>
+    <p class="picto-clave">${renderIconos(icono, 1)} <span>= ${valorIcono}</span></p>
+  </div>`;
+}
+
+// ── Hora en palabras y reloj digital (modos de reloj_analogico) ──────────
+function horaEnPalabras(hora, minuto) {
+  const h = ((hora % 12) + 12) % 12 || 12;
+  const siguiente = (h % 12) + 1;
+  const nombreHora = x => (x === 1 ? 'la una' : 'las ' + numeroALetras(x));
+  if (minuto === 0) return `${nombreHora(h)} en punto`;
+  if (minuto === 15) return `${nombreHora(h)} y cuarto`;
+  if (minuto === 30) return `${nombreHora(h)} y media`;
+  if (minuto === 45) return `${nombreHora(siguiente)} menos cuarto`;
+  if (minuto < 30) return `${nombreHora(h)} y ${numeroALetras(minuto)}`;
+  return `${nombreHora(siguiente)} menos ${numeroALetras(60 - minuto)}`;
+}
+
+function relojDigital(hora, minuto, vacio) {
+  if (vacio) return `<span class="reloj-digital"><span class="rd-hueco"></span><span class="rd-puntos">:</span><span class="rd-hueco"></span></span>`;
+  const h = ((hora % 12) + 12) % 12 || 12;
+  return `<span class="reloj-digital"><span class="rd-cifras">${String(h).padStart(2, '0')}</span><span class="rd-puntos">:</span><span class="rd-cifras">${String(minuto).padStart(2, '0')}</span></span>`;
+}
+
+// ── Estimar capacidad (modo de medir_capacidad) ──────────────────────────
+// Catálogo cerrado de recipientes con su clase de capacidad YA decidida en
+// código ("menos" o "más" de 1 litro) — por eso Claude solo elige nombres:
+// la respuesta correcta es un dato del catálogo, no algo que el modelo
+// pueda equivocar. Solo recipientes sin ambigüedad (nada de jarras o
+// botellas que según el tamaño puedan ser de 1 litro justo).
+const RECIPIENTES_ESTIMAR = {
+  cuchara: { clase: 'menos', svg: '<ellipse cx="18" cy="16" rx="11" ry="8"/><path d="M28 20 L54 44"/>' },
+  vaso: { clase: 'menos', svg: '<path d="M18 10 L42 10 L38 52 L22 52 Z"/><path d="M20 26 L40 26"/>' },
+  taza: { clase: 'menos', svg: '<path d="M12 18 L42 18 L40 48 Q27 54 14 48 Z"/><path d="M42 24 Q54 26 50 36 Q48 42 41 40"/>' },
+  yogur: { clase: 'menos', svg: '<path d="M18 16 L42 16 L39 48 L21 48 Z"/><rect x="16" y="11" width="28" height="5" rx="1"/>' },
+  cubo: { clase: 'mas', svg: '<path d="M10 20 L50 20 L45 54 L15 54 Z"/><path d="M10 20 Q30 0 50 20"/>' },
+  banera: { clase: 'mas', svg: '<path d="M4 26 L56 26 L52 44 Q30 50 8 44 Z"/><path d="M12 46 L10 54 M48 46 L50 54 M48 26 L48 12 L54 12"/>' },
+  regadera: { clase: 'mas', svg: '<path d="M14 22 L38 22 L38 52 L14 52 Z"/><path d="M38 30 L56 16 M52 12 L58 20"/><path d="M14 28 Q4 28 6 40 Q8 46 14 46"/>' },
+  garrafa: { clase: 'mas', svg: '<path d="M20 14 L36 14 L36 20 Q48 22 48 32 L48 54 L10 54 L10 32 Q10 22 20 20 Z"/><rect x="22" y="8" width="12" height="6"/><path d="M40 26 Q46 26 44 36"/>' }
+};
+export const RECIPIENTES_ESTIMAR_DISPONIBLES = Object.keys(RECIPIENTES_ESTIMAR);
+
+function renderEstimarCapacidad(datos) {
+  const nombres = (Array.isArray(datos.recipientes) ? datos.recipientes : [])
+    .map(r => (typeof r === 'string' ? r : r?.nombre)).filter(n => RECIPIENTES_ESTIMAR[n])
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 6);
+  if (nombres.length < 2) return '';
+  const tarjetas = nombres.map(n => `<div class="estimar-tarjeta">
+    <svg viewBox="0 0 60 60" width="64" height="64" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${RECIPIENTES_ESTIMAR[n].svg}</svg>
+    <div class="opcion-item"><span class="casilla-test"></span> Más de 1 litro</div>
+    <div class="opcion-item"><span class="casilla-test"></span> Menos de 1 litro</div>
+  </div>`).join('');
+  return `<div class="estimar-bloque">${tarjetas}</div>`;
+}
+
+// ── Colocar en columna (modo de operacion_vertical) ──────────────────────
+// Suma/resta escrita en horizontal + rejilla vacía con cabecera D | U para
+// que el alumno la coloque él mismo en columna y la resuelva. El número de
+// columnas se deriva del número más largo (incluido el resultado real, para
+// dejar sitio a la llevada) — nunca se imprime ninguna cifra en la rejilla.
+function renderColocarEnColumna(datos) {
+  const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : []).slice(0, 4).map(op => {
+    const signo = op.signo === '-' ? '-' : '+';
+    const nums = (Array.isArray(op.numeros) ? op.numeros : []).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, signo === '-' ? 2 : 4);
+    if (nums.length < 2) return null;
+    if (signo === '-' && nums[1] > nums[0]) nums.reverse();
+    const resultado = signo === '+' ? nums.reduce((s, n) => s + n, 0) : nums[0] - nums[1];
+    return { signo, nums, resultado };
+  }).filter(Boolean);
+  if (ops.length === 0) return '';
+  const bloques = ops.map(op => {
+    const cifras = Math.max(2, ...op.nums.map(n => String(n).length), String(op.resultado).length);
+    const fila = () => `<div class="colocar-fila">${Array.from({ length: cifras }, () => '<span class="colocar-celda"></span>').join('')}</div>`;
+    const texto = op.nums.join(op.signo === '+' ? ' + ' : ' − ') + ' =';
+    const filasNumeros = op.nums.map((_, i) => i === op.nums.length - 1
+      ? `<div class="colocar-con-signo"><span class="colocar-signo">${op.signo === '+' ? '+' : '−'}</span>${fila()}</div>`
+      : `<div class="colocar-con-signo"><span class="colocar-signo"></span>${fila()}</div>`).join('');
+    return `<div class="colocar-operacion">
+      <p class="colocar-texto">${texto}</p>
+      <div class="colocar-rejilla"><div class="colocar-con-signo"><span class="colocar-signo"></span>${cabeceraPosicional(cifras)}</div>${filasNumeros}<div class="colocar-linea"></div><div class="colocar-con-signo"><span class="colocar-signo"></span>${fila()}</div></div>
+    </div>`;
+  }).join('');
+  return `<div class="colocar-bloque">${bloques}</div>`;
+}
+
+// ── Suma o resta con dibujos en horizontal (22/09/2026) ──────────────────
+// "🍎🍎 + 🍎🍎🍎 = □" dentro de una tarjeta, en rejilla de dos columnas. En la
+// resta se dibuja SOLO el minuendo, sin tachar nada: tachar los objetos que
+// se quitan es justo el trabajo del niño (corrección del usuario, 22/09/2026 —
+// la primera versión los tachaba el código y eso le daba la respuesta hecha).
+// Mismo modelo que la resta ilustrada de operacion_vertical.
+// Un ejercicio lleva un solo tipo de operación: si Claude mezcla sumas y
+// restas, se quedan solo las del signo de la primera — así el título del
+// ejercicio ("Cuenta y suma", "Tacha y resta") nunca contradice lo que hay
+// dentro. Blindaje total: las cantidades de dibujos salen siempre de
+// "numeros" — Claude solo elige números e iconos.
+function renderOperacionDibujos(datos) {
+  const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : []).slice(0, 6).map(op => {
+    const signo = op.signo === '-' ? '-' : '+';
+    const nums = (Array.isArray(op.numeros) ? op.numeros : []).map(n => enteroValido(n, 0, 10)).filter(n => n !== null).slice(0, 2);
+    if (nums.length < 2) return null;
+    if (signo === '-' && nums[1] > nums[0]) return null;
+    if (signo === '+' && nums[0] + nums[1] === 0) return null;
+    const icono1 = ICONOS[op.icono] ? op.icono : 'estrella';
+    const icono2 = ICONOS[op.icono2] ? op.icono2 : icono1;
+    return { signo, a: nums[0], b: nums[1], icono1, icono2 };
+  }).filter(Boolean);
+  if (ops.length === 0) return '';
+  const opsMismoSigno = ops.filter(op => op.signo === ops[0].signo);
+
+  const grupo = (icono, n) => n > 0 ? `<span class="od-grupo">${renderIconos(icono, n)}</span>` : '';
+  const tarjetas = opsMismoSigno.map(op => {
+    if (op.signo === '-') {
+      return `<div class="od-tarjeta od-resta${op.a > 6 ? ' od-compacta' : ''}"><span class="od-grupo">${op.a > 0 ? renderIconos(op.icono1, op.a) : ''}</span>
+        <span class="od-texto">${op.a} − ${op.b} = ${casillaRespuesta('casilla-grande')}</span></div>`;
+    }
+    // Con 6 o más dibujos en total se usan iconos más pequeños para que la
+    // suma completa (dibujos + casilla) quepa en una sola línea de la tarjeta.
+    return `<div class="od-tarjeta${op.a + op.b >= 6 ? ' od-compacta' : ''}">${grupo(op.icono1, op.a)}<span class="od-signo">+</span>${grupo(op.icono2, op.b)}<span class="od-signo">=</span>${casillaRespuesta('casilla-grande')}</div>`;
+  }).join('');
+  return `<div class="od-bloque">${tarjetas}</div>`;
+}
+
+// Modo "dibujos" de mismo_resultado: grupos de dibujos a la izquierda (dos
+// montones separados) y sumas desordenadas a la derecha. Los montones los
+// dibuja el código a partir de la propia suma — no pueden no coincidir.
+// Se descartan sumas repetidas o con los sumandos cambiados de orden (2 + 3
+// y 3 + 2 tendrían el mismo dibujo si el icono fuera igual).
+function renderUnirDibujosSuma(datos) {
+  const vistos = new Set();
+  const iconos = Array.isArray(datos.iconos) ? datos.iconos : [];
+  const filas = (Array.isArray(datos.operaciones) ? datos.operaciones : []).map((texto, i) => {
+    const m = String(texto || '').match(/^\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*$/);
+    if (!m) return null;
+    const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+    if (a < 1 || b < 1 || a > 9 || b > 9) return null;
+    const clave = [a, b].sort().join('+');
+    if (vistos.has(clave)) return null;
+    vistos.add(clave);
+    return { a, b, icono: ICONOS[iconos[i]] ? iconos[i] : 'estrella' };
+  }).filter(Boolean).slice(0, 5);
+  if (filas.length < 2) return '';
+  const orden = barajaDeterministaFig(filas.length, hashTextoFig(filas.map(f => `${f.a}+${f.b}`).join('|')));
+  return unirRejilla([
+    filas.map(f => `<span class="od-montones"><span class="od-grupo">${renderIconos(f.icono, f.a)}</span><span class="od-grupo">${renderIconos(f.icono, f.b)}</span></span><span class="unir-punto"></span>`),
+    orden.map(i => `<span class="unir-punto"></span><span class="unir-op">${filas[i].a} + ${filas[i].b}</span>`)
+  ]);
+}
+
+
 const RENDERERS_POR_TIPO = {
   operacion_vertical: (datos) => renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
   division_vertical:  (datos) => renderDivisionVertical(datos),
   conteo_svg:          (datos) => renderConteoSvg(datos),
-  calculo_mental:       (datos) => renderCalculoMental(datos),
+  calculo_mental:       (datos, curso) => renderCalculoMental(datos, curso),
   problema:             (datos, curso) => renderProblema(datos, curso),
   tipo_test:            (datos) => renderTipoTest(datos),
   dibujo:               () => renderDibujo(),
@@ -2071,7 +3356,23 @@ const RENDERERS_POR_TIPO = {
   mcd_mcm:                  (datos) => renderMcdMcm(datos),
   descomposicion_numerica:  (datos) => renderDescomposicionNumerica(datos),
   detective_numeros:        (datos) => renderDetectiveNumeros(datos),
-  numeros_romanos:          (datos) => renderNumerosRomanos(datos)
+  numeros_romanos:          (datos) => renderNumerosRomanos(datos),
+  piramide_numerica:        (datos) => renderPiramideNumerica(datos),
+  laberinto_operaciones:    (datos) => renderLaberintoOperaciones(datos),
+  acertijo_numerico:        (datos) => renderAcertijoNumerico(datos),
+  // Octava ampliación (22/09/2026) — fichas reales de 1º, 1ª evaluación
+  abaco:                    (datos) => renderAbaco(datos),
+  barritas_decenas:         (datos) => renderBarritasDecenas(datos),
+  numero_en_letras:         (datos) => renderNumeroEnLetras(datos),
+  anterior_posterior:       (datos) => renderAnteriorPosterior(datos),
+  casita_descomposicion:    (datos) => renderCasitaDescomposicion(datos),
+  maquina_operador:         (datos) => renderMaquinaOperador(datos),
+  clasificar_numeros:       (datos) => renderClasificarNumeros(datos),
+  mismo_resultado:          (datos) => renderMismoResultado(datos),
+  operacion_cifras_ocultas: (datos) => renderOperacionCifrasOcultas(datos),
+  suma_asociativa:          (datos) => renderSumaAsociativa(datos),
+  camino_resultados:        (datos) => renderCaminoResultados(datos),
+  operacion_dibujos:        (datos) => renderOperacionDibujos(datos)
 };
 
 function renderEjercicio(ejercicio, indice, curso) {
@@ -2084,12 +3385,15 @@ function renderEjercicio(ejercicio, indice, curso) {
   // el mismo enunciado ahí (que es lo que hace a veces), el problema aparece
   // dos veces. Por eso aquí NUNCA se usa "ejercicio.enunciado" para tipo
   // "problema" — se sustituye por una instrucción fija, decidida por código.
+  const modoProblema = ejercicio.datos && ejercicio.datos.modo;
   const textoEncabezado = ejercicio.tipo === 'problema'
-    ? 'Lee el problema y resuélvelo:'
+    ? (modoProblema === 'razonado' ? 'Lee y subraya la pregunta.'
+      : modoProblema === 'inventar' ? 'Inventa preguntas diferentes para esta situación.'
+      : 'Lee el problema y resuélvelo:')
     : ejercicio.enunciado;
 
   return `<div class="ejercicio">
-    <p class="enunciado"><span class="numero-ejercicio">${indice + 1}</span><span class="texto-enunciado">${escapeHtml(textoEncabezado)}</span></p>
+    ${cabeceraEjercicio(indice + 1, ejercicio.titulo, textoEncabezado)}
     ${contenido}
   </div>`;
 }
@@ -2114,7 +3418,7 @@ function separarOperacionesParaDibujos(ejercicios, curso) {
   const resultado = [];
   for (const ej of ejercicios) {
     const operaciones = ej?.datos?.operaciones;
-    if (ej.tipo === 'operacion_vertical' && Array.isArray(operaciones) && operaciones.length > 1) {
+    if (ej.tipo === 'operacion_vertical' && !ej.datos.colocar && Array.isArray(operaciones) && operaciones.length > 1) {
       operaciones.forEach((op, idx) => {
         resultado.push({
           ...ej,

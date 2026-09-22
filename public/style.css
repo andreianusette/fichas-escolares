@@ -82,6 +82,27 @@
   font-display: swap;
 }
 
+/* Playwrite ES (14/09/2026, reinstalada) — Google Fonts / TypeTogether,
+   SIL OFL 1.1, ajustada al estándar de letra ligada escolar española.
+   Se había probado y quitado el 05/09/2026 para el MODELO GRANDE de
+   trazo_letra (ver más abajo, "Little Days y Cole Carreira") — aquel
+   descarte era solo porque sus bucles no coincidían con el esqueleto
+   punteado a mano, no un problema de la fuente en sí. Reinstalada ahora
+   para un uso distinto: el ENUNCIADO de los ejercicios en 1º-2º (texto
+   corrido, no letra suelta), donde el rabito que une una letra con la
+   siguiente aparece solo, sin necesitar el truco de la letra fantasma que
+   hacía falta para una sola letra aislada. Petición explícita de la
+   maestra: no le bastaba con una fuente redondeada (Nunito), quería que
+   las letras fueran ligadas de verdad. Ver clase ".texto-enunciado" más
+   abajo (sección "Tipografía por curso") y ROADMAP_FICHAS_ESCOLARES.md. */
+@font-face {
+  font-family: 'Playwrite ES';
+  src: url('fonts/playwrite-es/PlaywriteES-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Little Days y Cole Carreira (05/09/2026) — fuentes "escolares" redondeadas
    de verdad (letra de cuaderno), a petición de una maestra tras probar
    Playwrite ES y no convencer (ver sección 13 de
@@ -820,14 +841,19 @@ body {
   font-size: 18px;
 }
 
-/* ── Tipografía por curso, más allá del tamaño (05/08/2026) ──────────────
+/* ── Tipografía por curso, más allá del tamaño (05/08/2026, actualizado
+   14/09/2026) ─────────────────────────────────────────────────────────
    "curso-inicial" (arriba) controla el TAMAÑO de letra para 1º-3º. Estas
    reglas controlan la FAMILIA tipográfica y son independientes: se puede
    ser "curso-inicial" (texto grande) y usar Nunito, Quicksand o Andika
-   según el curso exacto. Por ahora solo Matemáticas asigna estas clases
-   (el maquetado es código, no depende de que el modelo las recuerde) — se
-   extenderá al resto de asignaturas si esta prueba con el maestro va bien
-   (ver ROADMAP_FICHAS_ESCOLARES.md, Fase 3). Fredoka (títulos) no cambia. */
+   según el curso exacto. Lo asignan en código Matemáticas y Lengua
+   Castellana (los dos renderizadores del pipeline JSON+renderizador,
+   ver renderer-matematicas.js/renderer-lengua.js) — se irá extendiendo al
+   resto de asignaturas conforme se migren a ese mismo pipeline (ver
+   ROADMAP_FICHAS_ESCOLARES.md, Fase 5). El pipeline legacy (Conocimiento
+   del Medio, Educación Física, Música, Inglés) fuerza la clase "fuente-
+   nunito"/"fuente-quicksand" en server.js tras recibir el HTML del modelo,
+   no depende de que el modelo la recuerde. Fredoka (títulos) no cambia. */
 .ficha.fuente-nunito,
 .ficha.fuente-nunito .operacion-columna {
   font-family: 'Nunito', sans-serif;
@@ -852,6 +878,129 @@ body {
 
 .ficha.fuente-nunito.curso-inicial .enunciado {
   font-size: 20px;
+}
+
+/* Letra ligada en el enunciado de 1º-2º (14/09/2026) — petición explícita
+   de la maestra: no le bastaba con una fuente redondeada (Nunito, arriba),
+   quería que las letras se unieran entre sí con un rabito, como la letra
+   ligada que se enseña a escribir en esos cursos. Playwrite ES (Google
+   Fonts, SIL OFL 1.1 — ver @font-face arriba) es justo eso: en texto
+   corrido (a diferencia de una letra suelta) el enlace entre letras
+   aparece solo, sin ningún truco. Es la fuente por defecto del enunciado
+   en 1º-2º para CUALQUIER asignatura que use el pipeline JSON+renderizador
+   (hoy Matemáticas y Lengua Castellana) — al migrar una asignatura nueva a
+   ese pipeline (ver Fase 5 del ROADMAP), reutilizar la misma clase
+   "fuente-nunito" + el marcado de siempre ya deja esto aplicado gratis,
+   sin tocar CSS.
+
+   AMPLIADO AL DESARROLLO COMPLETO DEL EJERCICIO (15/09/2026): la maestra
+   probó una ficha real y avisó de que no bastaba con el enunciado — el
+   1er ejemplo que mandó (Lengua, "Lee estas frases con atención" + las
+   frases sueltas debajo) mostraba el enunciado ya en Playwrite ES pero el
+   contenido del ejercicio (las frases que el niño lee) seguía en Nunito.
+   Motivo pedagógico: en 1º-2º se está enseñando la letra ligada, así que
+   CUALQUIER texto corrido que el niño lea dentro de un ejercicio debería
+   modelar esa misma letra, no solo la instrucción de arriba. Solución:
+   en vez de limitar la regla a ".texto-enunciado", se aplica a TODO
+   ".ejercicio" (el contenido normal hereda font-family de su contenedor
+   por CSS estándar); ".texto-enunciado" solo aporta ya el tamaño/interlineado
+   extra que tenía desde el principio. Ver el bloque de excepciones justo
+   debajo para las cifras sueltas de Matemáticas, que siguen en Nunito. */
+.ficha.fuente-nunito .ejercicio {
+  font-family: 'Playwrite ES', cursive;
+}
+
+.ficha.fuente-nunito .texto-enunciado {
+  font-size: 1.15em;
+  line-height: 1.7;
+}
+
+/* Excepciones — contenido puramente numérico dentro de un ejercicio de
+   Matemáticas (15/09/2026): igual que ya pasaba con ".operacion-columna"
+   (arriba, desde el principio), una cifra suelta o una cuadrícula de
+   números se lee peor en una cursiva ligada que en Nunito — el objetivo
+   pedagógico de "letra ligada" es sobre TEXTO que el niño lee, no sobre
+   dígitos, que no se enseñan "unidos" de la misma forma. Cada clase de
+   aquí abajo es un contenedor que en su renderizador (renderer-matematicas.js)
+   solo imprime cifras/dígitos, nunca una frase. Al ser una regla que
+   apunta directamente al elemento (no a un ancestro), gana siempre a la
+   herencia de ".ejercicio" de arriba, sin depender del orden en el CSS.
+   Repaso inicial, no exhaustivo al 100 %: revisar con fichas reales de
+   Matemáticas si aparece alguna cifra suelta que se haya quedado en
+   Playwrite ES por no estar en esta lista (ver ROADMAP). */
+.ficha.fuente-nunito .operacion-columna-decimal,
+.ficha.fuente-nunito .operacion-division,
+.ficha.fuente-nunito .operacion-multiplicacion,
+.ficha.fuente-nunito .producto-parcial,
+.ficha.fuente-nunito .resultado-hueco,
+.ficha.fuente-nunito .resultado-decimal,
+.ficha.fuente-nunito .grid-operaciones,
+.ficha.fuente-nunito .linea-op,
+.ficha.fuente-nunito .linea-op-decimal,
+.ficha.fuente-nunito .op-signo,
+.ficha.fuente-nunito .division-cociente,
+.ficha.fuente-nunito .division-dividendo,
+.ficha.fuente-nunito .division-divisor,
+.ficha.fuente-nunito .division-columna-derecha,
+.ficha.fuente-nunito .division-angulo,
+.ficha.fuente-nunito .comparar-num,
+.ficha.fuente-nunito .comparar-hueco,
+.ficha.fuente-nunito .comparar-numeros,
+.ficha.fuente-nunito .cn-celda,
+.ficha.fuente-nunito .cn-esquina,
+.ficha.fuente-nunito .cn-bloqueada,
+.ficha.fuente-nunito .cn-ejemplo,
+.ficha.fuente-nunito .rejilla-numerica,
+.ficha.fuente-nunito .cuadro-numerico,
+.ficha.fuente-nunito .serie-numerica,
+.ficha.fuente-nunito .serie-celda,
+.ficha.fuente-nunito .recta-numerica-caja-inicio,
+.ficha.fuente-nunito .recta-numerica-salto,
+.ficha.fuente-nunito .recta-numerica-operacion,
+.ficha.fuente-nunito .ecuacion-numero,
+.ficha.fuente-nunito .ecuacion-hueco,
+.ficha.fuente-nunito .ecuacion-signo,
+.ficha.fuente-nunito .mcdmcm-numeros,
+.ficha.fuente-nunito .descomposicion-numero,
+.ficha.fuente-nunito .descomposicion-suma,
+.ficha.fuente-nunito .resta-barritas-numero,
+.ficha.fuente-nunito .nr-arabigo,
+.ficha.fuente-nunito .nr-romano,
+.ficha.fuente-nunito .nr-dado,
+.ficha.fuente-nunito .nr-igual,
+.ficha.fuente-nunito .rn-celda,
+.ficha.fuente-nunito .numero-dia-trazar,
+.ficha.fuente-nunito .dn-celda,
+.ficha.fuente-nunito .dn-mas,
+.ficha.fuente-nunito .dinero-precio,
+.ficha.fuente-nunito .dinero-pagado,
+.ficha.fuente-nunito .dinero-resultado,
+.ficha.fuente-nunito .tf-celda-valor,
+.ficha.fuente-nunito .tf-hueco,
+.ficha.fuente-nunito .tf-total,
+.ficha.fuente-nunito .grafico-eje,
+.ficha.fuente-nunito .grafico-etiqueta-x,
+.ficha.fuente-nunito .grafico-barra-hueco,
+.ficha.fuente-nunito .prop-celda,
+.ficha.fuente-nunito .prop-hueco,
+.ficha.fuente-nunito .regla-marca,
+.ficha.fuente-nunito .regla-linea,
+.ficha.fuente-nunito .regla-segmento,
+.ficha.fuente-nunito .angulos-grid,
+.ficha.fuente-nunito .angulo-respuesta,
+.ficha.fuente-nunito .coordenadas-lista,
+.ficha.fuente-nunito .capacidad-hueco-comparar,
+.ficha.fuente-nunito .capacidad-respuesta,
+.ficha.fuente-nunito .balanza-respuesta,
+.ficha.fuente-nunito .balanza-respuesta-pesas,
+.ficha.fuente-nunito .reloj-respuesta,
+.ficha.fuente-nunito .quesito-texto-porcentaje,
+.ficha.fuente-nunito .tabla-multiplicar-columnas,
+.ficha.fuente-nunito .num,
+.ficha.fuente-nunito .num-coma,
+.ficha.fuente-nunito .num-decimal,
+.ficha.fuente-nunito .num-entero {
+  font-family: 'Nunito', sans-serif;
 }
 
 .ficha.fuente-quicksand,
@@ -1023,6 +1172,49 @@ body {
 
 @media print {
   .btn-add-imagen { display: none !important; }
+}
+
+/* ── Botón "🗑️ Eliminar ejercicio" (14/09/2026) ─────────────────────────
+   Mismo patrón que .btn-add-pista/.btn-add-imagen: solo visible en
+   pantalla, al pasar el ratón por un ejercicio en modo edición, oculto
+   siempre en @media print. Se coloca a la IZQUIERDA (left:-12px) en vez de
+   a la derecha, donde ya viven los otros dos botones, para que los tres
+   puedan convivir sin solaparse. Usa --calido-rosa en vez de azul/naranja
+   para que se distinga a simple vista como la acción "peligrosa" del
+   grupo (borra el ejercicio entero, no añade nada). Pide confirmación
+   antes de borrar — a diferencia de quitar una imagen suelta, aquí se
+   pierde contenido generado por la IA que no es trivial de recuperar. */
+.btn-borrar-ejercicio {
+  display: none;
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--calido-rosa);
+  background: white;
+  color: var(--calido-rosa);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+}
+
+.btn-borrar-ejercicio:hover {
+  background: var(--calido-rosa);
+  color: white;
+}
+
+[contenteditable="true"] .ejercicio:hover .btn-borrar-ejercicio {
+  display: flex;
+}
+
+@media print {
+  .btn-borrar-ejercicio { display: none !important; }
 }
 
 /* ── Botón general "🖼️ Añadir imagen" (07/09/2026) ──────────────────────
@@ -1929,6 +2121,14 @@ body {
   align-items: center;
 }
 
+/* ── Desarrollo plano (19/09/2026) — reutiliza el layout de dos columnas de
+   ".relacionar-bloque" (Lengua) con iconos de cuerpo/desarrollo en vez de
+   texto; solo se añade el tamaño del icono, el resto de clases ya existen. */
+.desarrollo-icono svg {
+  width: 56px;
+  height: 56px;
+}
+
 /* ── Operaciones con decimales ───────────────────────────────────────────
    Alineación por coma decimal (no por longitud total del texto): grid de
    4 columnas (signo | entero | coma | decimal). Cada ".operacion-fila-decimal"
@@ -2300,6 +2500,7 @@ ol.ejercicio-lista li {
 
 .ficha.modo-blanco-negro .numero-ejercicio {
   background: black !important;
+  box-shadow: 0 0 0 2px black !important;
 }
 
 .ficha.modo-blanco-negro blockquote.texto-lectura {
@@ -3047,6 +3248,108 @@ ol.ejercicio-lista li {
 }
 .nr-arabigo { color: var(--calido-azul); }
 .nr-igual { color: var(--calido-texto); }
+
+/* ==========================================================================
+   9. TIPOS NUEVOS — Séptima ampliación (19/09/2026)
+   Matemáticas: piramide_numerica, laberinto_operaciones, acertijo_numerico.
+   ========================================================================== */
+
+/* ── Pirámide numérica ────────────────────────────────────────────────── */
+.piramide-numerica-bloque { display: flex; flex-direction: column; gap: 22px; margin: 10px 0; }
+.piramide-numerica { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.piramide-fila { display: flex; gap: 8px; }
+.piramide-celda {
+  min-width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--calido-azul);
+  border-radius: 6px;
+  background: var(--calido-azul-fondo);
+  font-weight: bold;
+  font-size: 14px;
+}
+.piramide-celda-vacia { background: white; }
+.ficha.modo-blanco-negro .piramide-celda { border-color: black !important; background: white !important; }
+
+/* ── Laberinto de operaciones encadenadas ─────────────────────────────── */
+.laberinto-operaciones-bloque { display: flex; flex-direction: column; gap: 22px; margin: 10px 0; }
+.laberinto-operaciones { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; width: fit-content; max-width: 100%; }
+.laberinto-fila { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.laberinto-fila-invertida { flex-direction: row-reverse; align-self: flex-end; }
+.laberinto-casilla {
+  min-width: 40px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--calido-naranja);
+  border-radius: 50%;
+  background: var(--calido-naranja-fondo);
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.laberinto-casilla-vacia { background: white; }
+.laberinto-flecha {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--calido-texto);
+  white-space: nowrap;
+}
+.ficha.modo-blanco-negro .laberinto-casilla { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .laberinto-flecha { color: black !important; }
+
+/* ── Acertijo numérico por pistas ─────────────────────────────────────── */
+.acertijo-numerico-bloque { display: flex; flex-direction: column; gap: 16px; margin: 10px 0; }
+.acertijo-numerico-caso {
+  border: 1.5px solid var(--calido-verde);
+  border-radius: var(--radio-suave);
+  padding: 10px 14px;
+}
+.acertijo-titulo { font-weight: bold; margin: 0 0 8px 0; color: var(--calido-verde); }
+.acertijo-camino { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+.acertijo-nodo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--calido-verde);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  background: var(--calido-verde-fondo);
+}
+.acertijo-nodo-numero {
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--calido-verde);
+  color: white;
+  font-size: 10px;
+}
+.acertijo-conector {
+  width: 24px;
+  height: 2px;
+  background: var(--calido-verde);
+  margin: 0 4px;
+}
+.acertijo-respuesta { margin: 8px 0 0 0; font-size: 14px; }
+.ficha.modo-blanco-negro .acertijo-numerico-caso { border-color: black !important; }
+.ficha.modo-blanco-negro .acertijo-titulo { color: black !important; }
+.ficha.modo-blanco-negro .acertijo-nodo { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .acertijo-nodo-numero { background: black !important; color: white !important; }
+.ficha.modo-blanco-negro .acertijo-conector { background: black !important; }
+
+@media print {
+  .piramide-numerica { page-break-inside: avoid; break-inside: avoid; }
+  .laberinto-operaciones { page-break-inside: avoid; break-inside: avoid; }
+  .acertijo-numerico-caso { page-break-inside: avoid; break-inside: avoid; }
+}
 .ficha.modo-blanco-negro .nr-romano,
 .ficha.modo-blanco-negro .nr-arabigo,
 .ficha.modo-blanco-negro .nr-igual { color: black !important; }
@@ -3075,4 +3378,654 @@ ol.ejercicio-lista li {
 
 @media print {
   .categoria-gramatical-bloque .cg-fila { page-break-inside: avoid; break-inside: avoid; }
+}
+
+/* ==========================================================================
+   10. OCTAVA AMPLIACIÓN (22/09/2026) — fichas reales de 1º, 1ª evaluación.
+   Tipos nuevos: abaco, barritas_decenas, numero_en_letras, anterior_posterior,
+   casita_descomposicion, maquina_operador, clasificar_numeros,
+   mismo_resultado, operacion_cifras_ocultas, suma_asociativa,
+   camino_resultados. Modos visuales nuevos sobre tipos existentes: marcos
+   temáticos y arcos en serie_numerica, problema razonado/inventar, tabla de
+   sumar/restar en libreta, escena revuelta, pictograma, reloj digital/en
+   palabras, estimar capacidad, colocar en columna.
+   Lenguaje visual tomado de los cuadernos reales (Santillana y otros): casi
+   todo funciona en blanco y negro — la "vida" viene de las formas (marcos,
+   casitas, arcos), no del color. Cada bloque lleva su override de B/N.
+   ========================================================================== */
+
+/* ── Piezas comunes ───────────────────────────────────────────────────── */
+.casilla-respuesta {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 1.8px solid var(--calido-azul);
+  border-radius: 8px;
+  background: white;
+  vertical-align: middle;
+  margin: 0 3px;
+  text-align: center;
+  line-height: 27px;
+  font-weight: bold;
+}
+.casilla-ancha { width: 46px; }
+.casilla-ejemplo { color: var(--calido-azul); font-family: 'Nunito', sans-serif; }
+.du-cabecera { display: inline-flex; gap: 2px; }
+.du-cabecera span {
+  width: 30px;
+  text-align: center;
+  background: #334155;
+  color: white;
+  font: bold 12px 'Nunito', sans-serif;
+  border-radius: 4px;
+  padding: 1px 0;
+}
+.linea-pauta {
+  display: inline-block;
+  flex: 1;
+  min-width: 220px;
+  height: 26px;
+  border-top: 1px solid #94a3b8;
+  border-bottom: 1.6px solid #475569;
+  background: linear-gradient(to bottom, transparent 49%, #cbd5e1 49%, #cbd5e1 51%, transparent 51%);
+  vertical-align: middle;
+}
+.ficha.modo-blanco-negro .casilla-respuesta { border-color: black !important; }
+.ficha.modo-blanco-negro .casilla-ejemplo { color: black !important; }
+.ficha.modo-blanco-negro .du-cabecera span { background: black !important; }
+.ficha.modo-blanco-negro .linea-pauta { border-color: black !important; }
+
+/* ── Marcos temáticos (vagón, casita, hoja, globo, nube, estrella) ─────── */
+.marco-tematico {
+  position: relative;
+  display: inline-block;
+  width: 64px;
+  height: 58px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.marco-tematico svg { display: block; overflow: visible; }
+.marco-forma { fill: var(--calido-naranja-fondo); stroke: var(--calido-naranja); stroke-width: 2.4; stroke-linejoin: round; }
+.marco-detalle { fill: white; stroke: var(--calido-naranja); stroke-width: 2.2; }
+.marco-linea { fill: none; stroke: var(--calido-naranja); stroke-width: 2.2; stroke-linecap: round; }
+.marco-hueco .marco-forma { fill: white; }
+.marco-casita .marco-forma, .marco-casita .marco-detalle { stroke: var(--calido-azul); }
+.marco-casita .marco-forma { fill: var(--calido-azul-fondo); }
+.marco-hoja .marco-forma, .marco-hoja .marco-linea { stroke: var(--calido-verde); }
+.marco-hoja .marco-forma { fill: var(--calido-verde-fondo); }
+.marco-globo .marco-forma, .marco-globo .marco-linea { stroke: var(--calido-rosa); }
+.marco-globo .marco-forma { fill: var(--calido-rosa-fondo); }
+.marco-nube .marco-forma { stroke: var(--calido-azul); fill: var(--calido-azul-fondo); }
+.marco-estrella .marco-forma { stroke: #d4a017; fill: #fff8d6; }
+.marco-caja .marco-forma { stroke: var(--calido-morado); fill: var(--calido-morado-fondo); }
+.marco-hueco .marco-forma { fill: white !important; }
+.marco-contenido {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font: bold 17px 'Nunito', sans-serif;
+  pointer-events: none;
+}
+.ficha.modo-blanco-negro .marco-forma { fill: white !important; stroke: black !important; }
+.ficha.modo-blanco-negro .marco-detalle { fill: white !important; stroke: black !important; }
+.ficha.modo-blanco-negro .marco-linea { stroke: black !important; }
+
+/* ── Serie con marcos y arcos de salto ────────────────────────────────── */
+.serie-tematica { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 0; row-gap: 14px; }
+.serie-salto {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: flex-start;
+  margin: 0 -10px;
+  position: relative;
+  z-index: 1;
+}
+.serie-salto-etiqueta { font: bold 12px 'Nunito', sans-serif; color: var(--calido-rosa); line-height: 1; }
+.serie-salto-arco { fill: none; stroke: var(--calido-rosa); stroke-width: 1.8; stroke-linecap: round; }
+.serie-tematica .serie-celda { margin: 0 4px; }
+.ficha.modo-blanco-negro .serie-salto-etiqueta { color: black !important; }
+.ficha.modo-blanco-negro .serie-salto-arco { stroke: black !important; }
+
+/* ── Ábaco ─────────────────────────────────────────────────────────────── */
+.abaco-bloque { display: flex; flex-wrap: wrap; gap: 26px; margin: 10px 0; align-items: flex-end; }
+.abaco-tarjeta { display: flex; align-items: center; gap: 12px; }
+.abaco-base { fill: #b08968; stroke: #000; stroke-width: 1.5; }
+.abaco-varilla { stroke: #555; stroke-width: 3; stroke-linecap: round; }
+.abaco-bolita { stroke: #000; stroke-width: 1.2; }
+.abaco-bolita-U { fill: var(--calido-azul); }
+.abaco-bolita-D { fill: var(--calido-rosa); }
+.abaco-bolita-C { fill: var(--calido-verde); }
+.abaco-respuesta p { margin: 4px 0; }
+.abaco-numero-dado {
+  font: bold 20px 'Nunito', sans-serif;
+  border: 2px solid var(--calido-morado);
+  border-radius: 8px;
+  padding: 2px 10px;
+  align-self: flex-end;
+}
+.abaco-tarjeta:has(.abaco-numero-dado) { flex-direction: column; gap: 6px; }
+.ficha.modo-blanco-negro .abaco-base { fill: white !important; stroke: black !important; }
+.ficha.modo-blanco-negro .abaco-bolita { fill: white !important; stroke: black !important; stroke-width: 1.6 !important; }
+.ficha.modo-blanco-negro .abaco-varilla { stroke: black !important; }
+.ficha.modo-blanco-negro .abaco-numero-dado { border-color: black !important; }
+
+/* ── Barritas de decena y cubitos ─────────────────────────────────────── */
+.base10-bloque { display: flex; flex-wrap: wrap; gap: 26px; margin: 10px 0; align-items: flex-end; }
+.base10-tarjeta { display: flex; align-items: flex-end; gap: 14px; }
+.base10-cubo { fill: var(--calido-naranja-fondo); stroke: var(--calido-naranja); stroke-width: 1.2; }
+.base10-suelto { fill: var(--calido-azul-fondo); stroke: var(--calido-azul); }
+.base10-respuesta p { margin: 6px 0; }
+.base10-numero-dado {
+  font: bold 18px 'Nunito', sans-serif;
+  border: 2px solid var(--calido-morado);
+  border-radius: 8px;
+  padding: 1px 8px;
+}
+.base10-caja-dibujo {
+  width: 120px;
+  height: 110px;
+  border: 2px dashed #94a3b8;
+  border-radius: var(--radio-suave);
+}
+.base10-tarjeta:has(.base10-caja-dibujo) { flex-direction: column; align-items: center; gap: 6px; }
+.ficha.modo-blanco-negro .base10-cubo { fill: white !important; stroke: black !important; }
+.ficha.modo-blanco-negro .base10-caja-dibujo,
+.ficha.modo-blanco-negro .base10-numero-dado { border-color: black !important; }
+
+/* ── Unir con flechas (común a barritas, letras y mismo resultado) ────── */
+.unir-bloque { display: grid; column-gap: 80px; row-gap: 12px; margin: 10px 0; align-items: center; width: fit-content; }
+.unir-fila { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.unir-fila-izq { justify-content: flex-end; }
+.unir-punto { width: 9px; height: 9px; border-radius: 50%; background: #334155; flex-shrink: 0; }
+.unir-texto { font-size: 15px; }
+.unir-op {
+  font: bold 16px 'Nunito', sans-serif;
+  border: 1.6px solid var(--calido-azul);
+  background: var(--calido-azul-fondo);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+.ficha.modo-blanco-negro .unir-punto { background: black !important; }
+.ficha.modo-blanco-negro .unir-op { border-color: black !important; background: white !important; }
+
+/* ── Número en letras ─────────────────────────────────────────────────── */
+.letras-bloque { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; max-width: 520px; }
+.letras-fila { display: flex; align-items: center; gap: 10px; }
+.letras-numero {
+  font: bold 18px 'Nunito', sans-serif;
+  min-width: 44px;
+  text-align: center;
+  border: 1.6px solid var(--calido-verde);
+  background: var(--calido-verde-fondo);
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+.letras-palabra { font-size: 16px; min-width: 190px; }
+.letras-flecha { color: var(--calido-verde); font-size: 13px; }
+.ficha.modo-blanco-negro .letras-numero { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .letras-flecha { color: black !important; }
+
+/* ── Anterior y posterior ─────────────────────────────────────────────── */
+.vecinos-bloque { display: flex; flex-wrap: wrap; gap: 14px 30px; margin: 10px 0; }
+.vecinos-grupo { display: inline-flex; align-items: center; gap: 2px; }
+.vecino-flecha { font-size: 16px; color: var(--calido-texto); }
+.vecinos-nota { width: 100%; margin: 0; font-weight: bold; }
+
+/* ── Problema razonado / inventar la pregunta ─────────────────────────── */
+.bloque-razonado { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; }
+.razonado-texto {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--calido-naranja);
+  background: var(--calido-naranja-fondo);
+  border-radius: 0 10px 10px 0;
+  line-height: 1.7;
+}
+.razonado-paso { margin: 6px 0 0 0; font-weight: bold; color: var(--calido-texto); }
+.razonado-dato { display: flex; align-items: center; gap: 8px; }
+.razonado-flecha { color: var(--calido-naranja); }
+.razonado-dibujo { width: 190px; height: 36px; border: 1.8px dashed #94a3b8; border-radius: 10px; }
+.razonado-marcas { display: flex; gap: 40px; flex-wrap: wrap; }
+.razonado-marcas p { margin: 0 0 4px 0; }
+.razonado-operaciones { display: flex; gap: 40px; }
+.razonado-op { font: bold 18px 'Nunito', sans-serif; padding: 4px 10px; }
+.razonado-solucion { display: flex; align-items: center; gap: 10px; margin: 6px 0 0 0; }
+.etiqueta-solucion {
+  background: #334155;
+  color: white;
+  font: bold 11px 'Nunito', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.razonado-frase { flex: 1; border-bottom: 1.6px solid #475569; padding-bottom: 2px; }
+.inventar-fila p { margin: 4px 0; }
+.ficha.modo-blanco-negro .razonado-texto { background: white !important; border-color: black !important; }
+.ficha.modo-blanco-negro .razonado-dibujo { border-color: black !important; }
+.ficha.modo-blanco-negro .razonado-flecha { color: black !important; }
+.ficha.modo-blanco-negro .etiqueta-solucion { background: black !important; }
+
+/* ── Casita / árbol de descomposición ─────────────────────────────────── */
+.casitas-bloque { display: flex; flex-wrap: wrap; gap: 20px 28px; margin: 12px 0; align-items: flex-end; }
+.casita-descomp { display: flex; flex-direction: column; align-items: center; position: relative; }
+.casita-descomp { width: fit-content; align-items: stretch; }
+.casita-tejado {
+  display: block;
+  height: 22px;
+  margin: 0 -8px -1px;
+  background: var(--calido-rosa);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.casita-arriba, .casita-abajo { display: flex; }
+.casita-arriba .casita-celda { flex: 1; }
+.casita-celda {
+  min-width: 34px;
+  height: 32px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.8px solid var(--calido-rosa);
+  background: var(--calido-rosa-fondo);
+  font: bold 16px 'Nunito', sans-serif;
+  margin: -1px -0.9px 0 -0.9px;
+}
+.casita-celda-vacia { background: white; }
+.arbol-descomp { display: flex; flex-direction: column; align-items: center; }
+.arbol-ramas { stroke: #475569; stroke-width: 2; fill: none; }
+.arbol-partes { display: flex; gap: 14px; }
+.arbol-descomp .casita-celda { border-radius: 8px; margin: 0; border-color: var(--calido-verde); background: var(--calido-verde-fondo); }
+.arbol-descomp .casita-celda-vacia { background: white; }
+.ficha.modo-blanco-negro .casita-tejado { background: black !important; }
+.ficha.modo-blanco-negro .casita-celda { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .arbol-ramas { stroke: black !important; }
+
+/* ── Máquina de operador ──────────────────────────────────────────────── */
+.maquina-bloque { display: flex; gap: 40px; flex-wrap: wrap; margin: 10px 0; }
+.maquina-columna { display: flex; flex-direction: column; gap: 10px; }
+.maquina-fila { display: flex; align-items: center; }
+.maquina-flecha {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 110px;
+  height: 34px;
+  padding: 0 22px 0 12px;
+  background: var(--calido-morado-fondo);
+  border: 1.8px solid var(--calido-morado);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  font: bold 15px 'Nunito', sans-serif;
+  margin-right: 22px;
+}
+.maquina-flecha::after {
+  content: '';
+  position: absolute;
+  right: -19px;
+  top: -2px;
+  border-top: 19px solid transparent;
+  border-bottom: 19px solid transparent;
+  border-left: 19px solid var(--calido-morado);
+}
+.maquina-tabla { border-collapse: collapse; margin: 10px 0; }
+.maquina-tabla th, .maquina-tabla td { border: 1.6px solid var(--calido-morado); height: 34px; min-width: 40px; text-align: center; font: bold 15px 'Nunito', sans-serif; }
+.maquina-etiqueta { background: var(--calido-morado-fondo); padding: 0 8px; }
+.ficha.modo-blanco-negro .maquina-flecha { background: white !important; border-color: black !important; }
+.ficha.modo-blanco-negro .maquina-flecha::after { border-left-color: black !important; }
+.ficha.modo-blanco-negro .maquina-tabla th,
+.ficha.modo-blanco-negro .maquina-tabla td { border-color: black !important; background: white !important; }
+
+/* ── Clasificar números (clave de lápices) ────────────────────────────── */
+.clasificar-bloque { display: flex; flex-direction: column; gap: 12px; margin: 10px 0; }
+.clave-lapices { display: flex; flex-direction: column; gap: 6px; }
+.clave-lapiz { display: flex; align-items: center; gap: 8px; }
+.clave-color-nombre { font-weight: bold; min-width: 70px; text-transform: capitalize; }
+.clave-condicion {
+  border: 1.6px solid var(--calido-azul);
+  border-radius: 8px;
+  padding: 3px 10px;
+  background: var(--calido-azul-fondo);
+}
+.mural-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  padding: 14px 20px 20px;
+  border: 2px solid var(--calido-azul);
+  border-radius: 28px;
+  max-width: 480px;
+  align-items: flex-start;
+}
+.numero-suelto { font: bold 20px 'Nunito', sans-serif; }
+.clasificar-grupo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.clasificar-cartel {
+  border: 1.8px solid var(--calido-verde);
+  background: var(--calido-verde-fondo);
+  border-radius: 12px;
+  padding: 6px 12px;
+  max-width: 220px;
+}
+.clasificar-flecha { color: var(--calido-verde); }
+.ficha.modo-blanco-negro .clave-condicion,
+.ficha.modo-blanco-negro .mural-numeros,
+.ficha.modo-blanco-negro .clasificar-cartel { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .clasificar-flecha { color: black !important; }
+/* En B/N el lápiz conserva su dibujo pero sin color: el nombre escrito al
+   lado ("rojo", "azul"...) es lo que indica qué lápiz usar. */
+.ficha.modo-blanco-negro .lapiz .lapiz-cuerpo { fill: white !important; }
+.ficha.modo-blanco-negro .lapiz path:nth-child(2) { fill: black !important; }
+
+/* ── Mismo resultado: diana ───────────────────────────────────────────── */
+.dianas-bloque { display: flex; flex-wrap: wrap; gap: 20px; margin: 10px 0; }
+.diana { border: 2px solid var(--calido-naranja); border-radius: 14px; padding: 8px; }
+.diana-rejilla { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto auto; gap: 6px 26px; position: relative; }
+.diana-op { font: bold 15px 'Nunito', sans-serif; padding: 6px 8px; border: 1.4px solid #cbd5e1; border-radius: 8px; text-align: center; }
+.diana-centro {
+  grid-column: 1 / 3;
+  justify-self: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2.5px double var(--calido-naranja);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: bold 18px 'Nunito', sans-serif;
+  background: var(--calido-naranja-fondo);
+}
+.ficha.modo-blanco-negro .diana,
+.ficha.modo-blanco-negro .diana-op { border-color: black !important; }
+.ficha.modo-blanco-negro .diana-centro { border-color: black !important; background: white !important; }
+
+/* ── Escena revuelta (tabla_frecuencia) ───────────────────────────────── */
+.escena-revuelta {
+  position: relative;
+  border: 2px solid #cbd5e1;
+  border-radius: var(--radio-suave);
+  margin: 6px 0 12px;
+  max-width: 100%;
+}
+.escena-icono { position: absolute; width: 40px; height: 40px; }
+.escena-icono svg, .escena-icono img { width: 40px; height: 40px; }
+.tabla-frecuencia-iconos:has(.escena-revuelta) { display: block; }
+.ficha.modo-blanco-negro .escena-revuelta { border-color: black !important; }
+
+/* ── Cifras ocultas ───────────────────────────────────────────────────── */
+.cifras-bloque { display: flex; flex-wrap: wrap; gap: 26px 38px; margin: 10px 0; }
+.cifras-operacion { display: inline-flex; flex-direction: column; align-items: flex-end; }
+.cifras-fila { display: flex; align-items: center; gap: 3px; margin: 2px 0; }
+.cifras-signo { width: 18px; text-align: center; font: bold 20px 'Nunito', sans-serif; }
+.cifras-celda { width: 28px; height: 32px; text-align: center; font: bold 22px/32px 'Nunito', sans-serif; }
+.cifras-oculta { border: 1.8px solid var(--calido-azul); border-radius: 7px; background: white; }
+.cifras-linea { align-self: stretch; border-top: 2.2px solid #334155; margin: 2px 0; }
+.ficha.modo-blanco-negro .cifras-oculta { border-color: black !important; }
+.ficha.modo-blanco-negro .cifras-linea { border-color: black !important; }
+
+/* ── Suma asociativa ──────────────────────────────────────────────────── */
+.asociativa-bloque { display: flex; flex-wrap: wrap; gap: 18px 44px; margin: 10px 0; }
+.asociativa { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font: bold 18px 'Nunito', sans-serif; }
+.asoc-fila1, .asoc-flechas { display: grid; grid-template-columns: repeat(5, 30px); text-align: center; }
+.asoc-flechas { color: var(--calido-rosa); font-size: 16px; line-height: 1; }
+.asoc-agrupa, .asoc-baja { text-align: center; }
+.asoc-fila2 { display: flex; align-items: center; gap: 4px; }
+.ficha.modo-blanco-negro .asoc-flechas { color: black !important; }
+
+/* ── Camino de resultados ─────────────────────────────────────────────── */
+.camino-bloque { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.camino-salida { font: bold 12px 'Nunito', sans-serif; color: var(--calido-verde); padding-top: 12px; }
+.camino-rejilla { display: flex; flex-direction: column; gap: 5px; }
+.camino-fila { display: flex; gap: 5px; }
+.camino-celda {
+  width: 40px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.6px solid #94a3b8;
+  border-radius: 8px;
+  font: bold 15px 'Nunito', sans-serif;
+  background: white;
+}
+.camino-rejilla .camino-fila:first-child .camino-celda:first-child { border: 2.4px solid var(--calido-verde); }
+.camino-rejilla .camino-fila:last-child .camino-celda:last-child { border: 2.4px solid var(--calido-rosa); }
+.camino-meta { align-self: flex-end; display: inline-flex; align-items: center; gap: 4px; color: var(--calido-rosa); font-weight: bold; }
+.camino-meta svg, .camino-meta img { width: 44px; height: 44px; }
+.ficha.modo-blanco-negro .camino-celda { border-color: black !important; }
+.ficha.modo-blanco-negro .camino-salida,
+.ficha.modo-blanco-negro .camino-meta { color: black !important; }
+
+/* ── Pictograma ───────────────────────────────────────────────────────── */
+.pictograma-bloque { margin: 10px 0; }
+.pictograma { border-collapse: collapse; }
+.pictograma th, .pictograma td { border: 1.4px solid #cbd5e1; padding: 4px 8px; height: 40px; }
+.picto-etiqueta { text-align: right; font-weight: bold; min-width: 70px; }
+.picto-iconos svg, .picto-iconos img, .picto-clave svg, .picto-clave img { width: 30px; height: 30px; vertical-align: middle; }
+.picto-iconos { min-width: 320px; }
+.picto-clave { display: inline-flex; align-items: center; gap: 6px; border: 1.6px solid var(--calido-azul); border-radius: 8px; padding: 2px 10px; font: bold 16px 'Nunito', sans-serif; }
+.ficha.modo-blanco-negro .pictograma th,
+.ficha.modo-blanco-negro .pictograma td,
+.ficha.modo-blanco-negro .picto-clave { border-color: black !important; }
+
+/* ── Reloj digital y hora en palabras ─────────────────────────────────── */
+.reloj-digital {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border: 2.4px solid #334155;
+  border-radius: 10px;
+  background: #f1f5f9;
+  font: bold 20px 'Nunito', monospace;
+}
+.rd-hueco { display: inline-block; width: 30px; height: 26px; border: 1.6px solid #94a3b8; border-radius: 5px; background: white; }
+.rd-cifras { letter-spacing: 2px; }
+.reloj-palabras { display: flex; width: 240px; }
+.reloj-objetivo { font-size: 15px; font-weight: bold; }
+.ficha.modo-blanco-negro .reloj-digital { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .rd-hueco { border-color: black !important; }
+
+/* ── Estimar capacidad ────────────────────────────────────────────────── */
+.estimar-bloque { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0; }
+.estimar-tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1.6px solid var(--calido-verde);
+  border-radius: var(--radio-suave);
+}
+.estimar-tarjeta svg { align-self: center; }
+.ficha.modo-blanco-negro .estimar-tarjeta { border-color: black !important; }
+
+/* ── Colocar en columna (D | U) ───────────────────────────────────────── */
+.colocar-bloque { display: flex; flex-wrap: wrap; gap: 20px 44px; margin: 10px 0; }
+.colocar-operacion { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.colocar-texto { margin: 0; font: bold 18px 'Nunito', sans-serif; }
+.colocar-rejilla { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.colocar-con-signo { display: flex; align-items: center; gap: 4px; }
+.colocar-signo { width: 16px; text-align: center; font: bold 18px 'Nunito', sans-serif; }
+.colocar-fila { display: flex; gap: 2px; }
+.colocar-celda { width: 30px; height: 32px; border: 1.6px solid #94a3b8; border-radius: 6px; background: white; }
+.colocar-linea { align-self: stretch; border-top: 2.2px solid #334155; margin: 2px 0; }
+.ficha.modo-blanco-negro .colocar-celda { border-color: black !important; }
+.ficha.modo-blanco-negro .colocar-linea { border-color: black !important; }
+
+/* ── Tabla de sumar/restar en libreta de anillas ──────────────────────── */
+.tm-libreta {
+  position: relative;
+  padding: 10px 14px 10px 34px;
+  border: 1.8px solid #94a3b8;
+  border-radius: 10px;
+  background: linear-gradient(to right, transparent 26px, #fca5a5 26px, #fca5a5 27.5px, transparent 27.5px);
+  width: fit-content;
+}
+.tm-libreta::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 12px;
+  bottom: 12px;
+  width: 18px;
+  background: radial-gradient(circle at 9px 9px, white 4px, #475569 4.5px, #475569 6px, transparent 6.5px) 0 0 / 18px 22px repeat-y;
+}
+.ficha.modo-blanco-negro .tm-libreta { border-color: black !important; background: white !important; }
+
+/* Cifras sueltas de los tipos nuevos: fuera de la letra ligada (mismo
+   criterio que la lista de excepciones de la sección de tipografía). */
+.ficha.fuente-nunito .casilla-respuesta,
+.ficha.fuente-nunito .marco-contenido,
+.ficha.fuente-nunito .abaco-numero-dado,
+.ficha.fuente-nunito .base10-numero-dado,
+.ficha.fuente-nunito .letras-numero,
+.ficha.fuente-nunito .casita-celda,
+.ficha.fuente-nunito .maquina-flecha,
+.ficha.fuente-nunito .maquina-tabla,
+.ficha.fuente-nunito .numero-suelto,
+.ficha.fuente-nunito .unir-op,
+.ficha.fuente-nunito .diana-op,
+.ficha.fuente-nunito .diana-centro,
+.ficha.fuente-nunito .cifras-operacion,
+.ficha.fuente-nunito .asociativa,
+.ficha.fuente-nunito .camino-celda,
+.ficha.fuente-nunito .picto-clave,
+.ficha.fuente-nunito .reloj-digital,
+.ficha.fuente-nunito .colocar-texto,
+.ficha.fuente-nunito .colocar-signo,
+.ficha.fuente-nunito .razonado-op,
+.ficha.fuente-nunito .serie-salto-etiqueta,
+.ficha.fuente-nunito .tm-texto {
+  font-family: 'Nunito', sans-serif;
+}
+
+@media print {
+  .abaco-tarjeta, .base10-tarjeta, .unir-bloque, .casita-descomp, .arbol-descomp,
+  .diana, .cifras-operacion, .asociativa, .camino-bloque, .pictograma-bloque,
+  .estimar-tarjeta, .colocar-operacion, .bloque-razonado, .escena-revuelta, .vecinos-grupo {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* ==========================================================================
+   11. SECCIONES CON MARCO, TÍTULO CORTO Y TARJETAS (22/09/2026)
+   Tomado de una ficha real muy cuidada (Docs/referencias-visuales/
+   ficha_sola_120.pdf): cada ejercicio es una sección con marco redondeado;
+   la cabecera lleva número en círculo + título corto en grande + la
+   instrucción en pequeño a la derecha; dentro, las operaciones van en
+   tarjetas en rejilla con casillas grandes. Afecta a TODAS las fichas (el
+   marco se aplica a cualquier .ejercicio, también al pipeline legacy).
+   ========================================================================== */
+
+.ficha .ejercicio {
+  border: 2px solid #9aa5b4;
+  border-radius: 18px;
+  padding: 12px 16px 14px;
+  margin-bottom: 16px;
+  background: white;
+}
+.ficha .ejercicio > .enunciado { margin-bottom: 12px; }
+.ficha.modo-blanco-negro .ejercicio { border-color: black !important; }
+
+/* Cabecera con título corto + instrucción */
+.enunciado-con-titulo {
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.titulo-ejercicio {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.3em;
+  line-height: 1.2;
+  color: var(--calido-texto);
+}
+.instruccion-ejercicio {
+  margin-left: auto;
+  max-width: 60%;
+  padding-top: 0;
+  font-size: 0.78em;
+  line-height: 1.35;
+  text-align: right;
+  color: #475569;
+}
+/* En 1º-2º el título también va en letra ligada (decisión de la maestra: todo
+   texto que lee el niño modela la letra que está aprendiendo). Playwrite ES
+   solo tiene un peso, así que se compensa con tamaño. */
+.ficha.fuente-nunito .titulo-ejercicio { font-family: 'Playwrite ES', cursive; font-weight: 400; font-size: 1.15em; }
+.ficha.fuente-nunito .instruccion-ejercicio { font-size: 0.7em; line-height: 1.5; }
+.ficha.modo-blanco-negro .titulo-ejercicio,
+.ficha.modo-blanco-negro .instruccion-ejercicio { color: black !important; }
+
+/* Tarjetas de cálculo mental */
+.tarjetas-calculo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 4px 0;
+}
+.tarjeta-calculo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1.8px solid #cbd5e1;
+  border-radius: 12px;
+  font: bold 19px 'Nunito', sans-serif;
+  white-space: nowrap;
+}
+.casilla-grande { width: 42px; height: 42px; line-height: 39px; border-width: 2px; border-radius: 10px; }
+.ficha.modo-blanco-negro .tarjeta-calculo { border-color: black !important; }
+
+/* Suma/resta con dibujos en horizontal */
+.od-bloque {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  margin: 4px 0;
+}
+.od-tarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1.8px solid #cbd5e1;
+  border-radius: 12px;
+  min-height: 64px;
+}
+.od-tarjeta:not(.od-resta) { flex-wrap: nowrap; }
+.od-resta { flex-direction: column; gap: 8px; }
+.od-resta .od-grupo { max-width: none; flex-wrap: nowrap; }
+.od-compacta .od-grupo svg, .od-compacta .od-grupo img { width: 26px; height: 26px; }
+.od-grupo { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 200px; justify-content: center; }
+.od-grupo svg, .od-grupo img { width: 34px; height: 34px; }
+.od-signo { font: bold 24px 'Nunito', sans-serif; }
+.od-texto { font: bold 20px 'Nunito', sans-serif; display: inline-flex; align-items: center; gap: 4px; }
+.od-montones {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+  padding: 4px 12px;
+  border: 1.8px solid #cbd5e1;
+  border-radius: 12px;
+}
+.od-montones .od-grupo svg, .od-montones .od-grupo img { width: 30px; height: 30px; }
+.ficha.modo-blanco-negro .od-tarjeta,
+.ficha.modo-blanco-negro .od-montones { border-color: black !important; }
+.ficha.fuente-nunito .tarjeta-calculo,
+.ficha.fuente-nunito .tc-texto,
+.ficha.fuente-nunito .od-signo,
+.ficha.fuente-nunito .od-texto {
+  font-family: 'Nunito', sans-serif;
+}
+
+@media print {
+  .tarjeta-calculo, .od-tarjeta { page-break-inside: avoid; break-inside: avoid; }
 }
