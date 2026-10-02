@@ -1,8 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
-import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG, FIGURAS_2D_DISPONIBLES, FIGURAS_3D_DISPONIBLES, PATRONES_SIMETRIA_DISPONIBLES, ICONOS_PROBABILIDAD_DISPONIBLES, PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES, MARCOS_TEMATICOS_DISPONIBLES, RECIPIENTES_ESTIMAR_DISPONIBLES } from './renderer-matematicas.js';
-import { renderizarFichaLengua, LETRAS_TRAZO_DISPONIBLES } from './renderer-lengua.js';
+import { renderizarFichaMatematicas, ICONOS_DISPONIBLES, ICONOS_SVG, FIGURAS_2D_DISPONIBLES, FIGURAS_3D_DISPONIBLES, PATRONES_SIMETRIA_DISPONIBLES, ICONOS_PROBABILIDAD_DISPONIBLES, PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES, PLANTILLAS_CONECTA_PUNTOS_CON_CANTIDAD, MARCOS_TEMATICOS_DISPONIBLES, RECIPIENTES_ESTIMAR_DISPONIBLES } from './renderer-matematicas.js';
+import { renderizarFichaLengua, LETRAS_TRAZO_DISPONIBLES, PALABRAS_CON_DIBUJO } from './renderer-lengua.js';
 
 dotenv.config();
 
@@ -19,6 +19,22 @@ if (!apiKey) {
 }
 
 const anthropic = new Anthropic({ apiKey });
+
+// Modelo y opciones comunes para las tres llamadas a la API (01/10/2026).
+// Claude Sonnet 4.5 se retira de la API el 30/11/2026; sustituto oficial:
+// claude-sonnet-5-5. Diferencias que afectan a este proyecto:
+//  - Sonnet 5.5 "piensa" por defecto (adaptive thinking). Aquí se desactiva
+//    con thinking: between_tools para que se comporte como Sonnet 4.5
+//    (respuesta directa en JSON/HTML, sin gastar tokens extra en pensar).
+//  - Su tokenizador produce ~30% más tokens para el mismo texto, así que
+//    max_tokens sube de 16000 a 21000 para no cortar fichas largas.
+//  - No admite temperature/top_p/top_k ni prefill: este código no los usa.
+const OPCIONES_MODELO = {
+  model: 'claude-sonnet-5-5',
+  max_tokens: 21000,
+  thinking: { type: 'between_tools' },
+  output_config: { effort: 'high' }
+};
 
 // ─────────────────────────────────────────────
 // SYSTEM PROMPT "LEGACY" — Conocimiento del Medio, Educación Física, Música
@@ -184,7 +200,7 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   // cursos guiados) y figura_geometrica (disponible en todos los cursos,
   // pero con distinta dificultad — ver bloqueFiguraGeometrica más abajo).
   if (esConDibujos) {
-    tiposDisponibles += ' | resta_barritas | recta_numerica | tabla_multiplicar | reparto';
+    tiposDisponibles += ' | resta_barritas | suma_barritas | recta_numerica | tabla_multiplicar | reparto';
   }
   if (esGuiado) {
     tiposDisponibles += ' | cuadro_numerico | rejilla_numerica';
@@ -198,14 +214,14 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   const esConProporcionalidad = ['5º', '6º'].includes(curso);
   const esConConversionUnidades = ['3º', '4º', '5º', '6º'].includes(curso);
   const esConMedirRegla = true; // todos los cursos
-  const esConAngulos = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConAngulos = ['2º', '3º', '4º', '5º', '6º'].includes(curso); // 2º: solo clasificar (02/10/2026)
   const esConTransportador = ['5º', '6º'].includes(curso);
   const esConSimetria = ['2º', '3º', '4º', '5º', '6º'].includes(curso);
   const esConCoordenadas = ['3º', '4º', '5º', '6º'].includes(curso);
   const esConProbabilidad = true; // todos los cursos (modo "clasificar")
   const esConProbabilidadOrdenar = ['4º', '5º', '6º'].includes(curso);
   const esConMedidasCentralizacion = ['5º', '6º'].includes(curso);
-  const esConEcuacionSencilla = ['3º', '4º', '5º', '6º'].includes(curso);
+  const esConEcuacionSencilla = true; // 1º-2º desde el 02/10/2026 (huecos y ¿suma o resta?)
   const esConCrucigrama = ['2º', '3º', '4º', '5º', '6º'].includes(curso);
   const esConColoreaPorOperacion = ['1º', '2º', '3º', '4º'].includes(curso);
   const esConConectaLosPuntos = ['1º', '2º', '3º'].includes(curso);
@@ -349,18 +365,27 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
     operación en horizontal (ej. "36 + 39 =") y deje debajo una rejilla vacía con cabecera D | U
     para que el alumno la coloque él mismo en columna y la resuelva. En este modo SÍ puedes agrupar
     2-4 operaciones en el mismo ejercicio (incluso en 1º-2º) y NO hace falta "svg". Úsalo cuando el
-    docente pida "coloca y suma/resta" o para variar el formato de las cuentas en columna.`;
+    docente pida "coloca y suma" o "coloca y resta" (con "signo": "-" en cada operación; un mismo
+    ejercicio lleva solo sumas o solo restas) o para variar el formato de las cuentas en columna.
+    NIVEL MÁS DIFÍCIL: "colocar": "cuadricula" → en vez de las casillas preparadas con D | U, el
+    signo y la raya, el sistema deja UN SOLO cuadrado de cuadrícula vacío por operación y el
+    alumno lo coloca todo él solo (números, signo, raya y resultado). Úsalo cuando el docente
+    pida "coloca en la cuadrícula" o más dificultad.`;
   }
 
   const bloqueConteo = esConDibujos ? `
 
 - "conteo_svg": solo contar objetos, sin operación.
-  { "icono": "...", "cantidad": n } — icono de la lista: ${listaIconos}.` : '';
+  { "icono": "...", "cantidad": n } — icono de la lista: ${listaIconos}.
+  * El sistema dibuja los objetos y, al lado, "Hay □" con una casilla grande para el número.` : '';
 
   const bloqueMultDiv = esMultDiv ? `
 
 - "multiplicacion_vertical": multiplicaciones en columna (multiplicando × multiplicador).
   { "operaciones": [ { "numeros": [multiplicando, multiplicador] } ] }
+  Ejemplo EXACTO: { "operaciones": [ { "numeros": [4827, 36] }, { "numeros": [59.4, 23] } ] } —
+  el tipo se llama literalmente "multiplicacion_vertical" (no "multiplicacion") y los datos van
+  SIEMPRE en "operaciones" → "numeros". Si no das números, el ejercicio no se imprime.
   * Cada operación es SIEMPRE exactamente 2 números. Decimales permitidos en
     cualquiera de los dos (usa punto, ej. 3.2 — el sistema lo muestra con
     coma automáticamente, no lo hagas tú).
@@ -374,6 +399,8 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
 
 - "division_vertical": divisiones en columna clásica (caja).
   { "operaciones": [ { "numeros": [dividendo, divisor] } ] }
+  Ejemplo EXACTO: { "operaciones": [ { "numeros": [9576, 42] }, { "numeros": [3184, 57] } ] } —
+  el tipo se llama literalmente "division_vertical" (no "division").
   * Cada operación es SIEMPRE exactamente 2 números. Decimales permitidos en
     cualquiera de los dos, igual que en multiplicación.
   * Agrupa varias divisiones (normalmente 2-3) en el mismo array
@@ -457,7 +484,12 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   * MODO "pictograma" (${curso}): "modo": "pictograma", "icono": uno de ${listaIconos},
     "valorIcono": n → cada icono vale n (ej. 5 puntos); el sistema dibuja una fila de iconos por
     categoría y la clave "icono = n". Usa valores múltiplos de "valorIcono" y como mucho 10 iconos
-    por fila. El enunciado pide LEER el pictograma (¿cuántos tiene X?, ¿quién tiene más?).` : ''}
+    por fila.` : ''}
+  * "preguntas": OPCIONAL (modos "leer" y "pictograma"), lista de 2 a 4 preguntas cortas sobre el
+    gráfico (["¿Cuántas manzanas hay?", "¿Qué fruta hay más?"]). El sistema escribe cada una en
+    su línea, con un punto delante y una raya detrás para la respuesta. Las preguntas van SIEMPRE
+    aquí, NUNCA dentro del enunciado (el enunciado solo dice "Observa el pictograma y contesta").
+    En "pictograma", inclúyelas siempre.
   * "valor" y "escalaMax" DEBEN ser números JSON puros (ej. 12), nunca texto ni con símbolos
     como "%" o unidades (mal: "12 libros" — bien: 12).${
   esConQuesitos ? `
@@ -481,35 +513,49 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   // "operacion_vertical" — dos grupos de palotes que el alumno tacha a mano.
   const bloqueRestaBarritas = esConDibujos ? `
 
-- "resta_barritas": resta representada con dos grupos de palotes/barritas (modelo de
-  comparación de conjuntos: el alumno tacha a mano tantos palotes como el número menor en los
-  DOS grupos, y lo que sobra sin tachar en el grupo mayor es el resultado). Úsalo como
-  alternativa visual a "operacion_vertical" para practicar la resta con apoyo manipulativo, no
-  en columna.
+- "resta_barritas": resta con un montón de palotes/barritas. El sistema dibuja SOLO las barritas
+  del minuendo (agrupadas de cinco en cinco); el alumno tacha tantas como indica el sustraendo y
+  cuenta las que quedan. Las barritas del sustraendo NO se dibujan aparte. Úsalo como alternativa
+  visual a "operacion_vertical" para practicar la resta con apoyo manipulativo, no en columna.
   { "minuendo": n, "sustraendo": m, "modo": "tachar" o "dibujar" }
   * "minuendo" SIEMPRE mayor o igual que "sustraendo".
-  * "modo": "tachar" → el sistema dibuja ya los palotes en las dos cajas (el alumno solo
-    tacha). "dibujar" → el sistema deja las dos cajas vacías, con el número como referencia,
-    para que el alumno dibuje él mismo los palotes antes de tachar — es un paso más de
-    dificultad, úsalo cuando el docente pida explícitamente "que dibuje" o para variar.
+  * "modo": "tachar" → el sistema dibuja ya las barritas del minuendo y escribe "Tacha m".
+    "dibujar" → deja la caja vacía y escribe "Dibuja n y tacha m" — un paso más de dificultad,
+    úsalo cuando el docente pida explícitamente "que dibuje" o para variar.
   * Usa números pequeños (hasta unos 20-25): con más cantidad los palotes dejan de leerse bien
-    en la caja de la ficha.` : '';
+    en la caja de la ficha.
+
+- "suma_barritas": suma con dos montones de palotes/barritas, uno por sumando, con el signo +
+  entre ellos; el alumno los cuenta todos juntos y escribe el resultado.
+  { "a": n, "b": m, "modo": "contar" o "dibujar" }
+  * "a" y "b": los dos sumandos, cada uno entre 1 y 20 (mejor hasta 10 en 1º).
+  * "modo": "contar" → el sistema dibuja las barritas de los dos montones. "dibujar" → deja las
+    dos cajas vacías para que el alumno dibuje las barritas antes de contar (más difícil).
+  * Un ejercicio por suma; nunca escribas tú el resultado.` : '';
 
   // Recta numérica (13/08/2026): apoyo visual clásico para sumas/restas de
   // un solo paso — mismo curso que resta_barritas.
   const bloqueRectaNumerica = esConDibujos ? `
 
-- "recta_numerica": recta numérica horizontal (de 0 a un máximo) con el número de partida
-  resaltado y los saltos de la operación marcados, para practicar sumas o restas SENCILLAS de
-  un solo paso.
-  { "operacion": { "a": n1, "signo": "+" o "-", "b": n2 }, "rangoMax": n (opcional) }
+- "recta_numerica": sumas o restas SENCILLAS de un solo paso con el apoyo de una recta numérica
+  horizontal (de 0 a un máximo). Es un apoyo muy usado en ${curso}: inclúyelo a menudo en las
+  fichas de sumas y restas.
+  { "operaciones": [ { "a": n1, "signo": "+" o "-", "b": n2 }, ... ], "saltos": true o false, "rangoMax": n (opcional) }
+  * "operaciones": entre 1 y 4 operaciones, cada una con su propia recta. (También se acepta
+    "operacion": { ... } con una sola.) Un mismo ejercicio lleva SOLO sumas o SOLO restas, para
+    que el título ("Suma en la recta" / "Resta en la recta") sea exacto.
+  * "saltos": true (por defecto) → CON saltos: el sistema resalta el número de partida "a" y
+    dibuja los saltos de uno en uno (hacia la derecha al sumar, hacia la izquierda al restar);
+    el alumno los sigue y escribe el resultado. false → SIN saltos: la recta sale limpia y es el
+    alumno quien marca el número de partida y dibuja los saltos — más dificultad. Alterna las
+    dos versiones salvo que el docente pida una concreta.
   * Números pequeños, típicamente hasta 20 — con números grandes la recta deja de caber/leerse
-    bien impresa.
+    bien impresa. En las restas, "a" mayor o igual que "b".
   * "rangoMax" es OPCIONAL: si lo omites, el sistema calcula un rango con margen suficiente
     para "a" y el resultado. Indícalo solo si quieres que varias rectas de la misma ficha
-    compartan exactamente el mismo rango (por ejemplo, todas de 0 a 19).
-  * El sistema dibuja la recta, resalta "a" y marca los saltos — nunca calcules ni escribas tú
-    el resultado, solo queda un hueco en blanco.` : '';
+    compartan exactamente el mismo rango (por ejemplo, todas de 0 a 20).
+  * El sistema dibuja la recta — nunca calcules ni escribas tú el resultado, solo queda una
+    casilla en blanco.` : '';
 
   // Tablas de multiplicar y reparto (30/08/2026): aclaración de una maestra
   // real de Primaria — en 1º se dan las tablas del 1, 2, 3, 5 y 10 (las más
@@ -534,7 +580,9 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   * OPCIONAL: "operacion": "suma" o "resta" → en vez de multiplicar, la "tabla del +N" (N + 0 ...
     N + 9) o la "tabla del −N" (N − N ... (N+9) − N) que se practica en 1º, en formato de libreta.
     Con "suma"/"resta", "tabla" puede ser cualquier número del 1 al 10 (la restricción de tablas de
-    1º es solo para multiplicar). El sistema genera las 10 filas, igual que al multiplicar.` : '';
+    1º es solo para multiplicar). El sistema genera las 10 filas, igual que al multiplicar.
+    El "titulo" del ejercicio debe ser "Tabla de sumar del N" o "Tabla de restar del N" — NUNCA
+    "Tabla del N" a secas, que se entiende como tabla de multiplicar.` : '';
 
   const bloqueReparto = esConDibujos ? `
 
@@ -847,26 +895,32 @@ ${notaRejillaEspecifica}` : '';
   const bloqueConectaLosPuntos = esConConectaLosPuntos ? `
 
 - "conecta_los_puntos": conectar puntos numerados en orden para revelar un dibujo.
-  { "plantilla": "estrella", "paso": 2, "inicio": 2 }
-  * "plantilla": EXACTAMENTE uno de estos nombres del catálogo cerrado: ${PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES.join(', ')}.
+  { "plantilla": "estrella", "paso": 1, "inicio": 1, "puntos": 30 }
+  * "plantilla": EXACTAMENTE uno de estos nombres del catálogo cerrado (entre paréntesis, cuántos
+    puntos tiene el dibujo por defecto): ${PLANTILLAS_CONECTA_PUNTOS_CON_CANTIDAD.join(', ')}.
     El sistema dibuja SIEMPRE ese dibujo (nunca inventes ni describas otro) — tú solo eliges cuál.
   * "paso": de cuánto en cuánto se cuenta (1 = de 1 en 1, 2 = de 2 en 2, 5 = de 5 en 5...), entre
     1 y 10. "inicio": OPCIONAL, el primer número de la serie (por defecto empieza en el propio
     "paso", ej. si "paso" es 2 empieza en 2, 4, 6...).
+  * "puntos": OPCIONAL, cuántos puntos quieres aproximadamente (hasta unos 30-40): el sistema
+    reparte puntos intermedios por el mismo dibujo. Úsalo para llegar a números más altos (ej.
+    "estrella" con "puntos": 30 → del 1 al 30). Sin "puntos", salen los del catálogo.
   * El sistema numera los puntos automáticamente según "paso"/"inicio" — nunca necesitas (ni
-    puedes) dar tú las coordenadas.` : '';
+    puedes) dar tú las coordenadas.
+  * El ENUNCIADO lo escribe el sistema ("Une los puntos en orden, del 1 al 30"), con el primer y
+    el último número reales del dibujo: el tuyo se ignora. En el "titulo" no menciones números.` : '';
 
   const bloqueNumeroDelDia = esConNumeroDelDia ? `
 
-- "numero_del_dia": trabajo de valor posicional — el número a trazar, un marco de diez (ten
-  frame) con círculos rellenos, y opcionalmente objetos para contar.
+- "numero_del_dia": un mismo número trabajado en tres pasos, cada uno con su orden ya escrita
+  por el sistema: (1) "Repasa y escribe" (el número grande para repasar y dos casillas para
+  escribirlo), (2) "Colorea N casillas" (un marco de diez VACÍO, dos si pasa de 10) y (3) "Rodea N"
+  (una fila de dibujos, más de los que hay que rodear) o, sin icono, "Dibuja N bolitas".
   { "numero": n, "icono": "..." }
-  * "numero": entero entre 0 y 20. El sistema dibuja el número grande para trazar y el marco de
-    diez (dos marcos si el número pasa de 10) con exactamente ese número de círculos rellenos —
-    nunca des tú ninguna cantidad aparte, se deriva siempre de "numero".
-  * "icono": OPCIONAL, uno de estos nombres: ${listaIconos} — si lo das, el sistema añade también
-    ese número de objetos para contar (coherente con el enunciado, mismo criterio de coherencia
-    enunciado↔icono que en el resto de ejercicios).` : '';
+  * "numero": entero entre 0 y 20. Todas las cantidades se derivan de "numero" — nunca des tú
+    ninguna aparte.
+  * "icono": OPCIONAL, uno de estos nombres: ${listaIconos} — los dibujos del paso 3.
+  * Como cada paso lleva su propia orden, el enunciado basta con "Trabaja el número N".` : '';
 
   // ── Segunda ampliación (07/09/2026) — sentido de la medida: masa y capacidad ──
   const bloquePesarConBalanza = esConPesarConBalanza ? `
@@ -1086,7 +1140,8 @@ ${notaRejillaEspecifica}` : '';
   { "modo": "rodear", "numeros": [n1, ...], "condiciones": [ { "tipo": "...", "valor": n, "valor2": n, "color": "rojo" } ] }
   { "modo": "escribir", "grupos": [ { "condiciones": [ {...}, {...} ], "cantidad": 4 } ] }
   * "tipo": "par", "impar", "unidades" (valor = cifra de las unidades), "decenas" (valor = cifra de
-    las decenas), "mayor_que", "menor_que" o "entre" (valor < n < valor2). El sistema escribe el
+    las decenas), "mayor_que", "menor_que", "entre" (valor < n < valor2) o "multiplo_de" (valor =
+    el número del que son múltiplos, ej. 3). NO inventes otros tipos: se descartarían. El sistema escribe el
     texto de cada condición y COMPRUEBA qué números la cumplen — no escribas tú la condición en
     texto. "color": rojo, azul, verde, amarillo, naranja, morado o marron.
   * "rodear": 8-16 números y 1-3 condiciones; asegúrate de que varios números cumplen cada una y
@@ -1126,7 +1181,10 @@ ${notaRejillaEspecifica}` : '';
   { "sumas": [ [4, 2, 2], [6, 2, 3] ], "agrupar": "primeros" o "decena", "ejemplo": true }
   * "primeros": siempre agrupa los dos primeros. "decena": agrupa la pareja (contigua) que forma
     decena exacta, si existe ("busca la decena": 24 + 6 + 18). "ejemplo": true → la primera suma
-    sale resuelta como modelo (la resuelve el sistema). Entre 3 y 6 sumas de 3 números.` : '';
+    sale resuelta como modelo (la resuelve el sistema). Entre 3 y 6 sumas de 3 números.
+  * OPCIONAL: "guia": false → SIN ayuda: no se dibujan las flechas ni la casilla intermedia, solo
+    la suma y la casilla del resultado (más dificultad; el enunciado puede pedir "rodea los dos
+    números que forman la decena y calcula"). Por defecto sale CON guía.` : '';
 
   const bloqueCaminoResultados = esConCaminoResultados ? `
 
@@ -1148,6 +1206,139 @@ ${notaRejillaEspecifica}` : '';
   * Números del 0 al 10 (en la resta, a ≥ b). "icono" de ${listaIconos}; "icono2" opcional, solo en
     sumas, para que el segundo grupo sea otro objeto. El sistema dibuja las cantidades a partir de
     "numeros" — tú solo das números e iconos. 2-6 operaciones por ejercicio (quedan en rejilla).` : '';
+
+  // ── Novena ampliación (02/10/2026): cuadernos de 1º y 2º ────────────────
+  const en = (...cursos) => cursos.includes(curso);
+  const esConSumaRepetida = esGuiado, esConOrdinales = esGuiado, esConCalendario = esGuiado, esConRecorrido = esGuiado, esConSerieFiguras = esGuiado;
+  const esConRedondeo = en('2º', '3º', '4º', '5º');
+  const esConEncuentraError = !en('1º');
+  const esConDomino = en('1º', '2º', '3º', '4º'), esConTiposLineas = en('1º', '2º', '3º', '4º'), esConSopa = en('1º', '2º', '3º', '4º');
+  const esConPosicion = esConDibujos, esConCompararCantidades = esConDibujos;
+  const esConContarFiguras = !en('1º');
+  const esConTrazoNumero = en('1º');
+  const maxDenominador = esConDibujos ? 4 : en('3º', '4º') ? 10 : 12;
+  tiposDisponibles += ' | fracciones | tabla_doble_entrada | elegir_unidad';
+  if (esConSumaRepetida) tiposDisponibles += ' | suma_repetida | ordinales | calendario | recorrido_cuadricula | serie_figuras';
+  if (esConRedondeo) tiposDisponibles += ' | redondeo';
+  if (esConEncuentraError) tiposDisponibles += ' | encuentra_error | contar_figuras';
+  if (esConDomino) tiposDisponibles += ' | domino_operaciones | tipos_lineas | sopa_operaciones';
+  if (esConPosicion) tiposDisponibles += ' | posicion_cuadricula | comparar_cantidades';
+  if (esConTrazoNumero) tiposDisponibles += ' | trazo_numero';
+
+  const bloqueNovena = `
+
+- "fracciones": el sistema dibuja la figura partida en partes iguales.
+  { "modo": "colorear" o "escribir", "fracciones": [ { "numerador": n, "denominador": d, "figura": "circulo" o "rectangulo" o "cuadrado" } ] }
+  * "colorear": figura en blanco + la fracción y su nombre (el alumno colorea). "escribir": figura ya
+    sombreada + dos casillas para escribir la fracción. Denominador de 2 a ${maxDenominador} en ${curso}; numerador ≤
+    denominador. 3-6 fracciones. El nombre ("un medio", "tres cuartos") lo escribe el sistema.
+
+- "tabla_doble_entrada": tabla para leer (horario, encuesta, menú...) con preguntas, o para completar.
+  { "modo": "leer" o "completar", "columnas": ["Lunes", "Martes"], "filas": [ { "etiqueta": "Mañana", "celdas": ["Lengua", "Música"] } ],
+    "preguntas": ["¿Qué día hay Música?"], "pistas": ["El lunes por la mañana hay Lengua."] }
+  * "completar": la tabla sale vacía y el alumno la rellena leyendo "pistas" (no hace falta "celdas").
+    2-7 columnas, 1-6 filas, textos cortos. Cada pregunta sale en su línea con raya para responder.
+
+- "elegir_unidad": elegir la unidad adecuada para medir algo.
+  { "items": [ { "texto": "El largo de un lápiz", "opciones": ["centímetros", "metros"] } ] } — 3-8 ítems, 2-3 opciones.
+${esConSumaRepetida ? `
+- "suma_repetida": grupos iguales de dibujos; el alumno escribe la suma repetida y la multiplicación.
+  { "grupos": [ { "grupos": 3, "porGrupo": 4, "icono": "..." } ] } — "grupos" de 2 a 5, "porGrupo" de 1 a 6,
+  icono de ${listaIconos}. 1-4 por ejercicio. El sistema dibuja y pone las casillas: no des resultados.
+
+- "ordinales": números ordinales (1.º a ${curso === '1º' ? '10.º' : '20.º'}). Las palabras las escribe el sistema.
+  { "modo": "rodear", "icono": "...", "cantidad": 6, "ordenes": [ { "posicion": 3, "desde": "izquierda" o "derecha", "tipo": "ordinal" o "cardinal" } ] }
+    → fila de "cantidad" dibujos (4-10) por cada orden: "ordinal" = rodea solo el 3.º; "cardinal" = rodea los 3 primeros.
+  { "modo": "unir", "numeros": [1, 5, 8] } → une "5.º" con "quinto". { "modo": "escribir", "numeros": [3, 7] } → escribe el nombre o la cifra.
+
+- "calendario": { "modo": "mes", "mes": 1-12, "anio": 2026, "preguntas": [] } → el sistema dibuja el mes REAL y, si
+  no mandas "preguntas", pone las suyas (qué día cae el 10, cuántos jueves hay...). Si las mandas tú, que se
+  puedan contestar mirando ese mes. { "modo": "semana" } → los 7 días desordenados para numerarlos.
+  { "modo": "meses", "huecos": 5 } → los 12 meses con algunos en blanco.
+
+- "recorrido_cuadricula": seguir órdenes en una cuadrícula y decir a qué letra (A, B o C) se llega.
+  { "pasos": [ { "direccion": "derecha" o "izquierda" o "arriba" o "abajo", "cuantos": 3 } ] } — 2-6 pasos de 1 a 8
+  casillas; el camino no puede pasar dos veces por la misma casilla. El sistema coloca la salida y las letras.
+
+- "serie_figuras": serie de dibujos que se repite; el alumno dibuja los que faltan al final.
+  { "series": [ { "patron": ["circulo", "cuadrado", "cuadrado"], "huecos": 3 } ] } — "patron" de 2-4 elementos de
+  ${listaIconos} (con al menos dos distintos). El sistema repite el patrón. 1-4 series.` : ''}${esConRedondeo ? `
+
+- "redondeo": aproximar a la decena${en('2º') ? ' o a la centena' : ', la centena o el millar'} más cercana.
+  { "a": "decena" o "centena"${en('2º') ? '' : ' o "millar"'}, "numeros": [23, 48], "guia": true } — con "guia" (por defecto) el sistema
+  dibuja la recta con el número en su sitio; con "guia": false solo la frase "está entre □ y □". 3-6 números
+  que NO sean ya redondos. No des el resultado.` : ''}${esConEncuentraError ? `
+
+- "encuentra_error": cuentas en columna YA resueltas, algunas mal: marcar las correctas y corregir las otras.
+  { "operaciones": [ { "signo": "+" o "-", "numeros": [a, b] } ] } — 3-6 operaciones del rango de ${curso}. El sistema
+  calcula los resultados y decide él cuáles salen equivocadas: tú solo das las cuentas.
+
+- "contar_figuras": figuras con otras escondidas dentro ("¿cuántos triángulos hay en total?").
+  { "figuras": [ { "tipo": "triangulos", "divisiones": 3 }, { "tipo": "cuadrados", "lado": 2 }, { "tipo": "rectangulos", "celdas": 3 } ] }
+  — "divisiones" 2-5, "lado" 2-3, "celdas" 2-5. 1-4 figuras.` : ''}${esConDomino ? `
+
+- "domino_operaciones": dominó recortable de Inicio a Fin (cada ficha lleva el resultado de la anterior).
+  { "operaciones": ["3 + 7", "12 - 7", "4 + 4"] } — entre 6 y 12 operaciones con resultados TODOS distintos, del
+  rango de ${curso}. El sistema calcula los resultados, monta la cadena y desordena las fichas.
+
+- "tipos_lineas": { "modo": "clasificar", "lineas": ["recta", "curva", "poligonal_abierta", "poligonal_cerrada", "curva_cerrada"] }
+  → marcar si cada línea es recta, curva o poligonal. { "modo": "abierta_cerrada", "lineas": [...] } → abierta o
+  cerrada.${en('1º') ? '' : ' { "modo": "posicion" } → pares de rectas: paralelas, secantes o perpendiculares.'} El sistema dibuja.
+
+- "sopa_operaciones": rejilla de números con ${en('1º') ? 'sumas' : 'sumas o multiplicaciones'} escondidas (tres números seguidos).
+  { "signo": "+"${en('1º') ? '' : ' o "x"'}, "operaciones": [[2, 3], [5, 2]] } — 3-6 parejas distintas${en('1º') ? '' : ' (en "x", de las tablas)'}. El sistema calcula los
+  resultados y construye la rejilla.` : ''}${esConPosicion ? `
+
+- "posicion_cuadricula": dibujos en un tablero y frases para completar con izquierda/derecha/encima/debajo.
+  { "iconos": [6 nombres distintos de ${listaIconos}], "columnas": 3 } — el sistema escribe las frases.
+
+- "comparar_cantidades": comparar dos montones de dibujos.
+  { "modo": "mas" o "menos" o "diferencia", "parejas": [ { "iconoA": "...", "a": 5, "iconoB": "...", "b": 7 } ] }
+  — cantidades de 1 a 10 y DISTINTAS entre sí. "diferencia": dos filas emparejadas y la resta debajo. 1-4 parejas.` : ''}${esConTrazoNumero ? `
+
+- "trazo_numero": repasar y escribir cifras, con el punto de inicio y la flecha de cada trazo.
+  { "numeros": [1, 2, 3], "repasar": 3, "solo": 3 } — números de 0 a 20 (hasta 11 filas).` : ''}
+
+MODOS NUEVOS de tipos ya descritos arriba (úsalos solo si ese tipo está disponible en ${curso}):
+- "problema" → { "modo": "barras", "esquema": "juntar" o "quitar" o "comparar", "texto": "...", "numeros": [a, b],
+  "etiquetas": ["blancas", "rojas"], "unidad": "flores" }: el sistema dibuja un diagrama de barras con los dos
+  datos y un "?" en lo que se busca, la frase □ ± □ = □ y "Respuesta: □ flores". "juntar": se busca el total
+  (a + b). "quitar": había a, se quitan b. "comparar": cuánto más es a que b ("etiquetas" = de quién es cada
+  número, en el mismo orden). → { "modo": "frase", "texto": "...", "signo": "+" o "-", "unidad": "perros" }:
+  solo el texto, la frase numérica y la respuesta. En estos dos modos no hacen falta "svg" ni "datosClave".
+- "operacion_vertical" → "prueba": true (restas; al lado sale la suma que la comprueba) · "hueco": "sumando"
+  (falta el segundo número y el resultado está puesto). En ambos, varias operaciones por ejercicio y sin "svg".
+- "ecuacion_sencilla" → "posicionIncognita": "signo" (¿suma o resta?: 100 ○ 114 = 214, solo + y −, b distinto
+  de 0) o "ambos" (□ + □ = 90: inventa la operación).${esConDibujos ? ` En ${curso} usa solo "+" y "-" (nunca "×").` : ''}
+- "comparar_numeros" → { "modo": "ordenar", "numeros": [...], "orden": "menor_a_mayor" o "mayor_a_menor" } (3-7 números).
+- "medir_con_regla" → { "modo": "dibujar", "longitudes": [4, 6] } · { "modo": "leer", "marcas": [2, 7] } (qué marca
+  cada flecha en la regla) · { "modo": "cuadros", "tiras": [6, 4, 7] } (cuántos cuadrados mide cada tira).
+- "reloj_analogico" → { "modo": "despues", "relojes": [ { "hora": 3, "minuto": 0, "minutosDespues": 30 } ] }
+  (30, 60, 15 o negativos para "antes") · { "modo": "elegir", "relojes": [ { "hora": 4, "minuto": 30 } ] } (marca el
+  reloj que dice la hora escrita) · { "modo": "tabla24", "horas": [6, 7, 8, 9] } (6:00 ↔ 18:00).
+- "figura_geometrica" → { "modo": "triangulos" } (equilátero, isósceles, escaleno) · { "modo": "circulo" }
+  (centro, radio y diámetro)${esConFiguras3D ? ' · { "modo": "objetos", "cuerpos": ["esfera", "cubo", "cilindro", "cono", "prisma"] } (unir cada cuerpo con un objeto cotidiano)' : ''}.
+- "tabla_frecuencia" → añade "grafico": true y "preguntas": [...] para que debajo de la tabla salga un gráfico
+  de cuadros para colorear y las preguntas.${esConSimetria ? `
+- "simetria" → { "modo": "eje", "figuras": ["corazon", "casa"] }: figura entera, el alumno dibuja el eje.` : ''}${esConDibujos ? `
+- "reparto" → "resto": true: reparto que puede no ser exacto ("14 : 4 = □ y sobran □").
+- "barritas_decenas" → números de 100 a 999 en modo "contar" (placas de centena) · { "modo": "agrupar",
+  "numeros": [23] } (bolitas revueltas para rodear grupos de 10; de 11 a 60) · { "modo": "operar", "operaciones":
+  [ { "signo": "+", "numeros": [15, 21] } ] } (sumar o restar decenas con decenas y unidades con unidades, SIN llevadas).
+- "conteo_svg" → { "modo": "unir", "grupos": [ { "icono": "...", "cantidad": 4 } ] }: une dibujos, número y cubitos
+  (2-5 grupos con cantidades distintas del 1 al 10).
+- "mismo_resultado" → { "modo": "completar", "total": 7, "icono": "...", "partes": [3, 5, 4] }: une los dos
+  montones que juntos hacen "total" (de 3 a 10).
+- "recta_numerica" → { "modo": "senalar", "desde": 10, "hasta": 30, "paso": 1, "numeros": [13, 22, 27] }: ¿qué
+  número señala cada flecha?` : ''}${esGuiado ? `
+- "suma_asociativa" → { "modo": "conmutativa", "pares": [[39, 52], [3, 47]] }: 39 + 52 = 52 + □.` : ''}${['1º', '2º', '3º'].includes(curso) ? `
+- "rejilla_numerica" → { "modo": "recortes", "piezas": 6 }: trozos sueltos de la tabla del 100 para completar.` : ''}
+
+OPCIONES DE PRESENTACIÓN (todas opcionales):
+- En la ficha (junto a "titulo"): "nivel": "repaso" o "refuerzo" o "ampliacion" (solo si el docente lo pide) y
+  "minutos": tiempo estimado (solo si el docente lo pide).
+- En cada ejercicio: "ancho": "medio" para ejercicios CORTOS (dos seguidos quedan uno al lado del otro; ponlo
+  siempre en parejas consecutivas) y "recuerda": "frase corta de ayuda" (sale en un recuadro al pie).`;
 
   let bloqueProblema;
   if (esConDibujos) {
@@ -1209,7 +1400,11 @@ ${notaRejillaEspecifica}` : '';
   } else {
     bloqueProblema = `
 - "problema": problema contextualizado, formato libre (${curso}, sin bloques guiados).
-  { "texto": "enunciado del problema, lenguaje adecuado al curso", "datosClave": [] }`;
+  { "texto": "enunciado del problema, lenguaje adecuado al curso", "datosClave": [] }${['5º', '6º'].includes(curso) ? `
+  * Nivel de ${curso}: problemas de VARIOS pasos (al menos 2-3 operaciones encadenadas), con datos
+    realistas (precios con decimales, descuentos y porcentajes, fracciones de una cantidad,
+    unidades que hay que convertir, medias...). Evita problemas de una sola operación directa: esos
+    son de cursos inferiores. Puede incluir datos que sobran o una pregunta intermedia.` : ''}`;
   }
 
   return `
@@ -1221,6 +1416,7 @@ ni una sola palabra antes o después del objeto JSON.
 
 ESQUEMA EXACTO:
 {
+  "nivel": "OPCIONAL — ver OPCIONES DE PRESENTACIÓN", "minutos": "OPCIONAL",
   "titulo": "string — título CORTO, máximo 4-5 palabras (ej. 'Sumas y restas hasta el 20', NO una frase larga tipo 'Ficha de Matemáticas: Números hasta 20, sumas y restas sin llevadas'). No repitas la palabra 'Ficha' ni la materia, eso ya lo pone la cabecera.",
   "ejercicios": [
     {
@@ -1287,6 +1483,7 @@ ${bloqueSumaAsociativa}
 ${bloqueCaminoResultados}
 ${bloqueOperacionDibujos}
 ${bloqueProblema}
+${bloqueNovena}
 
 - "tipo_test": pregunta de opción múltiple (la pregunta va en "enunciado").
   { "opciones": ["opción a", "opción b", "opción c"] }
@@ -1319,9 +1516,28 @@ REGLAS GENERALES:
   "operacion": "suma"/"resta" · "Reloj digital o en palabras" → "reloj_analogico" con "respuesta"
   o "mostrar" · "¿Más o menos de 1 litro?" → "medir_capacidad" con "modo": "estimar" ·
   "Pictograma" → "grafico_barras" con "modo": "pictograma" · "Cuenta en una escena" →
-  "tabla_frecuencia" con "revuelto": true · "Cuenta y suma con dibujos" → "operacion_dibujos" · "Une el dibujo con la suma" → "mismo_resultado" con
+  "tabla_frecuencia" con "revuelto": true · "Coloca y resta" → "operacion_vertical" con "colocar":
+  true y "signo": "-" · "Coloca en cuadrícula" → "operacion_vertical" con "colocar": "cuadricula" ·
+  "Suma en la recta numérica" / "Resta en la recta numérica" → "recta_numerica" solo con sumas /
+  solo con restas · "Busca la decena sin ayuda" → "suma_asociativa" con "agrupar": "decena" y
+  "guia": false · "Cuenta y suma con dibujos" → "operacion_dibujos" · "Une el dibujo con la suma" → "mismo_resultado" con
   "modo": "dibujos" · "Problema paso a paso" → "problema" con "modo":
-  "razonado" · "Inventa la pregunta" → "problema" con "modo": "inventar". Si ese modo no aparece
+  "razonado" · "Inventa la pregunta" → "problema" con "modo": "inventar" ·
+  "Problema con barras" → "problema" con "modo": "barras" · "Resta con prueba" → "operacion_vertical" con
+  "prueba": true · "¿Qué número falta?" → "operacion_vertical" con "hueco": "sumando" · "¿Suma o resta?" →
+  "ecuacion_sencilla" con "posicionIncognita": "signo" · "Ordena los números" → "comparar_numeros" con "modo":
+  "ordenar" · "Recortes de la tabla del 100" → "rejilla_numerica" con "modo": "recortes" · "¿Qué número señala?" →
+  "recta_numerica" con "modo": "senalar" · "Une para hacer un número" → "mismo_resultado" con "modo":
+  "completar" · "Une dibujos, número y cubitos" → "conteo_svg" con "modo": "unir" · "Agrupa de 10 en 10" →
+  "barritas_decenas" con "modo": "agrupar" · "Suma y resta con barritas de decenas" → "barritas_decenas" con
+  "modo": "operar" · "Reparto con resto" → "reparto" con "resto": true · "Media hora después" →
+  "reloj_analogico" con "modo": "despues" · "¿Qué reloj es?" → "reloj_analogico" con "modo": "elegir" ·
+  "Mañana y tarde" → "reloj_analogico" con "modo": "tabla24" · "Dibuja y lee con la regla" →
+  "medir_con_regla" con "modo": "dibujar"/"leer"/"cuadros" · "Triángulos según sus lados" / "Círculo y
+  circunferencia" / "Cuerpos y objetos" → "figura_geometrica" con "modo": "triangulos"/"circulo"/"objetos" ·
+  "Dibuja el eje de simetría" → "simetria" con "modo": "eje" · "Cuenta, tabla y gráfico" → "tabla_frecuencia"
+  con "revuelto": true y "grafico": true · "Propiedad conmutativa" → "suma_asociativa" con "modo":
+  "conmutativa" · "Horario y tablas" → "tabla_doble_entrada". Si ese modo no aparece
   descrito más arriba para ${curso}, usa el tipo más parecido de los disponibles.
 - NUNCA autoevaluación ni caritas.
 - El título y los enunciados deben ser coherentes con Matemáticas de ${curso} de Primaria.
@@ -1378,6 +1594,30 @@ function construirSystemPromptLengua(curso) {
   if (esConCategoriaGramatical) tiposDisponibles += ' | categoria_gramatical';
   if (esConFormacionPalabras) tiposDisponibles += ' | formacion_palabras';
   if (esConEleccionOrtografica) tiposDisponibles += ' | eleccion_ortografica';
+
+  // Lectoescritura inicial (02/10/2026): 1º-2º, con los dibujos del banco.
+  const esConLectoescritura = ['1º', '2º'].includes(curso);
+  if (esConLectoescritura) tiposDisponibles += ' | sonido_inicial | mayuscula_minuscula | laberinto_letra | recorta_pega';
+  const bloqueLectoescritura = esConLectoescritura ? `
+
+- "sonido_inicial": dibujos SIN la palabra escrita; el alumno colorea o rodea los que empiezan por la letra.
+  { "letra": "e", "palabras": ["elefante", "escalera", "oso", "espada", "uva", "erizo"] }
+  * Entre 6 y 10 palabras: más o menos la mitad empiezan por la letra y el resto NO. Evita palabras con h
+    inicial. SOLO palabras de la lista de dibujos de abajo: el sistema descarta las que no tengan dibujo y
+    comprueba él por qué letra empieza cada una.
+
+- "mayuscula_minuscula": la misma letra en mayúscula y minúscula, en varios tipos de letra, para colorear cada
+  una de un color. { "letra": "a", "cantidad": 12 } — el sistema dibuja y desordena las letras.
+
+- "laberinto_letra": laberinto en el que se avanza de la entrada a la salida siguiendo solo una letra.
+  { "letra": "a", "filas": 5, "columnas": 6 } — el sistema traza el camino y rellena el resto.
+
+- "recorta_pega": arriba, palabras con un hueco "Pega aquí"; abajo, los dibujos desordenados para recortar.
+  { "palabras": ["oso", "uva", "isla", "mesa"] } — de 3 a 5 palabras cortas, SOLO de la lista de dibujos de abajo.
+
+  LISTA DE DIBUJOS DISPONIBLES (la ñ aparece escrita "ny": escribe tú la palabra normal, con ñ y tildes; elige
+  nombres de cosas, animales o personas que un niño reconozca en un dibujo):
+  ${PALABRAS_CON_DIBUJO.join(', ')}` : '';
 
   const bloqueRelacionar = esConRelacionar ? `
 
@@ -1554,6 +1794,12 @@ ${bloqueAcentuacion}
 ${bloqueCategoriaGramatical}
 ${bloqueFormacionPalabras}
 ${bloqueEleccionOrtografica}
+${bloqueLectoescritura}
+
+OPCIONES DE PRESENTACIÓN (todas opcionales): en la ficha, junto a "titulo", "nivel": "repaso" o "refuerzo" o
+"ampliacion" y "minutos": tiempo estimado (solo si el docente lo pide). En cada ejercicio, "ancho": "medio"
+para ejercicios cortos (en parejas consecutivas: quedan uno al lado del otro) y "recuerda": "frase corta de
+ayuda" (sale en un recuadro al pie del ejercicio).
 
 REGLAS GENERALES:
 - Por defecto genera ~10 ejercicios variados, mezclando tipos según lo que pida el docente.
@@ -1674,14 +1920,13 @@ app.post('/api/generar-ficha', async (req, res) => {
       });
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 8000,
+        ...OPCIONES_MODELO,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       });
 
       if (response.stop_reason === 'max_tokens') {
-        console.warn('⚠️ Respuesta cortada por límite de tokens.');
+        console.warn('⚠️ Respuesta cortada por límite de tokens (21000). Si pasa a menudo, pedir menos ejercicios o subir el límite.');
       }
 
       const bloqueTexto = response.content.find(block => block.type === 'text');
@@ -1699,6 +1944,12 @@ app.post('/api/generar-ficha', async (req, res) => {
         });
       }
 
+      // Resumen en la consola del servidor (no se guarda nada): tipos pedidos
+      // por Claude, para poder diagnosticar una ficha rara sin almacenar su
+      // contenido (principio de la Fase 6: el servidor no guarda fichas).
+      const tiposRecibidos = (Array.isArray(datosFicha.ejercicios) ? datosFicha.ejercicios : []).map(e => e?.tipo);
+      console.log(`📄 Ficha de Matemáticas ${curso}: ${tiposRecibidos.length} ejercicios — ${tiposRecibidos.join(', ')}`);
+
       const html = renderizarFichaMatematicas(datosFicha, { curso, materia, comunidad, colegio });
       return res.json({ html });
     }
@@ -1712,14 +1963,13 @@ app.post('/api/generar-ficha', async (req, res) => {
       const userPrompt = construirPromptLengua({ curso, comunidad, instrucciones, idioma });
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 8000,
+        ...OPCIONES_MODELO,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       });
 
       if (response.stop_reason === 'max_tokens') {
-        console.warn('⚠️ Respuesta cortada por límite de tokens.');
+        console.warn('⚠️ Respuesta cortada por límite de tokens (21000). Si pasa a menudo, pedir menos ejercicios o subir el límite.');
       }
 
       const bloqueTexto = response.content.find(block => block.type === 'text');
@@ -1747,8 +1997,7 @@ app.post('/api/generar-ficha', async (req, res) => {
     const userPrompt = construirPrompt(materia, curso, comunidad, instrucciones, idioma, colegio);
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 8000,
+      ...OPCIONES_MODELO,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }]
     });

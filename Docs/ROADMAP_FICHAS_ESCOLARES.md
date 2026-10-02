@@ -1,6 +1,34 @@
 # ROADMAP DEL PROYECTO — Generador de Fichas Escolares
 
-*Última actualización (22/09/2026, última hora): decisiones del usuario sobre lo que quedó pendiente
+*Última actualización (02/10/2026, tarde): **novena ampliación** a partir de ocho PDFs de 1º y 2º
+(refuerzo y ampliación de 2º, cuadernos de actividades de 1º y 2º, fichas de trazo de números y de
+vocales, y un examen de olimpiada). 17 tipos nuevos de Matemáticas (**74 renderers**), unos 25 modos
+sobre tipos existentes, 4 tipos de Lengua para 1º-2º (**12** en Lengua) y cuatro opciones de
+presentación. Ver Fase 3, "Novena ampliación". Pendiente de ficha real vía API.
+
+Antes de esto (02/10/2026, mañana): **revisión de la maestra sobre las fichas de Matemáticas de 1º**
+— 17 observaciones tras probar fichas con todos los tipos disponibles. Corregidos 13 tipos
+existentes, añadido el tipo `suma_barritas` (**57 renderers**) y cuatro modos nuevos (coloca en
+cuadrícula, decena sin guía, recta numérica sin saltos y con varias operaciones, preguntas en
+gráficos). Ver Fase 3, "Revisión de la maestra". Mismo día: los 5 iconos que faltaban y los cuerpos
+geométricos con dibujo (ver "Dibujos del banco", al final). Pendiente de ficha real vía API.
+
+Antes de esto (23/09/2026, noche): **cartilla de lectura propia** a petición urgente de la
+maestra (ver Fase 9, "Cartilla de lectura"). Se tomó como referencia de FORMATO una cartilla de un
+maestro cuyo autor prohíbe copiarla, modificarla o enviarla: por eso no se copió nada (ni texto, ni
+dibujos, ni diseño) — solo el esquema común a cualquier cartilla. PDF de 29 páginas, pendiente de
+convertirse en un tipo de ficha de Lengua en la app.
+
+Antes de esto (23/09/2026): primera ficha real de 6º con el formato nuevo — el usuario
+detectó tres fallos: (1) tres sumas salieron como tres ejercicios sueltos; (2) las multiplicaciones y
+divisiones salieron con su enunciado pero SIN ninguna cuenta; (3) nivel algo bajo para 6º (problema
+final de un paso). Causa de (1)-(2): el renderer no dibujaba nada si Claude se desviaba un poco del
+esquema (nombre de tipo parecido, números con otra forma, signo × dentro de operacion_vertical). Ver
+Fase 3, "Robustez ante desvíos del esquema". Arreglado en código (normalización, agrupado, descarte
+de ejercicios vacíos con aviso, resumen de tipos en la consola) y en el prompt (ejemplos exactos de
+multiplicación/división, problemas de varios pasos en 5º-6º, max_tokens 8000 → 16000).
+
+Antes de esto (22/09/2026, última hora): decisiones del usuario sobre lo que quedó pendiente
 del formato nuevo — (1) **relleno gris muy suave en los iconos**: implementado (capa de relleno
 `#ededed` bajo el trazo, solo en formas cerradas; provisional hasta que los SVG se sustituyan por las
 ilustraciones de Gemini del banco de imágenes); (2) **frases de ánimo y caritas**: se dejan para
@@ -1184,7 +1212,121 @@ selector visual (49/52/52/40/36/36 botones de 1º a 6º, inserción del texto co
 No abordado (depende del banco de ilustraciones, Fase 4): orientación espacial con personajes,
 mascota con bocadillo, escenas para comparar, historias en viñetas, colorear un dibujo por código.
 
+### Robustez ante desvíos del esquema: operaciones vacías y cuentas sueltas (23/09/2026)
+**Estado: ✅ Implementado y verificado con datos simulados · pendiente de repetir la ficha real de 6º**
+
+Origen: ficha real de 6º generada con un prompt de prueba de ~28 ejercicios. Tres sumas salieron como
+tres ejercicios distintos (deberían ir juntas, cabían en la fila) y las multiplicaciones/divisiones
+salieron con enunciado y sin ninguna cuenta. No se pudo ver el JSON exacto de Claude (el servidor no
+lo registraba), pero el código explica ambos síntomas: `renderMultiplicacionVertical()` y compañía
+devuelven vacío si no encuentran exactamente `datos.operaciones[].numeros`, y un tipo con nombre
+parecido ("multiplicacion") no existía en `RENDERERS_POR_TIPO`. Arreglos:
+
+- **`normalizarEjercicio()`** (`renderer-matematicas.js`), antes de dibujar: alias de tipos
+  ("multiplicacion", "division", "suma"... → su tipo real); formas alternativas de cada operación
+  (`multiplicando/multiplicador`, `dividendo/divisor`, `a/b`, `operandos`, `sumandos`, un array
+  suelto, o `datos.numeros` sin `operaciones`); y si una `operacion_vertical` trae signo × o :, se
+  dibuja como multiplicación o división de verdad.
+- **`agruparOperacionesSueltas()`**: de 3º a 6º, ejercicios consecutivos del mismo tipo de cuenta en
+  columna con UNA operación cada uno se funden en uno solo (hasta 4 cuentas; título y enunciado del
+  primero). En 1º-2º no se agrupa: cada cuenta lleva su propio dibujo y debe ir sola.
+- **Ejercicios sin contenido dibujable se descartan** (y se renumeran) en vez de imprimir un
+  enunciado vacío; se avisa en la consola del servidor con sus datos para poder diagnosticarlo.
+- **Resumen en consola** de los tipos que pide Claude en cada ficha de Matemáticas (no se guarda
+  nada — mismo principio de la Fase 6 de no almacenar fichas en servidor).
+- **Prompt**: ejemplo EXACTO de `multiplicacion_vertical` y `division_vertical` con el nombre literal
+  del tipo; en 5º-6º, los problemas deben ser de varios pasos con datos realistas.
+- **`max_tokens` de 8000 a 16000** en las tres llamadas (fichas largas de 30 ejercicios con muchos
+  datos podían quedarse cerca del límite).
+
+Validado: formas "torcidas" simuladas (tipo "multiplicacion" con multiplicando/multiplicador,
+división con `datos.numeros`, `operacion_vertical` con signos ÷ y :, tipo inventado, multiplicación
+sin datos) → todas se dibujan o se descartan con aviso; tres sumas sueltas de 6º → un solo ejercicio;
+regresión byte a byte de los tipos existentes (con datos válidos para cada curso) idéntica.
+
 ---
+
+### Revisión de la maestra — Matemáticas de 1º (02/10/2026)
+
+La maestra revisó fichas de 1º generadas con todos los tipos disponibles. Lo que pidió y lo hecho
+(contrato de clases en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 16):
+
+1. **Cuenta y colorea** (`conteo_svg`): dibujos pobres y sin sitio para el número → ya usa los
+   dibujos del banco (01/10) y ahora añade "Hay □".
+2. **El número del día**: no se entendía qué hacer → tres pasos con su orden escrita (repasa y
+   escribe / colorea N casillas / rodea N). El marco de diez sale vacío.
+3. **Anterior y posterior**: grupos más separados.
+4. **Resta con barritas**: ya no se dibujan las barritas del sustraendo; el niño las tacha en el
+   montón del minuendo.
+5. **Suma con barritas**: tipo nuevo `suma_barritas`.
+6. **Coloca y suma**: nivel difícil `"colocar": "cuadricula"` (un solo cuadrado de cuadrícula).
+7. **Coloca y resta**: ya funcionaba con `"signo": "-"`; ahora está en el selector y en el prompt.
+8. **Tabla del 5** → "Tabla de sumar del 5" (también el título del ejercicio) y más espacio.
+9. **Suma buscando la decena**: guías recentradas (rejilla única) y opción `"guia": false`.
+10. **Detective de números**: casos en paralelo.
+11. **Reparto en grupos**: cajas más grandes.
+12. **¿Más o menos de un litro?**: dibujos del banco; catálogo ampliado. Cubo (de agua), regadera y
+    garrafa generados el mismo día (`cubo.png`, `regadera.png`, `garrafa.png`); falta la piscina.
+13. **Figuras geométricas**: vértices en punta en todas las figuras planas.
+14. **Conecta los puntos**: el enunciado lo escribe el código con los números reales; `"puntos"`
+    permite llegar a 30-40 sobre el mismo dibujo.
+15. **Pictograma**: preguntas una por línea, con punto gordo y raya de respuesta (`"preguntas"`).
+16. **Cuenta la escena**: escena y tabla en paralelo.
+17. **Recta numérica**: sumas y restas con saltos (ya existía) y SIN saltos (`"saltos": false`),
+    varias por ejercicio. Dos entradas nuevas en el selector.
+
+**Conecta los puntos, ampliado (02/10/2026, misma sesión):** de 5 a **18 dibujos** (nuevos: corazon,
+pino, cohete, rayo, corona, camiseta, coche, seta, velero, luna, flecha, gato, helado), todos figuras
+cerradas. Los puntos extra de `"puntos"` se reparten según la longitud de cada tramo y los números se
+colocan por fuera del contorno.
+
+Selector (`index.html`): añadidos "Suma con barritas", "Suma en la recta numérica", "Resta en la
+recta numérica", "Coloca y resta", "Coloca en cuadrícula" y "Busca la decena sin ayuda".
+
+Validado con `node --check`, casos límite, prompt de 1º/2º/3º/6º y Playwright en color y B/N.
+**Pendiente**: ficha real vía API y nueva revisión de la maestra. Idea abierta: dibujo de piscina para "¿Más o menos de un litro?".
+
+### Novena ampliación (02/10/2026, tarde): cuadernos de 1º y 2º
+
+Origen: ocho PDFs subidos por el usuario para buscar tipos nuevos y mejoras visuales. Solo se tomó el
+formato de cada ejercicio (son materiales con derechos o de uso no comercial): ni textos ni dibujos.
+Contrato de clases en `REFERENCIA_CLASES_HTML_FICHAS.md`, sección 17.
+
+**Tipos nuevos de Matemáticas (57 → 74 renderers):** `fracciones` (todos los cursos; era el mayor
+hueco: no había ningún tipo de fracciones), `suma_repetida`, `ordinales`, `calendario`,
+`recorrido_cuadricula`, `serie_figuras` (1º-3º), `redondeo` (2º-5º), `encuentra_error`,
+`contar_figuras` (2º-6º), `domino_operaciones`, `tipos_lineas`, `sopa_operaciones` (1º-4º),
+`posicion_cuadricula`, `comparar_cantidades` (1º-2º), `tabla_doble_entrada`, `elegir_unidad` (todos)
+y `trazo_numero` (1º). Todos con blindaje (b) salvo `tabla_doble_entrada` y `elegir_unidad` (solo
+maquetado).
+
+**Modos nuevos:** problema con diagrama de barras y con frase numérica; resta con prueba y sumando
+oculto; ¿suma o resta? e inventa la operación; reparto con resto; centenas, agrupar de 10 en 10 y
+operar con barritas; conmutativa; reloj (después/antes, elegir, tabla mañana-tarde); eje de simetría;
+triángulos, círculo y cuerpo↔objeto; unir en tres columnas; une para hacer N; recta "¿qué número
+señala?"; ordenar números; regla (dibujar, leer, tiras de cuadros); tabla + gráfico para colorear;
+recortes de la tabla del 100. `ecuacion_sencilla` se abre a 1º-2º y `angulos` (clasificar) a 2º.
+
+**Lengua (1º-2º):** `sonido_inicial`, `mayuscula_minuscula`, `laberinto_letra` y `recorta_pega`, con los
+dibujos del banco (la lista de palabras con dibujo se inyecta en el prompt).
+
+**Visual:** etiqueta de nivel y tiempo bajo el título, ejercicios a medio ancho (dos en paralelo),
+recuadro "Recuerda", "Respuesta: □ unidad" y trazo de cifras con punto de inicio y flecha (también en
+el paso 1 de `numero_del_dia`).
+
+**Selector:** 39 entradas nuevas (110 en total; 90/98/85/63/54/53 de 1º a 6º).
+
+Validado: `node --check`; prompt de los 6 cursos (cada tipo con su bloque); regresión byte a byte de
+30 ejercicios de tipos existentes × 6 cursos y de Lengua; casos límite e intento de inyección en todos
+los tipos y modos nuevos sin excepciones; Playwright en color y B/N; arranque del servidor.
+
+No hecho, queda anotado:
+- [ ] Resta con llevadas guiada paso a paso y perímetro sumando lados en 2º.
+- [ ] Balanza con pesas de medio y cuarto de kilo; capacidad contando botellas de medio litro.
+- [ ] Flechas de dirección en el trazo de LETRAS (las cifras sí las llevan).
+- [ ] "Huella" de un cuerpo geométrico, horario encadenado con reloj y mascota con bocadillo
+      (depende de un personaje propio en el banco).
+- [ ] Ficha real vía API de 1º y 2º con los tipos nuevos, y revisión de la maestra.
 
 ### Selector visual de tipos de ejercicio — pop-up en el formulario (08/09/2026)
 
@@ -2890,6 +3032,159 @@ en la misma palabra, `opciones` vacío) y capturas Playwright en color y blanco/
 ficha completa junto con `numeros_romanos`. **Pendiente, igual que toda tanda nueva**: confirmar
 con una ficha real generada por Claude a través de la API.
 
+### Cartilla de lectura propia (23/09/2026)
+**Estado: ✅ PDF v2 entregado (cambios de la maestra) · ⏳ dibujos de Gemini · ⏳ tipo de Lengua en la app**
+
+Petición urgente de la maestra: "algo parecido" a una cartilla de lectura de un maestro, que ella
+considera una cartilla escolar corriente. Las condiciones de uso de esa cartilla prohíben copiarla,
+modificarla o enviarla, así que solo se usó para entender el FORMATO (común a cualquier cartilla:
+una página por letra con sílabas directas e inversas, palabras con dibujo y frases, letra nueva
+resaltada). No se copió ningún texto, dibujo, orden de contenidos ni diseño; el PDF original NO se ha
+guardado en el proyecto.
+
+Resultado: `Claude outputs/cartilla/Mi_cartilla_de_lectura.pdf` (29 páginas A4): portada, página
+"Las letras que ya sé leer" (casillas para colorear al terminar cada lección) y 27 lecciones en el
+orden habitual (vocales, p, l, m, s, t, n, d, h, c, q, ch, r/rr, b, f, ll, ñ, g/gu, j/ge-gi, v, y,
+z/ce-ci, x, k, w, trabadas con l, trabadas con r). Cada lección: la letra en imprenta y en ligada,
+sílabas directas (minúscula y mayúscula) e inversas, 10 palabras en tarjetas (con icono del catálogo
+del proyecto, con el relleno gris, cuando existe) y 3-5 frases sobre pauta, todo en Playwrite ES y con
+la letra nueva en rojo. Contenido 100 % propio.
+
+**Garantía pedagógica por código** (`generador/validar.py`): cada palabra y cada frase usa SOLO
+letras de su lección o de las anteriores, con las reglas del español (ch, ll, rr, que/qui,
+gue/gui/güe, ge/gi en la lección de j, ce/ci en la de z, trabadas en sus lecciones; la conjunción "y"
+permitida desde el principio). La primera versión tenía 13 fallos (p. ej. "tetera" en la t, antes de
+la r) — corregidos hasta 0. Maquetación con ajuste automático: las páginas muy cargadas se compactan
+solas si no caben.
+
+Generador guardado en `Claude outputs/cartilla/generador/` (contenido.py, validar.py, construir.py,
+estilo.css, pdf.mjs, iconos.mjs) — rutas del entorno de Claude, sirve de base para el siguiente paso.
+
+- [ ] **Siguiente paso (decidido con el usuario)**: tipo de Lengua `cartilla_letra` en la app — una
+      página de cartilla por letra, con el mismo validador de letras aprendidas en código (blindaje
+      real: Claude propone palabras y frases, el código descarta las que usan letras no enseñadas).
+- [x] ~~Pendiente de feedback de la maestra~~ → recibido, ver "Versión 2" justo debajo.
+- [ ] Dibujos: ver "Versión 2".
+
+**Versión 2 — cambios pedidos por la maestra (23/09/2026, noche)**: (1) fuera la página "Las letras
+que ya sé leer" (no le veía sentido); (2) fuera los titulillos "Leo sílabas / Leo palabras / Leo
+frases" (y los equivalentes de la página de vocales); (3) pie de página solo con el número, sin "Mi
+cartilla de lectura"; (4) frases **sin pauta** — son para leer, no para escribir (se aprovecha el
+hueco para letra algo más grande); (5) **todo en escala de grises, sin ningún color**: la letra
+nueva pasa de rojo a gris medio `#6e6e6e`, y los grises azulados anteriores pasan a grises neutros.
+Motivo: hay fotocopiadoras que detectan cualquier color y cobran la copia como copia en color.
+Comprobado por código que ninguna página tiene ni un píxel de color. Resultado: 28 páginas, validador
+con 0 errores, ninguna página necesita compactarse.
+
+**Dibujos de la cartilla — decisión (23/09/2026)**: de 247 palabras, 66 tenían icono SVG y 181 ninguno.
+Decisión del usuario: generar **las 247** con Gemini, para que todas tengan el mismo estilo del banco
+de ilustraciones (una figura sola, blanco y negro, silueteada) y sustituyan también a los SVG. En
+lote (Colab + saldo de AI Studio, el mismo camino del banco), pero **guardadas en
+`public/imagenes-iconos/`** en vez de en Supabase — la misma carpeta que usará el mecanismo
+`ICONOS_IMAGEN` de las fichas (piloto del 15/09), así sirven después también para la app. Nombre de
+archivo = la palabra en minúsculas y sin tildes, con la **ñ escrita como "ny"** (si no, "mono" y "moño"
+chocarían: `mono.png` / `monyo.png`). El generador de la cartilla usa la imagen si existe y, si no, el
+SVG, o deja la palabra sin dibujo.
+- [x] Lista `Claude outputs/cartilla/imagenes/palabras_cartilla.csv` (separador `;`): lección, palabra,
+      archivo, generar (si/no), categoría (animal/alimento/objeto/personaje, las subplantillas del banco)
+      y descripción que deshace ambigüedades (lima = fruta, goma y autobús con la descripción segura del
+      banco, tijeras de punta redonda, soldado = soldadito de juguete…). **215 con dibujo, 32 sin**:
+      nombres propios (Pepe, Lola, Quique…) y palabras abstractas (todo, nada, mucho, éxito, suma, kilo…).
+      Fuente editable: `imagenes/descripciones.py`.
+- [x] `imagenes/celda_colab_cartilla.py`: celda de Colab independiente, con el prompt base del banco
+      (plantillas objeto/personaje), guarda en Drive (no en Supabase), limpia fondo a transparente,
+      recorta y deja 512×512; se salta las hechas (reanudable), 3 intentos, `fallidas.csv` para el
+      camino manual, ZIP final. Primera tanda de prueba de 10 (`SOLO_PRUEBA`). Probada en local la
+      construcción de los 215 prompts y la limpieza de imagen; la llamada real a Gemini no se puede
+      probar desde aquí (sin acceso a la API).
+- [x] `construir.py` ya integra las imágenes (`dibujo()`: imagen → SVG → nada; incrustadas en base64,
+      el PDF no depende de rutas). La "i" de la página de vocales usa "isla"; la nota "¡dibújalo tú!"
+      solo sale si falta algún dibujo. Probado con imágenes de prueba; sin imágenes, la salida es la misma.
+- [x] **Generadas y colocadas (24/09/2026)**: el usuario amplió la lista a mano (nombres propios y
+      algunas palabras abstractas con descripción propia: suma "2+3", hipo con "Hip", todo, nada, moda)
+      → **228 imágenes**, las 228 llegaron bien (512×512). La celda ahora no prohíbe el texto cuando
+      la descripción lo pide (cifras o la palabra "palabra"). Revisadas una a una en hojas de contacto:
+      estilo bueno y homogéneo. Dos defectos repetidos, arreglados en local sin gastar saldo con
+      `imagenes/retocar.py`: (1) 14 imágenes venían con un **recuadro** alrededor (pio, lola, todo,
+      cuna, cometa, rana, fideo, ninyo, pinguino, hoja, ojo, huevo, ciervo, blusa) → se quita por
+      código (líneas rectas largas en el borde + restos por componentes conexas; lista explícita para
+      no tocar objetos que SON rectangulares como tabla, foto, sello, chocolate); (2) líneas grises
+      muy claras → se oscurecen todas (curva de alfa ^0.55) pensando en la fotocopia. Las 228
+      retocadas están en `public/imagenes-iconos/` (las originales siguen en Drive). Cartilla
+      regenerada con todas: 28 págs, validador 0 errores, solo la última página necesitó compactarse.
+- [ ] Para repetir en Gemini (borrar el PNG en Drive y relanzar la celda): **cuna** (quedan restos
+      del marco), **montaña** (sale una forma rara), **pupa** (poco reconocible). Opcional: todo.
+- [ ] Borrar `public/imagenes-iconos/imagenes_cartilla.zip` antes del commit (7 MB, no debe ir a git).
+
+**Segunda tanda (24/09/2026, mediodía)**: el usuario pasó a "sí" las 19 palabras que quedaban (nombres y
+abstractas) y repitió montaña → 247 imágenes. kilo, Máximo y mayo traían recuadro → añadidas a la lista de
+`retocar.py`. Retocadas y copiadas a `public/imagenes-iconos/`.
+
+**Cartilla v2 — rediseño pedido por la maestra (24/09/2026)**. Tras comparar con la cartilla de muestra
+(79 págs: 2 páginas por letra con texto de lectura, trabadas por separado, lecciones propias para las
+sílabas difíciles, 3 págs de créditos), la maestra decidió:
+1. **Toda palabra con dibujo EMPIEZA por la letra de la página** (un niño se desconcierta si en la "n" hay
+   palabras que empiezan por "m"). Donde es imposible se admite que la lleve dentro (`interiores=True`:
+   rr, ñ, güe/güi, x, bl, gl, dr). `validar2.py` lo comprueba además de "solo letras ya enseñadas".
+   Consecuencia: las primeras letras tienen pocas palabras dibujables (l: lupa, lila, Lola, Lupe).
+2. **2 páginas por letra con el mismo esquema**: pág. 1 = sílabas (directas, mayúsculas, inversas) +
+   palabras con dibujo; pág. 2 = más palabras + **texto corto** (4-5 frases seguidas, no sueltas).
+3. **Sílabas difíciles como lecciones propias JUSTO DETRÁS de su letra**: ce/ci tras la c, rr tras la r,
+   gue/gui + güe/güi + ge/gi tras la g. La v se adelanta tras la b (facilita llave, lluvia…).
+4. **Trabadas al final, 1 página cada una** (pl, bl, cl, fl, gl, pr, br, cr, dr, fr, gr, tr).
+5. **Portada nueva**: "La cartilla de lectura de la Seño Lola" en letra enlazada, dibujos del banco (no SVG),
+   recuadro de nombre/curso/colegio más abajo y debajo el cartelito "Leo sílabas, palabras y frases…".
+Resultado: `Claude outputs/cartilla/La_cartilla_de_la_Seno_Lola.pdf`, **73 páginas** (portada + 30
+lecciones × 2 + 12 trabadas), validador 0 errores. Solo dibujos PNG del banco (se quita el SVG de
+respaldo para no mezclar estilos). Generador nuevo: `generador/contenido2.py`, `unidades.py` (segmentación
+común: ce, ge, gu, gü, rr, trabadas), `validar2.py`, `construir2.py`, `estilo2.css`.
+- [ ] **201 dibujos nuevos** por generar: `imagenes/palabras_cartilla_v2.csv` (343 filas = todas las de la
+      cartilla; columna `nueva` marca las 201 que faltan; las que ya existen en Drive se saltan). La celda de
+      Colab ahora lee `palabras_cartilla_v2.csv`. Después: retocar → `public/imagenes-iconos/` → regenerar.
+- [ ] Revisión de la maestra de palabras y textos de la v2.
+**Cartilla v3 — segunda ronda de la maestra (24/09/2026, tarde)**. La v2 "se desmaquetó" (filas con 2-3
+dibujos, páginas vacías). Cambios:
+- Título: **"La cartilla de lectura de la Profe Lola"** (no "Seño"). Portada con **12 dibujos** del banco
+  colocados a mano, desordenados y girados (no en rejilla).
+- **Cada página de letra: 8 o 10 dibujos en DOS filas completas** (maquetación de la v1: 5 columnas, o 4 si
+  son 8). Nunca filas a medias.
+- Letras normales (21): 2 páginas. **Pág. 1 = sílabas + dibujos + frases cortas** (como la v1);
+  **pág. 2 = dibujos + texto con sentido** (pequeña historia, cada vez más larga).
+- **1 sola página**: sílabas difíciles (ce/ci, rr, gue/gui, güe/güi, ge/gi), k, w, x y las 12 trabadas.
+- Decisión (AskUserQuestion): para llegar a 16-18 palabras por letra que **empiecen por ella**, se admiten
+  palabras con letras aún no vistas (129 de ~530); van ordenadas: primero las que el niño puede leer
+  enteras. Frases y textos siguen siendo 100 % legibles con lo aprendido (`validar3.py`, 0 errores).
+Resultado: `La_cartilla_de_la_Profe_Lola.pdf`, **65 páginas**. Generador: `contenido3.py`, `validar3.py`,
+`construir3.py`, `estilo3.css`. Lista de dibujos: `imagenes/palabras_cartilla_v3.csv` (559 filas, **348
+nuevos**, sustituye a la v2; incluye las 201 de la v2 que siguen usándose). Celda de Colab → lee la v3.
+- [x] Primera tanda (24/09 noche): **327 de 348** llegaron; 25 con recuadro → añadidas a `retocar.py`;
+      retocadas y copiadas a `public/imagenes-iconos/`. Cartilla regenerada con todas.
+- [ ] Faltan 21 (todas de las trabadas fr, gr, tr) → tanda de mañana (la celda sigue sola).
+- [ ] Repetir en Gemini (poco reconocibles): **flotador** (parece un plato), **platillo** (parece un CD),
+      **dátil** (parece patatas). Borrar sus PNG de Drive y relanzar la celda.
+- [ ] Revisión de la maestra de palabras, frases y textos de la v3.
+- [x] La maestra valora mucho las historias cortas de la 2.ª página de cada letra.
+- [ ] **Pedido 24/09 noche (para el 25/09)**: (1) **trabadas a 2 páginas** como las letras (pág. 1 sílabas +
+      dibujos + frases; pág. 2 dibujos + historia) → más palabras por trabada → CSV nuevo (v4) y otra tanda de
+      Colab; (2) **más aire entre bloques**: arriba queda todo apretado y abajo sobra hoja → repartir el espacio
+      vertical (p. ej. `justify-content: space-evenly` o márgenes entre bloques en función del hueco);
+      (3) **goma de borrar**: la actual (rectangular con funda) puede parecer otra cosa → regenerar como
+      goma CUADRADA, sin funda (cambiar descripción en el CSV y borrar `goma.png` de Drive).
+- [x] Prompts de demostración de Matemáticas 1º-6º (2 partes por curso, todos los tipos del catálogo
+      por curso) en `Claude outputs/prompts/Prompts_demo_Matematicas_1o_a_6o.md`, para que la maestra
+      enseñe la app a sus compañeros.
+- [x] **Arreglos tras la ficha real de 4º A (24/09 noche)** en `renderer-matematicas.js` + `style.css`:
+      (1) operaciones en columna con sumas y restas mezcladas → una FILA por signo (antes, con
+      "columnasParalelas", salían dos columnas estrechas apiladas); si son todas del mismo signo, una sola
+      fila que salta sola ("columnasParalelas" ya no parte en columnas). (2) Cálculo mental con enunciados
+      largos ("La tercera parte de 60 =") se solapaban → tarjetas más anchas (`tc-largas` >13 caracteres,
+      `tc-muy-largas` >18, dos por fila) y texto que puede partirse. Probado con Playwright reproduciendo
+      la ficha. Prompt de 6º B ampliado con 3 problemas difíciles de varios pasos (23 ejercicios).
+- [ ] **FASE ÚLTIMA — cartilla en COLOR** (dibujos y letras), para proyectarla en la pantalla digital de
+      clase. Anotado a petición de la maestra; se hará al final. Implicará imágenes en color (otra tanda de
+      Gemini o colorear las actuales) y una hoja de estilo alternativa; la versión B/N para fotocopiar se
+      mantiene.
+
 ### Playwrite ES reaparece: letra ligada para el ENUNCIADO de 1º-2º, no el modelo de trazo (14/09/2026)
 
 Origen distinto al resto de esta fase: no partió de "buscar una letra más escolar" para el trazo,
@@ -3194,6 +3489,43 @@ hasta dedicarle su propia sesión de decisión de alcance (¿es una "asignatura"
 selector, o una categoría de contenido transversal distinta? ¿qué tipos de ejercicio/formato
 tendría sentido blindar primero? ¿tiene sentido meter ahí también los instrumentos de evaluación
 en Excel, o es un producto aparte?).
+
+---
+
+## Dibujos del banco en vez de los SVG en las fichas de Matemáticas (✅ 01/10/2026)
+
+**Motivo:** los iconos SVG dibujados a mano en el código quedaban pobres. Ya hay un banco de dibujos
+generados en Colab con Gemini, en dos versiones con el mismo nombre de archivo:
+- `public/imagenes-color/`: color, fondo transparente.
+- `public/imagenes-iconos/`: línea para colorear, la del banco y la cartilla.
+
+**Cómo funciona** (`renderer-matematicas.js`, función `htmlIcono()`):
+- Cada icono se pinta con **dos `<img>` hermanas**: `.icono-color` y `.icono-bn`.
+- El CSS enseña la de color por defecto y la de línea cuando la ficha tiene `.modo-blanco-negro`. El interruptor B/N sigue funcionando sin regenerar la ficha.
+- En B/N, la línea se oscurece con dos `drop-shadow` sin desplazamiento. Al reducir el dibujo de 512 px a 30-60 px quedaba demasiado clara para fotocopiar.
+- Las dos carpetas se leen **una vez al arrancar el servidor**. Un PNG nuevo con el nombre de un icono se usa solo, tras reiniciar.
+- **Alias** cuando el nombre no coincide (la ñ va como "ny"): `arana → aranya`, `montana → montanya`.
+- Si solo existe una de las dos versiones, esa sirve para ambos modos (la de color, pasada a grises).
+- **Se quedan en SVG:**
+  - las figuras geométricas (circulo, cuadrado, hexagono, octogono, ovalo, pentagono, rectangulo, triangulo), porque tienen que ser exactas;
+  - ~~los iconos sin imagen~~ → hechos el 02/10/2026 (copo, helicoptero, lampara, murcielago, piruleta), solo en línea; falta su versión a color.
+- Pasan por aquí todos los sitios que usaban iconos:
+  - conteo y operaciones ilustradas de 1º-2º;
+  - tabla de frecuencia, reparto, balanza, número del día y camino;
+  - pictograma, operacion_dibujos y mismo_resultado.
+- El export `ICONOS_SVG` (endpoint `/api/iconos`, selector de iconos del formulario) devuelve ahora el mismo HTML, así que la vista previa también enseña el dibujo nuevo.
+
+**Cuerpos geométricos con dibujo (02/10/2026):**
+- Los 6 cuerpos de `FIGURAS_3D` (cubo, prisma, pirámide, cono, cilindro, esfera) usan `public/imagenes-iconos/geo_<nombre>.png` si existe; si no, el SVG de siempre (función `dibujoCuerpo()`). Un solo dibujo de línea negra para color y B/N, con las aristas ocultas en discontinua.
+- Cubo, pirámide, cono, cilindro y esfera: generados con Gemini y con la línea engrosada. El **prisma** está dibujado por código (Gemini no lo sacaba alargado y se confundía con el cubo).
+- Tamaños en `style.css` (`.figura-img`): 84 px en identificar/propiedades, 62 px en clasificar, 68 px en desarrollo.
+- Las figuras planas (2D) siguen en SVG.
+- Probado con Playwright en B/N (4 modos de `figura_geometrica`); pendiente de ficha real vía API.
+
+**Pendiente / ideas:**
+1. Colorear los 5 iconos nuevos.
+2. Abrir el catálogo que se le ofrece a Claude (`ICONOS_DISPONIBLES`, hoy 84 nombres) a los ~780 dibujos del banco.
+3. La carpeta de color pesa ~195 MB (150-440 KB por PNG) y aún NO está en git (02/10/2026). Antes de subirla: `node scripts/comprimir-dibujos.mjs` (necesita `npm install --save-dev sharp`). Deja los PNG con paleta de 256 colores, mismo nombre, unas 7 veces menos peso; se puede relanzar cuando lleguen dibujos nuevos (salta los ya comprimidos).
 
 ---
 

@@ -1729,3 +1729,112 @@ palabra sin `"_"`, múltiples `"_"` en la misma palabra, `opciones` vacío) y ca
 color y en blanco y negro sobre una ficha completa junto con `numeros_romanos` (sección 9E).
 **Pendiente, igual que toda tanda nueva**: confirmar con una ficha real generada por Claude a
 través de la API.
+
+---
+
+## 16. Revisión de la maestra — Matemáticas de 1º (02/10/2026)
+
+Cambios sobre tipos existentes y un tipo nuevo (`suma_barritas`). Todo el CSS está al final de
+`style.css`, en el bloque "REVISIÓN DE LA MAESTRA", que pisa las reglas originales de cada tipo.
+
+| Tipo | Qué cambia | Clases |
+|------|-----------|--------|
+| `conteo_svg` | Añade "Hay □" con casilla grande al lado de los dibujos. | `.conteo-bloque` > `.conteo-iconos` + `.conteo-respuesta` (`.casilla-respuesta.casilla-grande`) |
+| `numero_del_dia` | Tres pasos con la orden escrita por el código: repasar y escribir, colorear N casillas (marco de diez VACÍO), rodear N dibujos (o "Dibuja N bolitas" sin icono). | `.numero-dia-bloque` > `.numero-dia-paso` (`.numero-dia-orden`, `.numero-dia-n`, `.numero-dia-escribir`, `.numero-dia-casilla`, `.numero-dia-marcos`, `.numero-dia-iconos`, `.numero-dia-dibujar`) |
+| `anterior_posterior` | Grupos más separados (`.vecinos-bloque`: `space-around`, hueco 26×56 px). | sin clases nuevas |
+| `resta_barritas` | Solo se dibuja el montón del MINUENDO; al lado, la orden "Tacha m" (o "Dibuja n y tacha m"). Barritas de cinco en cinco. | `.barritas-orden`; el resto, las de siempre |
+| `suma_barritas` (NUEVO) | `{ a, b, modo: "contar" \| "dibujar" }` — dos montones con `+` entre ellos. Sumandos recortados a 0-20. | `.suma-barritas-bloque`, `.barritas-signo` + las de `resta_barritas` |
+| `operacion_vertical` | `"colocar": "cuadricula"` → una cuadrícula cuadrada vacía por operación (lado = máx(5, cifras+2, nº de números+2)), sin D\|U, signo ni raya. | `.colocar-cuadricula` > `.cuadricula-celda` |
+| `tabla_multiplicar` | Títulos "Tabla de sumar del N" / "Tabla de restar del N" / "Tabla de multiplicar del N"; el `titulo` del ejercicio también se corrige en `normalizarEjercicio()` si llega como "Tabla del N". Más separación en `.tm-libreta`. | sin clases nuevas |
+| `suma_asociativa` | Rejilla única de 7 columnas (5 × 34 px + `=` + casilla): las flechas son un SVG calculado y caen justo bajo la pareja. `"guia": false` → solo la suma y la casilla final. | `.asociativa` (grid), `svg.asoc-flechas` (`.asoc-punta`), `.asoc-caja`, `.asociativa-sin-guia` |
+| `detective_numeros` | Casos en dos columnas. | sin clases nuevas |
+| `reparto` | Cajas de grupo grandes (mín. 150 × 120 px). | sin clases nuevas |
+| `medir_capacidad` modo `estimar` | Dibujos del banco (`imagenBanco()`); SVG solo como reserva. Catálogo ampliado: biberon, lata, copa, frasco, olla, fregadero, piscina (los que no tienen SVG solo se ofrecen si existe su PNG). | `.estimar-dibujo`, `.estimar-img` |
+| `figura_geometrica` (2D) e iconos de formas | Vértices en punta (`stroke-linejoin="miter"`): cuadrado, rectángulo, triángulo, pentágono, hexágono, octógono, rombo y trapecio. | sin clases nuevas |
+| `conecta_los_puntos` | El enunciado lo escribe el código (`enunciadoConecta()`), con el primer y último número reales. `"puntos": n` reparte puntos intermedios por el mismo dibujo (tope 40). Etiquetas hacia fuera del dibujo. | sin clases nuevas |
+| `grafico_barras` (leer y pictograma) | `"preguntas": [...]` → lista con punto gordo, una por línea y raya de respuesta. Si llegan dentro del enunciado (¿…?), `normalizarEjercicio()` las saca de ahí. | `.preguntas-lista` > `li` (`.pregunta-texto`, `.pregunta-raya`) |
+| `tabla_frecuencia` con `revuelto` | Escena y tabla en paralelo. | `.tf-en-paralelo` |
+| `recta_numerica` | `"operaciones": [...]` (hasta 4) y `"saltos": false` (recta limpia, sin partida marcada). Punta de flecha en el último salto. La recta se estira hasta 40 px por unidad. | `.recta-numerica-item`, `.recta-numerica-punta` |
+
+**Verificación**: `node --check` (renderer y server), construcción del prompt para 1º, 2º, 3º y 6º,
+casos límite (datos vacíos, fuera de rango, minuendo menor que sustraendo, plantilla inexistente),
+comparación con el renderer anterior en tipos no tocados y capturas Playwright en color y B/N.
+**Pendiente**: ficha real generada vía API.
+
+
+---
+
+## 17. Novena ampliación — cuadernos de 1º y 2º (02/10/2026)
+
+17 tipos nuevos de Matemáticas (74 renderers), unos 25 modos sobre tipos existentes, 4 tipos de
+Lengua y cuatro opciones de presentación. CSS en `style.css`, sección 17 y bloque "Lectoescritura
+inicial"; cada bloque tiene su versión `.ficha.modo-blanco-negro`.
+
+### Opciones de presentación (Matemáticas y Lengua)
+
+| Campo JSON | Dónde | Clases |
+|---|---|---|
+| `nivel` (`repaso`/`refuerzo`/`ampliacion`) y `minutos` (5-90) | ficha | `p.etiquetas-ficha > .etiqueta-nivel, .etiqueta-tiempo`, justo después de `.titulo-ficha` |
+| `ancho: "medio"` | ejercicio | `.ejercicio.ejercicio-medio` (inline-block al 50 %; dos seguidos quedan en paralelo) |
+| `recuerda: "texto"` | ejercicio | `p.recuerda > b` al pie del ejercicio |
+
+Piezas comunes: `.respuesta-unidad` ("Respuesta: □ flores.") y `.frase-numerica` (□ + □ = □).
+
+### Tipos nuevos de Matemáticas
+
+| Tipo | Datos | Contenedor y clases | Blindaje |
+|---|---|---|---|
+| `fracciones` | `modo` colorear/escribir, `fracciones[{numerador, denominador, figura}]` | `.frac-bloque > .frac-tarjeta`; `svg .frac-parte(.frac-llena)`; `.frac > .frac-num, .frac-den`; `.frac-nombre` | Partes iguales y sombreado por código; nombre por `nombreFraccion()`; num ≤ den, den 2-12 |
+| `suma_repetida` | `grupos[{grupos, porGrupo, icono}]` | `.sr-bloque > .sr-item > .sr-grupos > .sr-grupo`; `.sr-linea` | Dibujos = grupos × porGrupo; casillas de la suma = nº de grupos |
+| `ordinales` | `modo` rodear/unir/escribir | `.ord-bloque > .ord-fila > .ord-orden, .ord-iconos`; unir: `unirRejilla`; escribir: `.letras-bloque` | Texto de la orden y nombres (`ORDINALES`, 1-20) por código |
+| `calendario` | `modo` mes/semana/meses | `.cal-bloque > table.cal-tabla + .preguntas-lista`; `.cal-semana > .cal-dia`; `.cal-meses > .cal-mes(.cal-mes-hueco)` | Mes real con `Date`; preguntas propias si no llegan |
+| `redondeo` | `a` decena/centena/millar, `numeros`, `guia` | `.red-bloque > .red-nota, .red-item > svg + .red-frase` | Extremos y posición calculados; descarta números ya redondos |
+| `encuentra_error` | `operaciones[{signo, numeros}]` | `.error-bloque > .error-rejilla > .error-tarjeta > .operacion-columna + .error-marcas` | Resultado correcto por código; él decide cuáles salen mal (al menos una bien y una mal) |
+| `domino_operaciones` | `operaciones[texto]` | `.domino-bloque > .domino-rejilla > .domino-ficha > .domino-izq, .domino-der` | `evaluarOperacion()`; resultados repetidos fuera; cadena Inicio→Fin, fichas barajadas |
+| `posicion_cuadricula` | `iconos[]`, `columnas` | `.pos-bloque > .pos-tablero > .pos-celda`; `.pos-frases > .pos-banco, .pos-frase > .pos-mini` | Frases generadas por código con los dibujos (sin nombres) |
+| `comparar_cantidades` | `modo` mas/menos/diferencia, `parejas[]` | `.cc-bloque > .cc-pareja > .cc-caja > .cc-dibujos + .casilla-test`; `.cc-diferencia > .cc-fila` | Cantidades 1-10; iguales descartadas |
+| `recorrido_cuadricula` | `pasos[{direccion, cuantos}]` | `.reco-bloque > .reco-rejilla > .reco-celda(.reco-inicio)`; `.reco-ordenes > .reco-pasos` | Camino seguido por código; descarta si se cruza o no cabe; una sola letra al final |
+| `tipos_lineas` | `modo` clasificar/abierta_cerrada/posicion, `lineas[]` | `.lin-bloque > .lin-tarjeta > svg.lin-dibujo + .lin-opciones` | Catálogos `LINEAS` y `PARES_RECTAS` |
+| `serie_figuras` | `series[{patron, huecos, longitud}]` | `.sf-bloque > .sf-fila > .sf-celda(.sf-hueco)` | El código repite el patrón |
+| `tabla_doble_entrada` | `modo` leer/completar, `columnas`, `filas`, `preguntas`, `pistas` | `.tde-bloque > ul.tde-pistas, table.tde-tabla(.tde-vacia), .preguntas-lista` | Solo maquetado (contenido de Claude, escapado) |
+| `sopa_operaciones` | `signo`, `operaciones[[a,b]]` | `.sopa-bloque > .sopa-rejilla > .sopa-celda; .sopa-nota > .sopa-ejemplo` | Resultado y colocación por código; elimina operaciones accidentales del relleno |
+| `contar_figuras` | `figuras[{tipo, ...}]` | `.cf-bloque > .cf-tarjeta > svg.cf-dibujo + p` | Catálogo cerrado (triángulos, cuadrados, rectángulos) |
+| `elegir_unidad` | `items[{texto, opciones}]` | `.eu-bloque > .eu-fila > .eu-texto, .eu-opciones` | Solo maquetado |
+| `trazo_numero` | `numeros` (0-20), `repasar`, `solo` | `.tc-bloque > .tc-fila > .tc-celda(.tc-doble) > svg.tc-cifra`; `.tc-trazo, .tc-inicio, .tc-flecha, .tc-punta, .tc-orden`; `.tc-palabra` | Esqueletos propios `TRAZOS_CIFRA`; nombre por `numeroALetras()` |
+
+`numero_del_dia` usa ahora `celdaTrazo()` en el paso 1 (antes `.numero-dia-trazar`).
+
+### Modos nuevos
+
+| Tipo | Activación | Clases |
+|---|---|---|
+| `problema` | `modo: "barras"` (`esquema` juntar/quitar/comparar) · `modo: "frase"` | `.problema-barras > .razonado-texto, .barras-diagrama svg (.barra, .barra-gris, .barra-hueco, .barra-llave, .barra-texto), .frase-numerica, .respuesta-unidad` |
+| `operacion_vertical` | `prueba: true` · `hueco: "sumando"` | `.prueba-bloque > .prueba-item > .operacion-columna + .prueba-flecha` · `.sumando-oculto` |
+| `ecuacion_sencilla` | `posicionIncognita: "signo"` / `"ambos"` | `.ecuacion-circulo` |
+| `reparto` | `resto: true` | las de `reparto` |
+| `barritas_decenas` | números 100-999 · `modo: "agrupar"` · `modo: "operar"` | `.base10-centenas` · `.agrupar-bloque > .agrupar-item, .agrupar-bola` · `.operar-bloque > .operar-item > .operar-cuenta, .operar-dibujos, .operar-lineas` |
+| `suma_asociativa` | `modo: "conmutativa"` | `.conmutativa-bloque > .conmutativa-fila` |
+| `reloj_analogico` | `modo: "despues"` / `"elegir"` / `"tabla24"` | `.reloj-despues-bloque > .reloj-despues` · `.reloj-elegir-bloque > .reloj-elegir > .reloj-opciones > .reloj-opcion` · `table.tabla24` |
+| `simetria` | `modo: "eje"` | `.simetria-bloque.simetria-eje` |
+| `figura_geometrica` | `modo: "triangulos"` / `"circulo"` / `"objetos"` | `.lin-bloque` · `.circ-bloque (.circ-linea, .circ-guia, .circ-caja)` · `unirRejilla` |
+| `conteo_svg` | `modo: "unir"` | `.unir-conteo` + `unirRejilla` de 3 columnas, `.uc-dibujos` |
+| `mismo_resultado` | `modo: "completar"` | `.unir-conteo` |
+| `recta_numerica` | `modo: "senalar"` | `.recta-senalar svg (.recta-caja)` |
+| `comparar_numeros` | `modo: "ordenar"` | `.ordenar-bloque > .ordenar-numeros, .ordenar-casillas > .ordenar-signo` |
+| `medir_con_regla` | `modo: "dibujar"` / `"leer"` / `"cuadros"` | `.regla-dibujar, .regla-punto-inicio` · `.regla-leer .regla-flecha, .regla-respuestas` · `.tiras-bloque > .tiras-fila > .tira > i` |
+| `tabla_frecuencia` | `grafico: true` (+ `preguntas`) | `.gc-bloque > .gc-grafico > .gc-escala, .gc-columna > .gc-cuadro, .gc-pie` |
+| `rejilla_numerica` | `modo: "recortes"` | `.rec-bloque > .rec-pieza > .rec-celda, .rec-nada` |
+
+Gating: `ecuacion_sencilla` pasa a todos los cursos y `angulos` (clasificar) se abre en 2º.
+
+### Tipos nuevos de Lengua (1º-2º)
+
+Usan los dibujos del banco; `PALABRAS_CON_DIBUJO` se inyecta en el prompt. Si un ejercicio de
+estos tipos queda sin contenido, se descarta y se renumera.
+
+| Tipo | Datos | Clases | Blindaje |
+|---|---|---|---|
+| `sonido_inicial` | `letra`, `palabras[]` | `.si-bloque > .si-letra, .si-dibujos > .si-dibujo` | Palabras sin dibujo fuera; el código sabe por qué letra empieza cada una; exige de los dos tipos; h inicial fuera |
+| `mayuscula_minuscula` | `letra`, `cantidad` | `.mm-bloque > .mm-clave, .mm-letras > .mm-letra.mm-<fuente>` | Mitad y mitad, orden por código |
+| `laberinto_letra` | `letra`, `filas`, `columnas` | `.ll-bloque > .ll-puerta, .ll-rejilla > .ll-celda` | Camino único (derecha/abajo); el resto nunca lleva la letra |
+| `recorta_pega` | `palabras[]` | `.rp-bloque > .rp-fila > .rp-columna > .rp-hueco, .rp-palabra, .rp-recorte`; `.rp-corte` | Palabras sin dibujo fuera; dibujos barajados |

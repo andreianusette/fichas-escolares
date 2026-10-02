@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 // ─────────────────────────────────────────────────────────────────
 // RENDERIZADOR DE MATEMÁTICAS
 // Convierte el JSON pedagógico que devuelve Claude en el HTML/CSS
@@ -99,12 +102,28 @@ const ICONOS = {
   vaca:        "<svg width=\"60\" height=\"60\" viewBox=\"0 0 52 52\"><ellipse cx=\"26\" cy=\"32\" rx=\"16\" ry=\"11\" fill=\"none\" stroke=\"#000\" stroke-width=\"2\"/><circle cx=\"26\" cy=\"16\" r=\"9\" fill=\"none\" stroke=\"#000\" stroke-width=\"2\"/><path d=\"M19,10 Q17,4 20,3 M33,10 Q35,4 32,3\" stroke=\"#000\" stroke-width=\"1.8\" fill=\"none\"/><ellipse cx=\"17\" cy=\"12\" rx=\"3\" ry=\"4\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.5\"/><ellipse cx=\"35\" cy=\"12\" rx=\"3\" ry=\"4\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.5\"/><circle cx=\"22\" cy=\"16\" r=\"1\" fill=\"#000\"/><circle cx=\"30\" cy=\"16\" r=\"1\" fill=\"#000\"/><path d=\"M18,34 Q22,30 20,38 Z\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.5\"/><path d=\"M34,28 Q39,32 33,36 Z\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.5\"/></svg>"
 };
 
+// Figuras planas con los vértices EN PUNTA (02/10/2026, maestra): los iconos
+// originales tenían las esquinas redondeadas, y un polígono con las esquinas
+// redondas no sirve para contar lados ni vértices.
+Object.assign(ICONOS, {
+  cuadrado: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M3.5 3.5h17v17h-17z\"/></svg>",
+  rectangulo: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M2 6h20v12h-20z\"/></svg>",
+  triangulo: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M12 3.5L21.5 20h-19z\"/></svg>",
+  pentagono: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M12.00 2.80 L21.32 9.57 L17.76 20.53 L6.24 20.53 L2.68 9.57z\"/></svg>",
+  hexagono: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M12.00 2.20 L20.49 7.10 L20.49 16.90 L12.00 21.80 L3.51 16.90 L3.51 7.10z\"/></svg>",
+  octogono: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M15.83 2.76 L21.24 8.17 L21.24 15.83 L15.83 21.24 L8.17 21.24 L2.76 15.83 L2.76 8.17 L8.17 2.76z\"/></svg>"
+});
+
 export const ICONOS_DISPONIBLES = Object.keys(ICONOS);
 
 // Export del objeto completo (nombre -> SVG), usado por el nuevo endpoint
 // /api/iconos para que el formulario pueda mostrar una vista previa visual
 // de cada icono al docente (selector de iconos antes de generar, 11/08/2026).
-export const ICONOS_SVG = ICONOS;
+// Desde el 01/10/2026 cada valor es el HTML del dibujo que saldrá en la
+// ficha (imágenes color + B/N, o el SVG si no hay imagen); el nombre del
+// export se mantiene para no tocar server.js. Se calcula al pedirlo porque
+// htmlIcono() se define más abajo.
+export const ICONOS_SVG = new Proxy(ICONOS, { get: (obj, k) => (typeof k === 'string' && k in obj) ? htmlIcono(k) : obj[k] });
 
 // ─────────────────────────────────────────────────────────────────
 // FIGURAS GEOMÉTRICAS (13/08/2026) — catálogo separado de ICONOS: aquí no
@@ -114,9 +133,9 @@ export const ICONOS_SVG = ICONOS;
 // figuras que ya existían en ICONOS (mismo trazo, para que el estilo visual
 // sea coherente en toda la ficha) y añade las que faltaban.
 // ─────────────────────────────────────────────────────────────────
-const SVG_TRIANGULO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l9 17h-18z\"/></svg>";
-const SVG_ROMBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l9 9l-9 9l-9 -9z\"/></svg>";
-const SVG_TRAPECIO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 6h8l5 12h-18z\"/></svg>";
+const SVG_TRIANGULO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M12 3l9 17h-18z\"/></svg>";
+const SVG_ROMBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M12 3l9 9l-9 9l-9 -9z\"/></svg>";
+const SVG_TRAPECIO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M8 6h8l5 12h-18z\"/></svg>";
 const SVG_CUBO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 9v10h10v-10z\"/><path d=\"M4 9l6 -6h10l-6 6z\"/><path d=\"M14 9l6 -6v10l-6 6z\"/></svg>";
 const SVG_PRISMA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6v15h10v-15z\"/><path d=\"M4 6l6 -4h10l-6 4z\"/><path d=\"M14 6l6 -4v15l-6 4z\"/></svg>";
 const SVG_PIRAMIDE = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 13l9 5l-9 5l-9 -5z\"/><path d=\"M12 2l-9 16\"/><path d=\"M12 2l9 16\"/><path d=\"M12 2l0 11\"/></svg>";
@@ -124,9 +143,32 @@ const SVG_CONO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"n
 const SVG_CILINDRO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14\"/><path d=\"M20 5v14\"/><path d=\"M4 19a8 3 0 0 0 16 0\"/></svg>";
 const SVG_ESFERA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12a9 4 0 0 0 18 0\"/><path d=\"M3 12a9 4 0 0 1 18 0\"/></svg>";
 
+const DIR_PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
+function listarPng(carpeta) {
+  try {
+    return new Set(fs.readdirSync(path.join(DIR_PUBLIC, carpeta))
+      .filter(f => f.toLowerCase().endsWith('.png'))
+      .map(f => f.slice(0, -4)));
+  } catch {
+    return new Set();
+  }
+}
+const IMAGENES_COLOR = listarPng('imagenes-color');
+const IMAGENES_BN = listarPng('imagenes-iconos');
+
+// Cuerpos geométricos: si existe public/imagenes-iconos/geo_<nombre>.png se
+// usa ese dibujo (aristas ocultas en discontinua, para contar caras, aristas
+// y vértices); si no, el SVG de siempre. Un solo dibujo de línea negra sirve
+// para color y para B/N.
+function dibujoCuerpo(nombre, svg) {
+  return IMAGENES_BN.has('geo_' + nombre)
+    ? `<img class="figura-img" src="imagenes-iconos/geo_${nombre}.png" width="60" height="60" alt="${nombre}" draggable="false">`
+    : svg;
+}
+
 // Figuras planas: { nombre visible, lados, vértices, svg }.
 const FIGURAS_2D = {
-  triangulo:   { nombre: 'triángulo',  lados: 3, vertices: 3, svg: SVG_TRIANGULO },
+  triangulo:   { nombre: 'triángulo',  lados: 3, vertices: 3, svg: ICONOS.triangulo },
   cuadrado:    { nombre: 'cuadrado',   lados: 4, vertices: 4, svg: ICONOS.cuadrado },
   rectangulo:  { nombre: 'rectángulo', lados: 4, vertices: 4, svg: ICONOS.rectangulo },
   rombo:       { nombre: 'rombo',      lados: 4, vertices: 4, svg: SVG_ROMBO },
@@ -142,12 +184,12 @@ const FIGURAS_2D = {
 // curvas cuentan como una "cara" — ej. la esfera tiene 1 cara, 0 aristas,
 // 0 vértices; el cono tiene 2 caras, 1 arista curva, 1 vértice).
 const FIGURAS_3D = {
-  cubo:     { nombre: 'cubo',              caras: 6, aristas: 12, vertices: 8, svg: SVG_CUBO },
-  prisma:   { nombre: 'prisma rectangular', caras: 6, aristas: 12, vertices: 8, svg: SVG_PRISMA },
-  piramide: { nombre: 'pirámide',          caras: 5, aristas: 8,  vertices: 5, svg: SVG_PIRAMIDE },
-  cono:     { nombre: 'cono',              caras: 2, aristas: 1,  vertices: 1, svg: SVG_CONO },
-  cilindro: { nombre: 'cilindro',          caras: 3, aristas: 2,  vertices: 0, svg: SVG_CILINDRO },
-  esfera:   { nombre: 'esfera',            caras: 1, aristas: 0,  vertices: 0, svg: SVG_ESFERA }
+  cubo:     { nombre: 'cubo',              caras: 6, aristas: 12, vertices: 8, svg: dibujoCuerpo('cubo', SVG_CUBO) },
+  prisma:   { nombre: 'prisma rectangular', caras: 6, aristas: 12, vertices: 8, svg: dibujoCuerpo('prisma', SVG_PRISMA) },
+  piramide: { nombre: 'pirámide',          caras: 5, aristas: 8,  vertices: 5, svg: dibujoCuerpo('piramide', SVG_PIRAMIDE) },
+  cono:     { nombre: 'cono',              caras: 2, aristas: 1,  vertices: 1, svg: dibujoCuerpo('cono', SVG_CONO) },
+  cilindro: { nombre: 'cilindro',          caras: 3, aristas: 2,  vertices: 0, svg: dibujoCuerpo('cilindro', SVG_CILINDRO) },
+  esfera:   { nombre: 'esfera',            caras: 1, aristas: 0,  vertices: 0, svg: dibujoCuerpo('esfera', SVG_ESFERA) }
 };
 
 export const FIGURAS_2D_DISPONIBLES = Object.keys(FIGURAS_2D);
@@ -300,10 +342,62 @@ function iconoConRelleno(svg) {
   return resultado;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// DIBUJOS DEL BANCO (Colab/Gemini) EN VEZ DE LOS SVG (01/10/2026)
+// Cada icono se pinta con DOS imágenes hermanas: la versión en color
+// (public/imagenes-color/) y la de línea para colorear
+// (public/imagenes-iconos/). El CSS muestra una u otra según la ficha
+// tenga o no la clase "modo-blanco-negro", así que el interruptor B/N
+// del formulario sigue funcionando sin volver a generar la ficha.
+// Las carpetas se leen UNA vez al arrancar el servidor: un PNG nuevo con
+// el nombre de un icono se usa solo, tras reiniciar. Si un icono no tiene
+// imagen (o es una figura geométrica, que debe ser exacta), se usa el SVG
+// de siempre — nunca se queda un hueco.
+// ─────────────────────────────────────────────────────────────────
+// Nombre del icono -> nombre del archivo, cuando no coinciden (la ñ va como "ny").
+const ALIAS_IMAGEN = { arana: 'aranya', montana: 'montanya' };
+// Figuras geométricas: se quedan en SVG (un dibujo a mano alzada no sirve
+// para contar lados ni comparar formas).
+const ICONOS_SOLO_SVG = new Set(['circulo', 'cuadrado', 'hexagono', 'octogono', 'ovalo', 'pentagono', 'rectangulo', 'triangulo']);
+
+// Cualquier dibujo del banco por su nombre de archivo, con las dos versiones
+// hermanas (color y línea) igual que los iconos. Devuelve '' si no existe.
+function imagenBanco(archivo, alt, claseExtra = '') {
+  const hayColor = IMAGENES_COLOR.has(archivo);
+  const hayBn = IMAGENES_BN.has(archivo);
+  if (!hayColor && !hayBn) return '';
+  const img = (carpeta, clase) =>
+    `<img class="icono-img ${clase}${claseExtra ? ' ' + claseExtra : ''}" src="${carpeta}/${archivo}.png" width="60" height="60" alt="${escapeHtml(alt)}" draggable="false">`;
+  return (hayColor ? img('imagenes-color', 'icono-color') : img('imagenes-iconos', 'icono-color'))
+    + (hayBn ? img('imagenes-iconos', 'icono-bn') : img('imagenes-color', 'icono-bn icono-gris'));
+}
+
+const cacheIconoHtml = new Map();
+function htmlIcono(nombreIcono) {
+  const nombre = ICONOS[nombreIcono] ? nombreIcono : 'estrella';
+  if (cacheIconoHtml.has(nombre)) return cacheIconoHtml.get(nombre);
+  const archivo = ALIAS_IMAGEN[nombre] || nombre;
+  const hayColor = IMAGENES_COLOR.has(archivo);
+  const hayBn = IMAGENES_BN.has(archivo);
+  let html;
+  if (ICONOS_SOLO_SVG.has(nombre) || (!hayColor && !hayBn)) {
+    html = iconoConRelleno(ICONOS[nombre]);
+  } else {
+    const img = (carpeta, clase) =>
+      `<img class="icono-img ${clase}" src="${carpeta}/${archivo}.png" width="60" height="60" alt="${nombre}" draggable="false">`;
+    // Si solo existe una de las dos versiones, esa sirve para los dos modos
+    // (la de color se pasa a grises por CSS en B/N).
+    const color = hayColor ? img('imagenes-color', 'icono-color') : img('imagenes-iconos', 'icono-color');
+    const bn = hayBn ? img('imagenes-iconos', 'icono-bn') : img('imagenes-color', 'icono-bn icono-gris');
+    html = color + bn;
+  }
+  cacheIconoHtml.set(nombre, html);
+  return html;
+}
+
 function renderIconos(nombreIcono, cantidad) {
-  const svg = iconoConRelleno(ICONOS[nombreIcono] || ICONOS.estrella);
   const n = Math.max(1, Math.min(10, parseInt(cantidad, 10) || 1));
-  return svg.repeat(n);
+  return htmlIcono(nombreIcono).repeat(n);
 }
 
 // Una sola operación en columna (N sumandos o 2 términos de resta).
@@ -459,7 +553,7 @@ function renderDivisionVertical(datos) {
 const UMBRAL_ICONOS_OPERACION = 10;
 
 function renderOperacionVertical(datos) {
-  if (datos.colocar === true) return renderColocarEnColumna(datos);
+  if (datos.colocar === true || datos.colocar === 'cuadricula' || datos.cuadricula === true) return renderColocarEnColumna(datos);
   const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones : [];
   if (operaciones.length === 0) return '';
 
@@ -529,23 +623,30 @@ function renderOperacionVertical(datos) {
 
   const columnasHtml = operaciones.map(renderOperacionColumna).join('');
 
-  // Distribución en N columnas paralelas si el docente lo pidió explícitamente.
-  const n = parseInt(datos.columnasParalelas, 10);
-  if (n >= 2 && n <= 4 && operaciones.length > n) {
-    const porBloque = Math.ceil(operaciones.length / n);
-    const bloques = [];
-    for (let i = 0; i < operaciones.length; i += porBloque) {
-      const grupo = operaciones.slice(i, i + porBloque).map(renderOperacionColumna).join('');
-      bloques.push(`<div class="columna-bloque"><div class="grid-operaciones">${grupo}</div></div>`);
-    }
-    return `<div class="distribucion-columnas">${bloques.join('')}</div>`;
+  // Varias operaciones (24/09/2026, feedback de la maestra en una ficha de 4º):
+  // se reparten en FILAS horizontales, nunca en columnas verticales apiladas
+  // (quedaban dos columnas estrechas con media hoja vacía al lado). Si hay
+  // sumas y restas mezcladas, una fila por signo, en el orden en que aparecen.
+  // Si todas son del mismo signo, una sola fila que salta sola cuando no cabe
+  // ("columnasParalelas" ya no parte en columnas: se ignora).
+  const signos = [...new Set(operaciones.map(op => op.signo || '+'))];
+  if (signos.length > 1) {
+    const filas = signos.map(sg => operaciones.filter(op => (op.signo || '+') === sg));
+    return `<div class="distribucion-filas">${filas
+      .map(f => `<div class="grid-operaciones">${f.map(renderOperacionColumna).join('')}</div>`)
+      .join('')}</div>`;
   }
 
   return `<div class="grid-operaciones">${columnasHtml}</div>`;
 }
 
 function renderConteoSvg(datos) {
-  return `<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:10px 0; max-width:340px; margin-left:auto; margin-right:auto;">${renderIconos(datos.icono, datos.cantidad)}</div>`;
+  // 02/10/2026 (maestra): además de los dibujos, una casilla grande donde
+  // el niño escribe cuántos ha contado.
+  return `<div class="conteo-bloque">
+    <div class="conteo-iconos">${renderIconos(datos.icono, datos.cantidad)}</div>
+    <div class="conteo-respuesta"><span>Hay</span>${casillaRespuesta('casilla-grande')}</div>
+  </div>`;
 }
 
 // Tarjetas en rejilla (22/09/2026): cada operación en su tarjeta, con una
@@ -555,10 +656,15 @@ function renderCalculoMental(datos, curso) {
   const operaciones = Array.isArray(datos.operaciones) ? datos.operaciones : [];
   if (operaciones.length === 0) return '';
   const conCasilla = ['1º', '2º', '3º'].includes(curso);
+  // Enunciados largos ("La tercera parte de 60 =") no caben en la tarjeta estándar
+  // (24/09/2026: se solapaban unos con otros en una ficha real de 4º). Según el
+  // enunciado más largo, tarjetas más anchas y con salto de línea permitido.
+  const largo = Math.max(...operaciones.map(op => String(op.texto || '').length));
+  const claseAncho = largo > 18 ? ' tc-muy-largas' : largo > 13 ? ' tc-largas' : '';
   const tarjetas = operaciones
     .map(op => `<div class="tarjeta-calculo"><span class="tc-texto">${escapeHtml(op.texto)}</span>${conCasilla ? casillaRespuesta('casilla-grande') : '<span class="hueco hueco-corto"></span>'}</div>`)
     .join('');
-  return `<div class="tarjetas-calculo">${tarjetas}</div>`;
+  return `<div class="tarjetas-calculo${claseAncho}">${tarjetas}</div>`;
 }
 
 // El formato visual del problema lo decide el CURSO (código), no Claude.
@@ -566,6 +672,8 @@ function renderProblema(datos, curso) {
   // Modos de la octava ampliación (22/09/2026), cursos guiados (1º-3º).
   if (datos.modo === 'razonado') return renderProblemaRazonado(datos);
   if (datos.modo === 'inventar') return renderProblemaInventar(datos);
+  if (datos.modo === 'barras') return renderProblemaBarras(datos);
+  if (datos.modo === 'frase') return renderProblemaFrase(datos);
   const texto = escapeHtml(datos.texto);
   const esGuiado = ['1º', '2º', '3º'].includes(curso);
   const esConDibujos = ['1º', '2º'].includes(curso);
@@ -735,7 +843,7 @@ function renderTablaFrecuenciaIconos(datos) {
       <td class="tf-hueco"></td>
     </tr>`).join('');
 
-  return `<div class="tabla-frecuencia-bloque">
+  return `<div class="tabla-frecuencia-bloque${datos.revuelto === true ? ' tf-en-paralelo' : ''}">
     <div class="tabla-frecuencia-iconos">${iconosHtml}</div>
     <table class="tabla-frecuencia">
       <thead><tr><th>Figura</th><th>Conteo</th><th>Frecuencia</th></tr></thead>
@@ -935,7 +1043,7 @@ function renderGraficoBarras(datos) {
     ${lineasGrid}${ejeY}${ejeX}${etiquetasEje}${barras}${etiquetasX}
   </svg>`;
 
-  return `<div class="grafico-barras-bloque">${listaDatos}${svg}</div>`;
+  return `<div class="grafico-barras-bloque">${listaDatos}${svg}${listaPreguntas(datos.preguntas)}</div>`;
 }
 
 // ── Gráfico de quesitos (circular) ──────────────────────────────────────
@@ -1009,6 +1117,27 @@ function renderBarritas(cantidad) {
   return '<span class="barrita"></span>'.repeat(n);
 }
 
+// Suma con barritas (02/10/2026, maestra): dos montones de palotes, uno por
+// sumando, que el niño cuenta juntos. "dibujar" deja las dos cajas vacías.
+function renderSumaBarritas(datos) {
+  const limpio = (v) => Math.max(0, Math.min(20, parseInt(v, 10) || 0));
+  const a = limpio(datos.a), b = limpio(datos.b);
+  if (a + b === 0) return '';
+  const modoDibujar = datos.modo === 'dibujar';
+  const grupo = (n) => `<div class="resta-barritas-grupo">
+        <span class="resta-barritas-numero">${n}</span>
+        ${modoDibujar
+          ? '<div class="resta-barritas-caja resta-barritas-caja-vacia"></div>'
+          : `<div class="resta-barritas-caja">${renderBarritas(n)}</div>`}
+      </div>`;
+  return `<div class="resta-barritas-bloque suma-barritas-bloque">
+    <p class="resta-barritas-operacion">${a} + ${b} = ${casillaRespuesta()}</p>
+    <div class="resta-barritas-grupos">
+      ${grupo(a)}<span class="barritas-signo">+</span>${grupo(b)}
+    </div>
+  </div>`;
+}
+
 function renderRestaBarritas(datos) {
   let minuendo = parseInt(datos.minuendo, 10);
   let sustraendo = parseInt(datos.sustraendo, 10);
@@ -1020,21 +1149,24 @@ function renderRestaBarritas(datos) {
 
   const modoDibujar = datos.modo === 'dibujar';
 
-  const cajaGrupo = (numero) => modoDibujar
-    ? `<div class="resta-barritas-caja resta-barritas-caja-vacia"></div>`
-    : `<div class="resta-barritas-caja">${renderBarritas(numero)}</div>`;
+  // 02/10/2026 (maestra): solo se dibujan las barritas del MINUENDO. Las del
+  // sustraendo no se pintan aparte: el niño las tacha dentro de ese montón y
+  // cuenta las que quedan.
+  const caja = modoDibujar
+    ? '<div class="resta-barritas-caja resta-barritas-caja-vacia"></div>'
+    : `<div class="resta-barritas-caja">${renderBarritas(minuendo)}</div>`;
+  const orden = modoDibujar
+    ? `Dibuja <b>${minuendo}</b> y tacha <b>${sustraendo}</b>`
+    : `Tacha <b>${sustraendo}</b>`;
 
   return `<div class="resta-barritas-bloque">
-    <p class="resta-barritas-operacion">${minuendo} − ${sustraendo} = <span class="hueco hueco-corto"></span></p>
+    <p class="resta-barritas-operacion">${minuendo} − ${sustraendo} = ${casillaRespuesta()}</p>
     <div class="resta-barritas-grupos">
       <div class="resta-barritas-grupo">
         <span class="resta-barritas-numero">${minuendo}</span>
-        ${cajaGrupo(minuendo)}
+        ${caja}
       </div>
-      <div class="resta-barritas-grupo">
-        <span class="resta-barritas-numero">${sustraendo}</span>
-        ${cajaGrupo(sustraendo)}
-      </div>
+      <p class="barritas-orden">${orden}</p>
     </div>
   </div>`;
 }
@@ -1045,57 +1177,80 @@ function renderRestaBarritas(datos) {
 // discontinuos (hacia atrás en restas, hacia delante en sumas) — el mismo
 // recurso visual "saltamos hacia atrás/delante" de los libros de texto. El
 // sistema NUNCA marca ni escribe el resultado, solo deja un hueco.
-function renderRectaNumerica(datos) {
-  const op = datos.operacion || {};
+function svgRectaNumerica(op, rangoMaxPedido, conSaltos) {
   const a = Math.max(0, Math.round(numeroDesdeJSON(op.a)));
-  const b = Math.max(0, Math.round(numeroDesdeJSON(op.b)));
+  let b = Math.max(0, Math.round(numeroDesdeJSON(op.b)));
   const esResta = op.signo !== '+';
-
+  if (esResta && b > a) b = a;                 // nunca un resultado negativo
   const destino = esResta ? a - b : a + b;
 
-  let rangoMax = parseInt(datos.rangoMax, 10);
+  let rangoMax = parseInt(rangoMaxPedido, 10);
   if (!Number.isInteger(rangoMax) || rangoMax < 1) {
     rangoMax = Math.max(a, destino) + 3;
   }
   // Blindaje: una recta con demasiadas marcas deja de leerse bien impresa.
   rangoMax = Math.max(Math.max(a, destino), Math.min(rangoMax, 30));
 
-  const paso = 26;
+  // La recta ocupa el ancho de la ficha: marcas más separadas cuanto más
+  // corto es el rango (los saltos de un niño de 1º necesitan sitio).
+  const paso = Math.max(21, Math.min(40, Math.floor(620 / rangoMax)));
+  const altoSalto = Math.min(28, Math.round(paso * 0.85));
   const margen = 16;
-  const yLinea = 46;
+  const yLinea = 20 + altoSalto;
   const anchoTotal = margen * 2 + rangoMax * paso;
-  const altoTotal = 78;
+  const altoTotal = yLinea + 30;
 
   let ticks = '';
   let numeros = '';
   for (let i = 0; i <= rangoMax; i++) {
     const x = margen + i * paso;
     ticks += `<line x1="${x}" y1="${yLinea - 5}" x2="${x}" y2="${yLinea + 5}" stroke="#334155" stroke-width="1.5"/>`;
-    numeros += `<text x="${x}" y="${yLinea + 22}" font-size="12" text-anchor="middle" font-family="Arial">${i}</text>`;
+    numeros += `<text x="${x}" y="${yLinea + 22}" font-size="13" text-anchor="middle" font-family="Arial">${i}</text>`;
   }
   const lineaBase = `<line x1="${margen}" y1="${yLinea}" x2="${anchoTotal - margen}" y2="${yLinea}" stroke="#334155" stroke-width="2"/>`;
 
-  const xInicio = margen + a * paso;
-  const cajaInicio = `<rect x="${xInicio - 11}" y="${yLinea - 11}" width="22" height="22" fill="none" class="recta-numerica-caja-inicio" rx="4"/>`;
-
   let saltos = '';
-  const desde = Math.min(a, destino);
-  const hasta = Math.max(a, destino);
-  for (let i = desde; i < hasta; i++) {
-    const x1 = margen + i * paso;
-    const x2 = margen + (i + 1) * paso;
-    const xMedio = (x1 + x2) / 2;
-    saltos += `<path d="M${x1} ${yLinea} Q${xMedio} ${(yLinea - 22).toFixed(1)} ${x2} ${yLinea}" fill="none" class="recta-numerica-salto"/>`;
+  let cajaInicio = '';
+  if (conSaltos) {
+    const xInicio = margen + a * paso;
+    cajaInicio = `<rect x="${xInicio - 11}" y="${yLinea - 11}" width="22" height="22" fill="none" class="recta-numerica-caja-inicio" rx="4"/>`;
+    const desde = Math.min(a, destino);
+    const hasta = Math.max(a, destino);
+    for (let i = desde; i < hasta; i++) {
+      const x1 = margen + i * paso;
+      const x2 = margen + (i + 1) * paso;
+      const xMedio = (x1 + x2) / 2;
+      saltos += `<path d="M${x1} ${yLinea} Q${xMedio} ${yLinea - altoSalto} ${x2} ${yLinea}" fill="none" class="recta-numerica-salto"/>`;
+    }
+    if (hasta > desde) {
+      // Punta de flecha en el último salto: indica hacia dónde se avanza.
+      const xFin = margen + destino * paso;
+      const ux = (esResta ? -1 : 1) * paso / 2, uy = altoSalto;
+      const largo = Math.hypot(ux, uy);
+      const [dx, dy] = [ux / largo, uy / largo];
+      const bx = xFin - dx * 10, by = yLinea - dy * 10;
+      saltos += `<path d="M${xFin} ${yLinea} L${(bx - dy * 4.5).toFixed(1)} ${(by + dx * 4.5).toFixed(1)} L${(bx + dy * 4.5).toFixed(1)} ${(by - dx * 4.5).toFixed(1)} Z" class="recta-numerica-punta"/>`;
+    }
   }
 
   const svg = `<svg width="${anchoTotal}" height="${altoTotal}" viewBox="0 0 ${anchoTotal} ${altoTotal}">
     ${lineaBase}${ticks}${numeros}${saltos}${cajaInicio}
   </svg>`;
-
-  return `<div class="recta-numerica-bloque">
-    <p class="recta-numerica-operacion">${a} ${esResta ? '−' : '+'} ${b} = <span class="hueco hueco-corto"></span></p>
+  return `<div class="recta-numerica-item">
+    <p class="recta-numerica-operacion">${a} ${esResta ? '−' : '+'} ${b} = ${casillaRespuesta()}</p>
     <div class="recta-numerica-svg">${svg}</div>
   </div>`;
+}
+
+function renderRectaNumerica(datos) {
+  // "saltos": false (02/10/2026, maestra) → la recta sale limpia, sin el
+  // número de partida marcado ni los saltos: los dibuja el niño.
+  // "operaciones": varias sumas/restas en el mismo ejercicio (hasta 4).
+  const conSaltos = datos.saltos !== false;
+  const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : [datos.operacion])
+    .filter(o => o && typeof o === 'object').slice(0, 4);
+  if (ops.length === 0) return '';
+  return `<div class="recta-numerica-bloque">${ops.map(o => svgRectaNumerica(o, datos.rangoMax, conSaltos)).join('')}</div>`;
 }
 
 // ── Rejilla numérica ─────────────────────────────────────────────────────
@@ -1190,7 +1345,8 @@ function renderTablaMultiplicar(datos) {
 
   const columnaIzquierda = [1, 2, 3, 4, 5].map(filaHtml).join('');
   const columnaDerecha = [6, 7, 8, 9, 10].map(filaHtml).join('');
-  const titulo = operacion === 'suma' ? `Tabla del +${tabla}` : operacion === 'resta' ? `Tabla del −${tabla}` : `Tabla del ${tabla}`;
+  // 02/10/2026 (maestra): "Tabla del 5" a secas se entiende como de multiplicar.
+  const titulo = operacion === 'suma' ? `Tabla de sumar del ${tabla}` : operacion === 'resta' ? `Tabla de restar del ${tabla}` : `Tabla de multiplicar del ${tabla}`;
   const libreta = operacion !== 'multiplicacion' || datos.estilo === 'libreta';
 
   return `<div class="tabla-multiplicar-bloque${libreta ? ' tm-libreta' : ''}">
@@ -1235,8 +1391,7 @@ function renderReparto(datos) {
   if (total < grupos) total = grupos;
 
   const nombreIcono = ICONOS[datos.icono] ? datos.icono : 'estrella';
-  const svgIcono = ICONOS[nombreIcono];
-  const objetos = svgIcono.repeat(total);
+  const objetos = htmlIcono(nombreIcono).repeat(total);
 
   const cajasGrupos = Array.from({ length: grupos }, () =>
     `<div class="reparto-grupo-caja"></div>`
@@ -1912,25 +2067,94 @@ const PLANTILLAS_CONECTA_PUNTOS = {
   casa: [[20, 120], [20, 60], [100, 10], [180, 60], [180, 120], [130, 120], [130, 170], [70, 170], [70, 120]],
   pez: [[10, 80], [60, 40], [130, 40], [170, 20], [190, 80], [170, 140], [130, 120], [60, 120]],
   cometa: [[100, 10], [160, 70], [100, 190], [40, 70]],
-  barco: [[30, 140], [30, 80], [100, 20], [100, 80], [170, 80], [150, 140]]
+  barco: [[30, 140], [30, 80], [100, 20], [100, 80], [170, 80], [150, 140]],
+  // Ampliación (02/10/2026): más dibujos, todos figuras cerradas (el último
+  // punto se une con el primero).
+  corazon: [[100, 60], [120, 35], [150, 25], [178, 40], [188, 70], [178, 105], [150, 140], [100, 185], [50, 140], [22, 105], [12, 70], [22, 40], [50, 25], [80, 35]],
+  pino: [[100, 10], [135, 55], [112, 55], [155, 100], [125, 100], [175, 150], [112, 150], [112, 185], [88, 185], [88, 150], [25, 150], [75, 100], [45, 100], [88, 55], [65, 55]],
+  cohete: [[100, 8], [125, 40], [130, 80], [130, 130], [160, 165], [160, 185], [125, 170], [115, 185], [85, 185], [75, 170], [40, 185], [40, 165], [70, 130], [70, 80], [75, 40]],
+  rayo: [[115, 8], [140, 8], [105, 80], [150, 80], [70, 192], [92, 105], [50, 105]],
+  corona: [[20, 170], [10, 60], [55, 110], [100, 30], [145, 110], [190, 60], [180, 170]],
+  camiseta: [[70, 20], [85, 35], [115, 35], [130, 20], [185, 50], [165, 90], [145, 78], [145, 185], [55, 185], [55, 78], [35, 90], [15, 50]],
+  coche: [[10, 150], [10, 110], [45, 100], [65, 60], [135, 60], [160, 100], [190, 110], [190, 150], [165, 150], [155, 170], [135, 170], [125, 150], [75, 150], [65, 170], [45, 170], [35, 150]],
+  seta: [[100, 15], [150, 30], [180, 65], [185, 100], [125, 100], [130, 180], [70, 180], [75, 100], [15, 100], [20, 65], [50, 30]],
+  velero: [[100, 10], [175, 110], [110, 110], [110, 145], [190, 145], [160, 185], [40, 185], [10, 145], [90, 145], [90, 110], [25, 110]],
+  luna: [[120, 12], [80, 15], [45, 35], [20, 70], [12, 105], [25, 145], [55, 175], [95, 188], [135, 180], [100, 160], [75, 135], [62, 100], [70, 65], [90, 35]],
+  flecha: [[100, 10], [185, 95], [135, 95], [135, 190], [65, 190], [65, 95], [15, 95]],
+  gato: [[30, 15], [70, 50], [130, 50], [170, 15], [180, 90], [165, 140], [130, 175], [100, 185], [70, 175], [35, 140], [20, 90]],
+  helado: [[100, 190], [60, 95], [40, 85], [35, 55], [55, 25], [85, 12], [115, 12], [145, 25], [165, 55], [160, 85], [140, 95]]
 };
 export const PLANTILLAS_CONECTA_PUNTOS_DISPONIBLES = Object.keys(PLANTILLAS_CONECTA_PUNTOS);
-function renderConectaLosPuntos(datos) {
+// Para el prompt: "estrella (10 puntos), casa (9 puntos)..."
+export const PLANTILLAS_CONECTA_PUNTOS_CON_CANTIDAD = Object.entries(PLANTILLAS_CONECTA_PUNTOS).map(([n, p]) => `${n} (${p.length} puntos)`);
+function puntosConecta(nombrePlantilla, cantidadPedida) {
+  // Añade puntos intermedios a lo largo del contorno (también en el tramo que
+  // cierra la figura) hasta la cantidad pedida: el dibujo es el mismo, pero
+  // con más números que unir. Los puntos extra se reparten según la longitud
+  // de cada tramo, para que no se amontonen en los tramos cortos.
+  const base = PLANTILLAS_CONECTA_PUNTOS[nombrePlantilla];
+  // Tope de 40 puntos en total: con más, los números ya no caben sin pisarse.
+  const pedida = Math.min(40, parseInt(cantidadPedida, 10) || 0);
+  if (pedida <= base.length) return base;
+  const tramos = base.map((p, i) => {
+    const q = base[(i + 1) % base.length];
+    return { p, q, largo: Math.hypot(q[0] - p[0], q[1] - p[1]), extra: 0 };
+  });
+  for (let n = pedida - base.length; n > 0; n--) {
+    // Cada punto extra va al tramo cuyos trozos son ahora mismo más largos.
+    let mejor = tramos[0];
+    tramos.forEach(t => { if (t.largo / (t.extra + 1) > mejor.largo / (mejor.extra + 1)) mejor = t; });
+    mejor.extra++;
+  }
+  const puntos = [];
+  tramos.forEach(({ p, q, extra }) => {
+    for (let j = 0; j <= extra; j++) puntos.push([p[0] + (q[0] - p[0]) * j / (extra + 1), p[1] + (q[1] - p[1]) * j / (extra + 1)]);
+  });
+  return puntos;
+}
+
+function datosConecta(datos) {
   const plantilla = PLANTILLAS_CONECTA_PUNTOS[datos.plantilla] ? datos.plantilla : 'estrella';
-  const puntos = PLANTILLAS_CONECTA_PUNTOS[plantilla];
+  const puntos = puntosConecta(plantilla, datos.puntos);
   let paso = parseInt(datos.paso, 10);
   if (!Number.isInteger(paso) || paso < 1) paso = 1;
   paso = Math.min(paso, 10);
   let inicio = parseInt(datos.inicio, 10);
   if (!Number.isInteger(inicio) || inicio < 0) inicio = paso;
+  return { puntos, paso, inicio, fin: inicio + (puntos.length - 1) * paso };
+}
 
+// El enunciado de "conecta_los_puntos" lo escribe el código (02/10/2026): la
+// IA decía "del 1 al 30" con un dibujo de 10 puntos. Así siempre coincide.
+function enunciadoConecta(datos) {
+  const { paso, inicio, fin } = datosConecta(datos || {});
+  return paso === 1
+    ? `Une los puntos en orden, del ${inicio} al ${fin}.`
+    : `Une los puntos contando de ${paso} en ${paso}, del ${inicio} al ${fin}.`;
+}
+
+function renderConectaLosPuntos(datos) {
+  const { puntos, paso, inicio } = datosConecta(datos);
+  // Sentido de giro del contorno: sirve para saber hacia dónde queda "fuera".
+  let area = 0;
+  puntos.forEach(([x, y], i) => { const [x2, y2] = puntos[(i + 1) % puntos.length]; area += x * y2 - x2 * y; });
+  const giro = area >= 0 ? 1 : -1;
+  const lejos = puntos.length > 15 ? 9 : 12;
   const marcas = puntos.map(([x, y], i) => {
     const numero = inicio + i * paso;
-    return `<circle cx="${x}" cy="${y}" r="2.5" fill="#000"/><text x="${x + 6}" y="${y - 6}" font-size="11" font-family="Arial">${numero}</text>`;
+    // La etiqueta se pone por FUERA del contorno (perpendicular al trazo en
+    // ese punto), para que no pise la línea que el niño va a dibujar.
+    const [xa, ya] = puntos[(i - 1 + puntos.length) % puntos.length];
+    const [xb, yb] = puntos[(i + 1) % puntos.length];
+    const d = Math.hypot(xb - xa, yb - ya) || 1;
+    const tx = x + giro * (yb - ya) / d * lejos, ty = y - giro * (xb - xa) / d * lejos + 3;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${puntos.length > 15 ? 1.9 : 2.6}" fill="#000"/><text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-size="${puntos.length > 15 ? 8 : 10.5}" text-anchor="middle" font-family="Arial">${numero}</text>`;
   }).join('');
 
+  // Con muchos puntos el dibujo sale más grande para que los números no se pisen.
+  const lado = puntos.length > 15 ? 430 : 300;
   return `<div class="conecta-puntos-bloque">
-    <svg width="200" height="200" viewBox="0 0 200 200">${marcas}</svg>
+    <svg width="${lado}" height="${Math.round(lado * 240 / 248)}" viewBox="-24 -22 248 240">${marcas}</svg>
   </div>`;
 }
 
@@ -1954,20 +2178,34 @@ function renderNumeroDelDia(datos) {
   if (!Number.isInteger(numero) || numero < 0) numero = 0;
   numero = Math.min(numero, 20);
 
-  const primerMarco = Math.min(numero, 10);
-  const segundoMarco = numero > 10 ? svgMarcoDiez(numero - 10) : '';
+  // 02/10/2026 (maestra): al niño no le quedaba claro qué hacer. Ahora son
+  // tres pasos numerados, cada uno con su orden escrita por el código:
+  // repasar y escribir el número, colorear casillas (el marco sale VACÍO) y
+  // rodear dibujos (salen más de los que hay que rodear).
+  const paso = (n, texto, cuerpo) => `<div class="numero-dia-paso">
+      <p class="numero-dia-orden"><span class="numero-dia-n">${n}</span>${texto}</p>
+      ${cuerpo}
+    </div>`;
 
-  const iconoHtml = datos.icono && ICONOS[datos.icono]
-    ? `<div class="numero-dia-iconos">${renderIconos(datos.icono, Math.min(numero, 10))}</div>`
-    : '';
+  const escribir = `<div class="numero-dia-escribir">
+      ${celdaTrazo(numero, true)}
+      ${'<span class="numero-dia-casilla"></span>'.repeat(2)}
+    </div>`;
+
+  const marcos = `<div class="numero-dia-marcos">${svgMarcoDiez(0)}${numero > 10 ? svgMarcoDiez(0) : ''}</div>`;
+
+  let tercero;
+  if (datos.icono && ICONOS[datos.icono] && numero > 0) {
+    const total = Math.min(25, Math.ceil((numero + 3) / 5) * 5);
+    tercero = paso(3, `Rodea <b>${numero}</b>`, `<div class="numero-dia-iconos">${htmlIcono(datos.icono).repeat(total)}</div>`);
+  } else {
+    tercero = paso(3, `Dibuja <b>${numero}</b> ${numero === 1 ? 'bolita' : 'bolitas'}`, '<div class="numero-dia-dibujar"></div>');
+  }
 
   return `<div class="numero-dia-bloque">
-    <p class="numero-dia-trazar">${numero}</p>
-    <div class="numero-dia-marcos">
-      ${svgMarcoDiez(primerMarco)}
-      ${segundoMarco}
-    </div>
-    ${iconoHtml}
+    ${paso(1, 'Repasa y escribe', escribir)}
+    ${paso(2, `Colorea <b>${numero}</b> ${numero === 1 ? 'casilla' : 'casillas'}`, marcos)}
+    ${tercero}
   </div>`;
 }
 
@@ -2269,7 +2507,9 @@ function renderPiramideNumerica(datos) {
 
   const bloques = piramides.map(p => {
     let base = Array.isArray(p.base) ? p.base.slice(0, 6) : [];
-    base = base.map(n => Math.round(Math.abs(numeroDesdeJSON(n)))).filter(n => n > 0 && n <= 99);
+    // Hasta 9.999 en la base (24/09/2026: en 4º Claude usó bases de tres cifras y la pirámide
+    // entera se descartaba porque el límite era 99).
+    base = base.map(n => Math.round(Math.abs(numeroDesdeJSON(n)))).filter(n => n > 0 && n <= 9999);
     if (base.length < 3) return '';
 
     // La fila 0 es la base; cada fila siguiente tiene una casilla menos,
@@ -2314,7 +2554,10 @@ function renderPiramideNumerica(datos) {
       return `<div class="piramide-fila">${celdas}</div>`;
     }).join('');
 
-    return `<div class="piramide-numerica">${filasHtml}</div>`;
+    // Casillas más anchas si el número más alto (la cúspide) tiene 4 o más cifras.
+    const cifras = String(filas[filas.length - 1][0]).length;
+    const claseAncha = cifras >= 5 ? ' piramide-muy-ancha' : cifras >= 4 ? ' piramide-ancha' : '';
+    return `<div class="piramide-numerica${claseAncha}">${filasHtml}</div>`;
   }).filter(Boolean).join('');
 
   if (!bloques) return '';
@@ -2889,6 +3132,7 @@ function condicionNumero(c) {
     case 'mayor_que': return v === null ? null : { texto: `Mayores que ${v}`, cumple: n => n > v };
     case 'menor_que': return v === null ? null : { texto: `Menores que ${v}`, cumple: n => n < v };
     case 'entre': return v === null || v2 === null || v2 <= v ? null : { texto: `Entre ${v} y ${v2}`, cumple: n => n > v && n < v2 };
+    case 'multiplo_de': case 'multiplo': return v === null || v < 2 ? null : { texto: `Múltiplos de ${v}`, cumple: n => n % v === 0 };
     default: return null;
   }
 }
@@ -3079,13 +3323,23 @@ function renderOperacionCifrasOcultas(datos) {
 // ── Suma agrupando sumandos (propiedad asociativa / "busca la decena") ───
 function renderSumaAsociativa(datos) {
   const buscarDecena = datos.agrupar === 'decena';
+  // "guia": false (02/10/2026, maestra) → sin flechas ni casilla intermedia:
+  // solo la suma y el resultado, para más dificultad.
+  const sinGuia = datos.guia === false;
   const sumas = (Array.isArray(datos.sumas) ? datos.sumas : []).slice(0, 6).map(s => {
     const n = (Array.isArray(s) ? s : []).map(x => enteroValido(x, 0, 999)).filter(x => x !== null);
     return n.length === 3 ? n : null;
   }).filter(Boolean);
   if (sumas.length === 0) return '';
 
+  // Todo va en UNA rejilla de 7 columnas (n + n + n = □), así las flechas y
+  // la casilla caen justo debajo de la pareja que se agrupa.
+  const COL = 34;
   const piezas = sumas.map((s, idx) => {
+    const fila1 = `<span class="asoc-num" style="grid-column:1">${s[0]}</span><span style="grid-column:2">+</span><span class="asoc-num" style="grid-column:3">${s[1]}</span><span style="grid-column:4">+</span><span class="asoc-num" style="grid-column:5">${s[2]}</span>`;
+    if (sinGuia) {
+      return `<div class="asociativa asociativa-sin-guia">${fila1}<span style="grid-column:6">=</span><span style="grid-column:7">${casillaRespuesta()}</span></div>`;
+    }
     let par = 0;
     if (buscarDecena && (s[0] + s[1]) % 10 !== 0 && (s[1] + s[2]) % 10 === 0) par = 1;
     const ejemplo = datos.ejemplo === true && idx === 0;
@@ -3093,13 +3347,21 @@ function renderSumaAsociativa(datos) {
     const suelto = par === 0 ? s[2] : s[0];
     const caja = ejemplo ? `<span class="casilla-respuesta casilla-ejemplo">${parcial}</span>` : casillaRespuesta();
     const cajaFinal = ejemplo ? `<span class="casilla-respuesta casilla-ejemplo">${parcial + suelto}</span>` : casillaRespuesta();
-    const cols = par === 0 ? '1 / 4' : '3 / 6';
-    const colSuelto = par === 0 ? '5' : '1';
-    const segunda = par === 0 ? `${caja}<span>+</span><span class="asoc-num">${suelto}</span>` : `<span class="asoc-num">${suelto}</span><span>+</span>${caja}`;
+    // Centros de columna (px) dentro de las 5 primeras columnas.
+    const cx = (col) => (col - 0.5) * COL;
+    const [c1, c2, cSuelto] = par === 0 ? [cx(1), cx(3), cx(5)] : [cx(3), cx(5), cx(1)];
+    const medio = (c1 + c2) / 2;
+    const flechas = `<svg class="asoc-flechas" style="grid-column:1 / 6" width="${COL * 5}" height="24" viewBox="0 0 ${COL * 5} 24" aria-hidden="true">
+        <path d="M${c1} 2 L${medio} 18 M${c2} 2 L${medio} 18 M${cSuelto} 2 L${cSuelto} 18"/>
+        <path class="asoc-punta" d="M${medio - 4} 15 L${medio} 22 L${medio + 4} 15 Z M${cSuelto - 4} 15 L${cSuelto} 22 L${cSuelto + 4} 15 Z"/>
+      </svg>`;
+    const fila3 = par === 0
+      ? `<span class="asoc-caja" style="grid-column:1 / 4">${caja}</span><span style="grid-column:4">+</span><span class="asoc-num" style="grid-column:5">${suelto}</span>`
+      : `<span class="asoc-num" style="grid-column:1">${suelto}</span><span style="grid-column:2">+</span><span class="asoc-caja" style="grid-column:3 / 6">${caja}</span>`;
     return `<div class="asociativa">
-      <div class="asoc-fila1"><span class="asoc-num">${s[0]}</span><span>+</span><span class="asoc-num">${s[1]}</span><span>+</span><span class="asoc-num">${s[2]}</span></div>
-      <div class="asoc-flechas"><span class="asoc-agrupa" style="grid-column:${cols}">↘ ↙</span><span class="asoc-baja" style="grid-column:${colSuelto}">↓</span></div>
-      <div class="asoc-fila2">${segunda}<span>=</span>${cajaFinal}</div>
+      ${fila1}
+      ${flechas}
+      ${fila3}<span style="grid-column:6">=</span><span style="grid-column:7">${cajaFinal}</span>
     </div>`;
   }).join('');
   return `<div class="asociativa-bloque">${piezas}</div>`;
@@ -3155,6 +3417,16 @@ function renderCaminoResultados(datos) {
 // se redondea al múltiplo más cercano ANTES de dibujar: en este modo el
 // dibujo es el dato (el enunciado pide leerlo), así que dibujo y clave
 // siempre cuadran entre sí.
+// Preguntas sobre un gráfico (02/10/2026, maestra): cada una en su línea,
+// con un punto gordo delante y una raya detrás para escribir la respuesta.
+function listaPreguntas(preguntas) {
+  const lista = (Array.isArray(preguntas) ? preguntas : [])
+    .map(p => String(p || '').trim()).filter(Boolean).slice(0, 6);
+  if (lista.length === 0) return '';
+  return `<ul class="preguntas-lista">${lista.map(p =>
+    `<li><span class="pregunta-texto">${escapeHtml(p)}</span><span class="pregunta-raya"></span></li>`).join('')}</ul>`;
+}
+
 function renderPictograma(datos) {
   const categorias = (Array.isArray(datos.categorias) ? datos.categorias : []).slice(0, 6);
   if (categorias.length === 0) return '';
@@ -3167,6 +3439,7 @@ function renderPictograma(datos) {
   return `<div class="pictograma-bloque">
     <table class="pictograma">${filas}</table>
     <p class="picto-clave">${renderIconos(icono, 1)} <span>= ${valorIcono}</span></p>
+    ${listaPreguntas(datos.preguntas)}
   </div>`;
 }
 
@@ -3201,22 +3474,38 @@ const RECIPIENTES_ESTIMAR = {
   taza: { clase: 'menos', svg: '<path d="M12 18 L42 18 L40 48 Q27 54 14 48 Z"/><path d="M42 24 Q54 26 50 36 Q48 42 41 40"/>' },
   yogur: { clase: 'menos', svg: '<path d="M18 16 L42 16 L39 48 L21 48 Z"/><rect x="16" y="11" width="28" height="5" rx="1"/>' },
   cubo: { clase: 'mas', svg: '<path d="M10 20 L50 20 L45 54 L15 54 Z"/><path d="M10 20 Q30 0 50 20"/>' },
-  banera: { clase: 'mas', svg: '<path d="M4 26 L56 26 L52 44 Q30 50 8 44 Z"/><path d="M12 46 L10 54 M48 46 L50 54 M48 26 L48 12 L54 12"/>' },
+  banera: { clase: 'mas', archivo: 'banyera', svg: '<path d="M4 26 L56 26 L52 44 Q30 50 8 44 Z"/><path d="M12 46 L10 54 M48 46 L50 54 M48 26 L48 12 L54 12"/>' },
   regadera: { clase: 'mas', svg: '<path d="M14 22 L38 22 L38 52 L14 52 Z"/><path d="M38 30 L56 16 M52 12 L58 20"/><path d="M14 28 Q4 28 6 40 Q8 46 14 46"/>' },
   garrafa: { clase: 'mas', svg: '<path d="M20 14 L36 14 L36 20 Q48 22 48 32 L48 54 L10 54 L10 32 Q10 22 20 20 Z"/><rect x="22" y="8" width="12" height="6"/><path d="M40 26 Q46 26 44 36"/>' }
 };
-export const RECIPIENTES_ESTIMAR_DISPONIBLES = Object.keys(RECIPIENTES_ESTIMAR);
+// Recipientes que solo existen como dibujo del banco (02/10/2026): no tienen
+// SVG de reserva, así que solo se ofrecen si su PNG está en la carpeta.
+Object.assign(RECIPIENTES_ESTIMAR, {
+  biberon: { clase: 'menos' }, lata: { clase: 'menos' }, copa: { clase: 'menos' }, frasco: { clase: 'menos' },
+  olla: { clase: 'mas' }, fregadero: { clase: 'mas' }, piscina: { clase: 'mas' }
+});
+function recipienteDisponible(n) {
+  const r = RECIPIENTES_ESTIMAR[n];
+  return !!r && (!!r.svg || IMAGENES_BN.has(r.archivo || n) || IMAGENES_COLOR.has(r.archivo || n));
+}
+export const RECIPIENTES_ESTIMAR_DISPONIBLES = Object.keys(RECIPIENTES_ESTIMAR).filter(recipienteDisponible);
 
 function renderEstimarCapacidad(datos) {
   const nombres = (Array.isArray(datos.recipientes) ? datos.recipientes : [])
-    .map(r => (typeof r === 'string' ? r : r?.nombre)).filter(n => RECIPIENTES_ESTIMAR[n])
+    .map(r => (typeof r === 'string' ? r : r?.nombre)).filter(n => recipienteDisponible(n))
     .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 6);
   if (nombres.length < 2) return '';
-  const tarjetas = nombres.map(n => `<div class="estimar-tarjeta">
-    <svg viewBox="0 0 60 60" width="64" height="64" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${RECIPIENTES_ESTIMAR[n].svg}</svg>
+  const tarjetas = nombres.map(n => {
+    const r = RECIPIENTES_ESTIMAR[n];
+    // Dibujo del banco si lo hay; si no, el SVG esquemático de siempre.
+    const dibujo = imagenBanco(r.archivo || n, n, 'estimar-img')
+      || `<svg viewBox="0 0 60 60" width="64" height="64" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${r.svg}</svg>`;
+    return `<div class="estimar-tarjeta">
+    <div class="estimar-dibujo">${dibujo}</div>
     <div class="opcion-item"><span class="casilla-test"></span> Más de 1 litro</div>
     <div class="opcion-item"><span class="casilla-test"></span> Menos de 1 litro</div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
   return `<div class="estimar-bloque">${tarjetas}</div>`;
 }
 
@@ -3226,6 +3515,10 @@ function renderEstimarCapacidad(datos) {
 // columnas se deriva del número más largo (incluido el resultado real, para
 // dejar sitio a la llevada) — nunca se imprime ninguna cifra en la rejilla.
 function renderColocarEnColumna(datos) {
+  // "cuadricula" (02/10/2026, maestra): un paso más de dificultad — en vez de
+  // casillas ya preparadas con D | U, signo y raya, un solo cuadrado de
+  // cuadrícula vacío donde el niño lo coloca todo él solo.
+  const enCuadricula = datos.colocar === 'cuadricula' || datos.cuadricula === true;
   const ops = (Array.isArray(datos.operaciones) ? datos.operaciones : []).slice(0, 4).map(op => {
     const signo = op.signo === '-' ? '-' : '+';
     const nums = (Array.isArray(op.numeros) ? op.numeros : []).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, signo === '-' ? 2 : 4);
@@ -3237,8 +3530,16 @@ function renderColocarEnColumna(datos) {
   if (ops.length === 0) return '';
   const bloques = ops.map(op => {
     const cifras = Math.max(2, ...op.nums.map(n => String(n).length), String(op.resultado).length);
-    const fila = () => `<div class="colocar-fila">${Array.from({ length: cifras }, () => '<span class="colocar-celda"></span>').join('')}</div>`;
     const texto = op.nums.join(op.signo === '+' ? ' + ' : ' − ') + ' =';
+    if (enCuadricula) {
+      const lado = Math.max(5, cifras + 2, op.nums.length + 2);
+      const celdas = '<span class="cuadricula-celda"></span>'.repeat(lado * lado);
+      return `<div class="colocar-operacion">
+      <p class="colocar-texto">${texto}</p>
+      <div class="colocar-cuadricula" style="grid-template-columns:repeat(${lado}, 28px)">${celdas}</div>
+    </div>`;
+    }
+    const fila = () => `<div class="colocar-fila">${Array.from({ length: cifras }, () => '<span class="colocar-celda"></span>').join('')}</div>`;
     const filasNumeros = op.nums.map((_, i) => i === op.nums.length - 1
       ? `<div class="colocar-con-signo"><span class="colocar-signo">${op.signo === '+' ? '+' : '−'}</span>${fila()}</div>`
       : `<div class="colocar-con-signo"><span class="colocar-signo"></span>${fila()}</div>`).join('');
@@ -3315,38 +3616,1060 @@ function renderUnirDibujosSuma(datos) {
 }
 
 
+// ═══════════════════════════════════════════════════════════════════════
+// NOVENA AMPLIACIÓN (02/10/2026) — cuadernos de 1º y 2º (refuerzo y
+// ampliación de 2º, cuadernos de actividades de 1º y 2º, fichas de trazo).
+// Solo se tomó el FORMATO de cada ejercicio: ni textos ni dibujos.
+// Mismo criterio de blindaje que el resto del fichero: Claude elige los
+// números de partida y el código calcula, dibuja y descarta lo incoherente.
+// ═══════════════════════════════════════════════════════════════════════
+
+function lista(valor) { return Array.isArray(valor) ? valor : []; }
+function iconoValido(nombre, porDefecto = 'estrella') { return ICONOS[nombre] ? nombre : porDefecto; }
+function barajar(arr, aleatorio) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(aleatorio() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// "Respuesta: □ flores." — casilla y unidad ya escrita, en vez de una raya.
+function respuestaConUnidad(unidad) {
+  const u = String(unidad || '').trim().slice(0, 30);
+  return `<p class="respuesta-unidad">Respuesta: ${casillaRespuesta('casilla-ancha')}${u ? ` <span>${escapeHtml(u)}.</span>` : ''}</p>`;
+}
+function fraseOperacion(signo) {
+  return `<p class="frase-numerica">${casillaRespuesta()} <span>${signo}</span> ${casillaRespuesta()} <span>=</span> ${casillaRespuesta()}</p>`;
+}
+
+// ── Fracciones ───────────────────────────────────────────────────────────
+// El código dibuja la figura partida en "denominador" partes IGUALES y, si
+// toca, sombrea "numerador". Claude solo da los dos números.
+const NOMBRE_DENOMINADOR = { 2: 'medio', 3: 'tercio', 4: 'cuarto', 5: 'quinto', 6: 'sexto', 7: 'séptimo', 8: 'octavo', 9: 'noveno', 10: 'décimo', 11: 'onceavo', 12: 'doceavo' };
+function nombreFraccion(num, den) {
+  const base = NOMBRE_DENOMINADOR[den];
+  if (!base) return '';
+  const cuantos = num === 1 ? 'un' : numeroALetras(num);
+  return `${cuantos} ${base}${num === 1 ? '' : 's'}`;
+}
+function svgFraccion(figura, den, sombreadas) {
+  const clase = i => (i < sombreadas ? 'frac-parte frac-llena' : 'frac-parte');
+  if (figura === 'circulo') {
+    const cx = 45, cy = 45, r = 40;
+    const partes = Array.from({ length: den }, (_, i) => {
+      const a0 = (i / den) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / den) * 2 * Math.PI - Math.PI / 2;
+      const p = a => `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
+      return `<path class="${clase(i)}" d="M${cx} ${cy} L${p(a0)} A${r} ${r} 0 0 1 ${p(a1)} Z"/>`;
+    }).join('');
+    return `<svg width="90" height="90" viewBox="0 0 90 90">${partes}</svg>`;
+  }
+  if (figura === 'cuadrado' && (den === 4 || den === 9)) {
+    const n = Math.sqrt(den), lado = 80 / n;
+    const partes = Array.from({ length: den }, (_, i) =>
+      `<rect class="${clase(i)}" x="${5 + (i % n) * lado}" y="${5 + Math.floor(i / n) * lado}" width="${lado}" height="${lado}"/>`).join('');
+    return `<svg width="90" height="90" viewBox="0 0 90 90">${partes}</svg>`;
+  }
+  const ancho = figura === 'cuadrado' ? 80 : 150, alto = figura === 'cuadrado' ? 80 : 44;
+  const w = ancho / den;
+  const partes = Array.from({ length: den }, (_, i) =>
+    `<rect class="${clase(i)}" x="${(5 + i * w).toFixed(2)}" y="5" width="${w.toFixed(2)}" height="${alto}"/>`).join('');
+  return `<svg width="${ancho + 10}" height="${alto + 10}" viewBox="0 0 ${ancho + 10} ${alto + 10}">${partes}</svg>`;
+}
+function htmlFraccion(num, den) {
+  return `<span class="frac"><span class="frac-num">${num}</span><span class="frac-den">${den}</span></span>`;
+}
+function renderFracciones(datos) {
+  const modo = datos.modo === 'escribir' ? 'escribir' : 'colorear';
+  const figuras = ['circulo', 'rectangulo', 'cuadrado'];
+  const items = lista(datos.fracciones).map((f, i) => {
+    const den = enteroValido(f && f.denominador, 2, 12);
+    const num = enteroValido(f && f.numerador, 1, 12);
+    if (den === null || num === null || num > den) return null;
+    const figura = figuras.includes(f.figura) ? f.figura : figuras.includes(datos.figura) ? datos.figura : figuras[i % 2];
+    return { num, den, figura };
+  }).filter(Boolean).slice(0, 8);
+  if (items.length === 0) return '';
+  const tarjetas = items.map(({ num, den, figura }) => modo === 'colorear'
+    ? `<div class="frac-tarjeta">${svgFraccion(figura, den, 0)}<p class="frac-pie">${htmlFraccion(num, den)}<span class="frac-nombre">${nombreFraccion(num, den)}</span></p></div>`
+    : `<div class="frac-tarjeta">${svgFraccion(figura, den, num)}<p class="frac-pie"><span class="frac"><span class="frac-num">${casillaRespuesta()}</span><span class="frac-den">${casillaRespuesta()}</span></span></p></div>`
+  ).join('');
+  return `<div class="frac-bloque">${tarjetas}</div>`;
+}
+
+// ── Suma repetida ↔ multiplicación ───────────────────────────────────────
+// Grupos iguales de dibujos; debajo "Suma" (tantas casillas como grupos) y
+// "Multiplicación". Los dibujos salen de grupos × porGrupo.
+function renderSumaRepetida(datos) {
+  const items = lista(datos.grupos).map(g => {
+    const grupos = enteroValido(g && g.grupos, 2, 5), porGrupo = enteroValido(g && g.porGrupo, 1, 6);
+    if (grupos === null || porGrupo === null) return null;
+    return { grupos, porGrupo, icono: iconoValido(g.icono) };
+  }).filter(Boolean).slice(0, 4);
+  if (items.length === 0) return '';
+  return `<div class="sr-bloque">${items.map(({ grupos, porGrupo, icono }) => {
+    const cajas = Array.from({ length: grupos }, () => `<span class="sr-grupo">${htmlIcono(icono).repeat(porGrupo)}</span>`).join('');
+    const suma = Array.from({ length: grupos }, () => casillaRespuesta()).join(' <span>+</span> ');
+    return `<div class="sr-item">
+      <div class="sr-grupos">${cajas}</div>
+      <p class="sr-linea"><b>Suma:</b> ${suma} <span>=</span> ${casillaRespuesta()}</p>
+      <p class="sr-linea"><b>Multiplicación:</b> ${casillaRespuesta()} <span>×</span> ${casillaRespuesta()} <span>=</span> ${casillaRespuesta()}</p>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── Problema con diagrama de barras / con frase numérica ─────────────────
+// "barras": el código dibuja la barra proporcional a los dos números del
+// problema, con el dato que se busca marcado con "?". Tres esquemas:
+// juntar (total desconocido), quitar (queda desconocido) y comparar
+// (diferencia desconocida). El signo de la frase numérica lo pone el código.
+function llave(x1, x2, y, arriba) {
+  const d = arriba ? -6 : 6;
+  return `<path class="barra-llave" d="M${x1} ${y} v${d} H${x2} v${-d}"/>`;
+}
+function renderProblemaBarras(datos) {
+  const esquema = ['quitar', 'comparar'].includes(datos.esquema) ? datos.esquema : 'juntar';
+  let [a, b] = lista(datos.numeros).map(n => enteroValido(n, 1, 9999)).filter(n => n !== null);
+  if (a === undefined || b === undefined) return '';
+  const et = lista(datos.etiquetas).map(e => escapeHtml(String(e || '').slice(0, 18)));
+  // En "comparar" las etiquetas van con su número: si se ordenan los números, también ellas.
+  if (esquema !== 'juntar' && b > a) { [a, b] = [b, a]; if (esquema === 'comparar') [et[0], et[1]] = [et[1], et[0]]; }
+  if (esquema !== 'juntar' && a === b) return '';
+  const X = 70, W = 300, H = 24;
+  const txt = (x, y, t, clase = '') => `<text class="barra-texto ${clase}" x="${x}" y="${y}" text-anchor="middle">${t}</text>`;
+  let svg;
+  if (esquema === 'comparar') {
+    const wb = Math.max(W * 0.2, W * b / a);
+    svg = `<svg width="${X + W + 16}" height="92" viewBox="0 0 ${X + W + 16} 92">
+      <text class="barra-texto" x="${X - 6}" y="27" text-anchor="end">${et[0] || ''}</text>
+      <rect class="barra barra-gris" x="${X}" y="10" width="${W}" height="${H}"/>${txt(X + W / 2, 27, a)}
+      <text class="barra-texto" x="${X - 6}" y="67" text-anchor="end">${et[1] || ''}</text>
+      <rect class="barra" x="${X}" y="50" width="${wb}" height="${H}"/>${txt(X + wb / 2, 67, b)}
+      <rect class="barra barra-hueco" x="${X + wb}" y="50" width="${W - wb}" height="${H}"/>${txt(X + wb + (W - wb) / 2, 67, '?', 'barra-incognita')}
+    </svg>`;
+  } else {
+    const total = esquema === 'juntar' ? a + b : a;
+    const izq = esquema === 'juntar' ? a : a - b, der = b;
+    const wi = Math.min(W * 0.78, Math.max(W * 0.22, W * izq / total));
+    const eti = esquema === 'juntar' ? [String(a), String(b), '?'] : ['?', String(b), String(a)];
+    svg = `<svg width="${X + W + 16}" height="100" viewBox="0 0 ${X + W + 16} 100">
+      ${llave(X, X + W, 26, true)}${txt(X + W / 2, 14, eti[2], eti[2] === '?' ? 'barra-incognita' : '')}
+      <rect class="barra barra-gris" x="${X}" y="30" width="${wi}" height="${H}"/>
+      <rect class="barra" x="${X + wi}" y="30" width="${W - wi}" height="${H}"/>
+      ${llave(X, X + wi - 2, 58, false)}${llave(X + wi + 2, X + W, 58, false)}
+      ${txt(X + wi / 2, 80, eti[0], eti[0] === '?' ? 'barra-incognita' : '')}${txt(X + wi + (W - wi) / 2, 80, eti[1])}
+      ${txt(X + wi / 2, 95, et[0] || '', 'barra-etiqueta')}${txt(X + wi + (W - wi) / 2, 95, et[1] || '', 'barra-etiqueta')}
+    </svg>`;
+  }
+  return `<div class="problema-barras">
+    <p class="razonado-texto">${escapeHtml(datos.texto)}</p>
+    <div class="barras-diagrama">${svg}</div>
+    ${fraseOperacion(esquema === 'juntar' ? '+' : '−')}
+    ${respuestaConUnidad(datos.unidad)}
+  </div>`;
+}
+function renderProblemaFrase(datos) {
+  return `<div class="problema-barras">
+    <p class="razonado-texto">${escapeHtml(datos.texto)}</p>
+    ${fraseOperacion(datos.signo === '-' || datos.signo === '−' ? '−' : '+')}
+    ${respuestaConUnidad(datos.unidad)}
+  </div>`;
+}
+
+// ── Ordinales ────────────────────────────────────────────────────────────
+// Las palabras (tercero, duodécimo...) las escribe SIEMPRE el código.
+const ORDINALES = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo',
+  'undécimo', 'duodécimo', 'decimotercero', 'decimocuarto', 'decimoquinto', 'decimosexto', 'decimoséptimo', 'decimoctavo', 'decimonoveno', 'vigésimo'];
+function renderOrdinales(datos) {
+  const modo = ['unir', 'escribir'].includes(datos.modo) ? datos.modo : 'rodear';
+  if (modo === 'rodear') {
+    const cantidad = enteroValido(datos.cantidad, 4, 10) || 6;
+    const icono = iconoValido(datos.icono, 'coche');
+    const filas = lista(datos.ordenes).map(o => {
+      const pos = enteroValido(o && o.posicion, 1, cantidad);
+      if (pos === null) return null;
+      const desde = o.desde === 'derecha' ? 'derecha' : 'izquierda';
+      const texto = o.tipo === 'cardinal'
+        ? (pos === 1 ? `Rodea <b>1</b> empezando por la ${desde}.` : `Rodea los <b>${pos}</b> primeros empezando por la ${desde}.`)
+        : `Rodea solo el <b>${pos}.º</b> empezando por la ${desde}.`;
+      return `<div class="ord-fila"><p class="ord-orden">${texto}</p><div class="ord-iconos">${htmlIcono(icono).repeat(cantidad)}</div></div>`;
+    }).filter(Boolean).slice(0, 5);
+    return filas.length ? `<div class="ord-bloque">${filas.join('')}</div>` : '';
+  }
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, 1, 20)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 8);
+  if (numeros.length < 2) return '';
+  if (modo === 'unir') {
+    const orden = barajaDeterministaFig(numeros.length, hashTextoFig('ord' + numeros.join(',')));
+    return unirRejilla([
+      numeros.map(n => `${marcoTematico('caja', `<b>${n}.º</b>`)}<span class="unir-punto"></span>`),
+      orden.map(i => `<span class="unir-punto"></span><span class="unir-texto">${ORDINALES[numeros[i]]}</span>`)
+    ]);
+  }
+  const filas = numeros.map((n, i) => i % 2 === 1 && datos.sentido !== 'a_letras'
+    ? `<div class="letras-fila letras-fila-a-numero"><span class="letras-palabra">${ORDINALES[n]}</span><span class="letras-flecha">▶</span>${casillaRespuesta('casilla-ancha')}</div>`
+    : `<div class="letras-fila"><span class="letras-numero">${n}.º</span><span class="letras-flecha">▶</span>${lineaPauta()}</div>`).join('');
+  return `<div class="letras-bloque">${filas}</div>`;
+}
+
+// ── Calendario ───────────────────────────────────────────────────────────
+// "mes": el código dibuja el mes REAL (en qué día cae el 1, cuántos días
+// tiene) y, si Claude no manda preguntas, pone unas propias sobre ese mes.
+// "semana": los siete días desordenados para numerarlos. "meses": los doce
+// meses con algunos en blanco.
+const DIAS_SEMANA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+function renderCalendario(datos) {
+  const modo = ['semana', 'meses'].includes(datos.modo) ? datos.modo : 'mes';
+  if (modo === 'semana') {
+    const orden = barajaDeterministaFig(7, hashTextoFig('semana' + (datos.semilla || '')));
+    return `<div class="cal-semana">${orden.map(i => `<div class="cal-dia"><span>${DIAS_SEMANA[i]}</span>${casillaRespuesta()}</div>`).join('')}</div>`;
+  }
+  if (modo === 'meses') {
+    const huecos = enteroValido(datos.huecos, 2, 8) || 5;
+    const aleatorio = crearAleatorio('meses' + huecos + (datos.semilla || ''));
+    const ocultos = new Set(barajar(MESES.map((_, i) => i), aleatorio).slice(0, huecos));
+    return `<div class="cal-meses">${MESES.map((m, i) => `<span class="cal-mes${ocultos.has(i) ? ' cal-mes-hueco' : ''}"><i>${i + 1}</i>${ocultos.has(i) ? '' : m}</span>`).join('')}</div>`;
+  }
+  const mes = enteroValido(datos.mes, 1, 12) || 1;
+  const anio = enteroValido(datos.anio, 2000, 2100) || new Date().getFullYear();
+  const diasMes = new Date(anio, mes, 0).getDate();
+  const primero = (new Date(anio, mes - 1, 1).getDay() + 6) % 7; // 0 = lunes
+  const celdas = [...Array(primero).fill(''), ...Array.from({ length: diasMes }, (_, i) => i + 1)];
+  while (celdas.length % 7) celdas.push('');
+  let filas = '';
+  for (let i = 0; i < celdas.length; i += 7) filas += `<tr>${celdas.slice(i, i + 7).map(d => `<td>${d}</td>`).join('')}</tr>`;
+  let preguntas = lista(datos.preguntas).map(p => String(p || '').trim()).filter(Boolean);
+  if (preguntas.length === 0) {
+    const aleatorio = crearAleatorio(`cal${mes}-${anio}`);
+    const dia = 2 + Math.floor(aleatorio() * (diasMes - 2));
+    const ds1 = Math.floor(aleatorio() * 7), ds2 = (ds1 + 3) % 7;
+    const plural = d => (/s$/.test(d) ? d : d + 's');
+    preguntas = [
+      `¿Qué día de la semana es el día ${dia}?`,
+      `¿Cuántos ${plural(DIAS_SEMANA[ds1])} tiene este mes?`,
+      `¿Qué día del mes es el primer ${DIAS_SEMANA[ds2]}?`,
+      '¿Cuántos días tiene este mes?'
+    ];
+  }
+  return `<div class="cal-bloque">
+    <table class="cal-tabla"><caption>${MESES[mes - 1]} ${anio}</caption>
+      <thead><tr>${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<th>${d}</th>`).join('')}</tr></thead>
+      <tbody>${filas}</tbody></table>
+    ${listaPreguntas(preguntas)}
+  </div>`;
+}
+
+// ── Redondeo (aproximar a la decena, centena o millar) ───────────────────
+// El código calcula entre qué dos números redondos está cada número y dibuja
+// la recta con el número en su sitio. La respuesta queda en blanco.
+function renderRedondeo(datos) {
+  const base = datos.a === 'centena' ? 100 : datos.a === 'millar' ? 1000 : 10;
+  const nombre = base === 10 ? 'decena' : base === 100 ? 'centena' : 'unidad de millar';
+  const conGuia = datos.guia !== false;
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, 1, 99999)).filter(n => n !== null && n % base !== 0 && n > base / 10)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 6);
+  if (numeros.length === 0) return '';
+  const items = numeros.map(n => {
+    const abajo = Math.floor(n / base) * base, arriba = abajo + base;
+    if (!conGuia) {
+      return `<div class="red-item"><p class="red-frase"><b>${n}</b> está entre ${casillaRespuesta('casilla-ancha')} y ${casillaRespuesta('casilla-ancha')}. Se aproxima a ${casillaRespuesta('casilla-ancha')}.</p></div>`;
+    }
+    const X0 = 28, X1 = 272, x = X0 + (X1 - X0) * (n - abajo) / base;
+    const marcas = Array.from({ length: 11 }, (_, i) => {
+      const xi = X0 + (X1 - X0) * i / 10, alto = i === 0 || i === 10 ? 9 : i === 5 ? 7 : 4;
+      return `<line class="red-marca" x1="${xi}" y1="${30 - alto}" x2="${xi}" y2="${30 + alto}"/>`;
+    }).join('');
+    return `<div class="red-item">
+      <svg width="300" height="62" viewBox="0 0 300 62">
+        <line class="red-linea" x1="${X0}" y1="30" x2="${X1}" y2="30"/>${marcas}
+        <text class="red-extremo" x="${X0}" y="54" text-anchor="middle">${abajo}</text>
+        <text class="red-extremo" x="${X1}" y="54" text-anchor="middle">${arriba}</text>
+        <path class="red-flecha" d="M${x.toFixed(1)} 19 l-4 -7 h8 z"/>
+        <text class="red-numero" x="${x.toFixed(1)}" y="9" text-anchor="middle">${n}</text>
+      </svg>
+      <p class="red-frase"><b>${n}</b> se aproxima a ${casillaRespuesta('casilla-ancha')}</p>
+    </div>`;
+  }).join('');
+  return `<div class="red-bloque"><p class="red-nota">Aproxima a la ${nombre} más cercana.</p>${items}</div>`;
+}
+
+// ── Encuentra el error ───────────────────────────────────────────────────
+// Cuentas en columna YA resueltas: el código calcula el resultado bueno y
+// decide él solo cuáles salen con un resultado equivocado (siempre al menos
+// una bien y una mal). El alumno marca las correctas y corrige las otras.
+function renderEncuentraError(datos) {
+  const ops = lista(datos.operaciones).map(op => {
+    const signo = op && (op.signo === '-' || op.signo === '−') ? '-' : '+';
+    const nums = lista(op && op.numeros).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 2);
+    if (nums.length < 2) return null;
+    if (signo === '-' && nums[1] > nums[0]) nums.reverse();
+    return { signo, nums, bien: signo === '+' ? nums[0] + nums[1] : nums[0] - nums[1] };
+  }).filter(Boolean).slice(0, 6);
+  if (ops.length < 2) return '';
+  const aleatorio = crearAleatorio(ops.map(o => o.nums.join(o.signo)).join('|'));
+  const malas = ops.map(() => aleatorio() < 0.5);
+  if (malas.every(m => m)) malas[0] = false;
+  if (malas.every(m => !m)) malas[malas.length - 1] = true;
+  const tarjetas = ops.map((op, i) => {
+    let mostrado = op.bien;
+    if (malas[i]) {
+      const cambios = [10, -10, 1, -1, 9, 11].map(c => op.bien + c).filter(v => v >= 0);
+      mostrado = cambios[Math.floor(aleatorio() * cambios.length)];
+    }
+    return `<div class="error-tarjeta">
+      <div class="operacion-columna">
+        <div class="operacion-fila"><span class="op-signo"></span><span class="num">${op.nums[0]}</span></div>
+        <div class="operacion-fila"><span class="op-signo">${op.signo}</span><span class="num">${op.nums[1]}</span></div>
+        <hr class="linea-op"><div class="operacion-fila"><span class="op-signo"></span><span class="num">${mostrado}</span></div>
+      </div>
+      <div class="error-marcas"><span class="casilla-test"></span><span class="error-corrige">${casillaRespuesta('casilla-ancha')}</span></div>
+    </div>`;
+  }).join('');
+  return `<div class="error-bloque"><p class="error-nota">Marca ✓ si está bien. Si está mal, escribe al lado el resultado correcto.</p><div class="error-rejilla">${tarjetas}</div></div>`;
+}
+
+// ── Recortes de la tabla del 100 (modo de rejilla_numerica) ──────────────
+// Trozos sueltos de la tabla del 1 al 100 con uno o dos números puestos. El
+// código coloca cada trozo en un sitio real de la tabla y calcula sus números.
+const FORMAS_RECORTE = [
+  [[0, 0], [0, 1], [1, 0], [2, 0]], [[0, 0], [1, 0], [1, 1], [1, 2]], [[0, 1], [1, 0], [1, 1], [1, 2], [2, 1]],
+  [[0, 0], [0, 1], [0, 2], [1, 1], [2, 1]], [[0, 0], [1, 0], [2, 0], [3, 0]], [[0, 0], [0, 1], [0, 2], [0, 3]],
+  [[0, 0], [0, 1], [1, 0], [1, 1]], [[0, 1], [0, 2], [1, 0], [1, 1]], [[0, 0], [1, 0], [1, 1], [2, 1]],
+  [[0, 2], [1, 0], [1, 1], [1, 2]], [[0, 0], [0, 1], [0, 2], [1, 0], [2, 0]], [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2]]
+];
+function renderRecortesTabla(datos) {
+  const cuantas = enteroValido(datos.piezas, 2, 9) || 6;
+  const aleatorio = crearAleatorio('recortes' + cuantas + (datos.semilla || ''));
+  const formas = barajar(FORMAS_RECORTE, aleatorio).slice(0, cuantas);
+  const piezas = formas.map(forma => {
+    const alto = Math.max(...forma.map(c => c[0])) + 1, ancho = Math.max(...forma.map(c => c[1])) + 1;
+    const f0 = Math.floor(aleatorio() * (10 - alto + 1)), c0 = Math.floor(aleatorio() * (10 - ancho + 1));
+    const dados = new Set([Math.floor(aleatorio() * forma.length)]);
+    if (forma.length >= 5) dados.add((Math.floor(aleatorio() * forma.length) + 2) % forma.length);
+    let celdas = '';
+    for (let f = 0; f < alto; f++) for (let c = 0; c < ancho; c++) {
+      const k = forma.findIndex(([ff, cc]) => ff === f && cc === c);
+      celdas += k < 0 ? '<span class="rec-nada"></span>' : `<span class="rec-celda">${dados.has(k) ? (f0 + f) * 10 + c0 + c + 1 : ''}</span>`;
+    }
+    return `<div class="rec-pieza" style="grid-template-columns:repeat(${ancho}, 34px)">${celdas}</div>`;
+  }).join('');
+  return `<div class="rec-bloque">${piezas}</div>`;
+}
+
+// ── Dominó de operaciones (recortable) ───────────────────────────────────
+// Cadena Inicio → Fin: cada ficha lleva el resultado de la operación de la
+// ficha anterior. El código calcula los resultados, descarta operaciones con
+// resultado repetido (la cadena tendría dos soluciones) y desordena las fichas.
+function renderDominoOperaciones(datos) {
+  const vistos = new Set();
+  const ops = lista(datos.operaciones).filter(o => {
+    const r = evaluarOperacion(o);
+    if (r === null || r < 0 || vistos.has(r)) return false;
+    vistos.add(r);
+    return true;
+  }).slice(0, 13);
+  if (ops.length < 3) return '';
+  const fichas = ops.map((o, i) => ({ izq: i === 0 ? 'Inicio' : String(evaluarOperacion(ops[i - 1])), der: textoOperacion(o) }));
+  fichas.push({ izq: String(evaluarOperacion(ops[ops.length - 1])), der: 'Fin' });
+  const resto = barajar(fichas.slice(1), crearAleatorio(ops.join('|')));
+  const html = [fichas[0], ...resto].map(f =>
+    `<div class="domino-ficha"><span class="domino-izq${f.izq === 'Inicio' ? ' domino-palabra' : ''}">${f.izq}</span><span class="domino-der${f.der === 'Fin' ? ' domino-palabra' : ''}">${f.der}</span></div>`).join('');
+  return `<div class="domino-bloque"><p class="domino-nota">✂ Recorta las fichas y únelas: empieza por «Inicio» y acaba en «Fin».</p><div class="domino-rejilla">${html}</div></div>`;
+}
+
+// ── Posición en una cuadrícula de dibujos ────────────────────────────────
+// Dibujos en un tablero; frases para completar con izquierda / derecha /
+// encima / debajo. En las frases van los propios DIBUJOS, no sus nombres:
+// sirve para quien aún no lee y evita errores de género ("el/la").
+function renderPosicionCuadricula(datos) {
+  const iconos = lista(datos.iconos).filter(n => ICONOS[n]).filter((n, i, arr) => arr.indexOf(n) === i);
+  const columnas = enteroValido(datos.columnas, 2, 4) || 3;
+  const filas = Math.min(3, Math.floor(iconos.length / columnas));
+  if (filas < 2) return '';
+  const rejilla = iconos.slice(0, filas * columnas);
+  const en = (f, c) => rejilla[f * columnas + c];
+  const mini = n => `<span class="pos-mini">${htmlIcono(n)}</span>`;
+  const hueco = '<span class="hueco hueco-largo"></span>';
+  const aleatorio = crearAleatorio(rejilla.join(','));
+  const candidatas = [];
+  for (let f = 0; f < filas; f++) for (let c = 0; c < columnas; c++) {
+    if (c + 1 < columnas) {
+      candidatas.push(`${mini(en(f, c))} está a la ${hueco} de ${mini(en(f, c + 1))}`);
+      candidatas.push(`${mini(en(f, c + 1))} está a la ${hueco} de ${mini(en(f, c))}`);
+    }
+    if (f + 1 < filas) {
+      candidatas.push(`${mini(en(f, c))} está ${hueco} de ${mini(en(f + 1, c))}`);
+      candidatas.push(`${mini(en(f + 1, c))} está ${hueco} de ${mini(en(f, c))}`);
+    }
+  }
+  const cuantas = enteroValido(datos.frases, 2, 6) || 4;
+  const frases = barajar(candidatas, aleatorio).slice(0, cuantas - 1);
+  const fo = Math.floor(aleatorio() * filas), co = Math.floor(aleatorio() * columnas);
+  frases.push(`En su fila, contando desde la izquierda, ${mini(en(fo, co))} es el número ${casillaRespuesta()}`);
+  return `<div class="pos-bloque">
+    <div class="pos-tablero" style="grid-template-columns:repeat(${columnas}, 74px)">${rejilla.map(n => `<span class="pos-celda">${htmlIcono(n)}</span>`).join('')}</div>
+    <div class="pos-frases">
+      <p class="pos-banco"><span>izquierda</span><span>derecha</span><span>encima</span><span>debajo</span></p>
+      ${frases.map(f => `<p class="pos-frase">${f}.</p>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── Comparar dos montones de dibujos ─────────────────────────────────────
+// "mas"/"menos": dos cajas y una casilla en cada una para marcar. "diferencia":
+// dos filas emparejadas una encima de otra y la resta debajo. Las cantidades
+// iguales se descartan en mas/menos (no habría nada que marcar).
+function renderCompararCantidades(datos) {
+  const modo = ['menos', 'diferencia'].includes(datos.modo) ? datos.modo : 'mas';
+  const parejas = lista(datos.parejas).map(p => {
+    const a = enteroValido(p && p.a, 1, 10), b = enteroValido(p && p.b, 1, 10);
+    if (a === null || b === null || a === b) return null;
+    const iconoA = iconoValido(p.iconoA), iconoB = iconoValido(p.iconoB, iconoA === 'estrella' ? 'corazon' : 'estrella');
+    return { a, b, iconoA, iconoB: iconoB === iconoA ? (iconoA === 'estrella' ? 'corazon' : 'estrella') : iconoB };
+  }).filter(Boolean).slice(0, 4);
+  if (parejas.length === 0) return '';
+  if (modo === 'diferencia') {
+    return `<div class="cc-bloque">${parejas.map(p => {
+      const mayor = Math.max(p.a, p.b);
+      const fila = (icono, n) => `<div class="cc-fila" style="grid-template-columns:repeat(${mayor}, 38px)">${Array.from({ length: n }, () => `<span>${htmlIcono(icono)}</span>`).join('')}</div>`;
+      return `<div class="cc-diferencia">${fila(p.iconoA, p.a)}${fila(p.iconoB, p.b)}${fraseOperacion('−')}</div>`;
+    }).join('')}</div>`;
+  }
+  const caja = (icono, n) => `<div class="cc-caja"><div class="cc-dibujos">${htmlIcono(icono).repeat(n)}</div><span class="casilla-test"></span></div>`;
+  return `<div class="cc-bloque"><p class="cc-nota">Marca donde hay <b>${modo === 'mas' ? 'más' : 'menos'}</b>.</p>${parejas.map(p =>
+    `<div class="cc-pareja">${caja(p.iconoA, p.a)}${caja(p.iconoB, p.b)}</div>`).join('')}</div>`;
+}
+
+// ── Recorrido en cuadrícula ──────────────────────────────────────────────
+// Órdenes ("3 a la derecha, 2 abajo...") sobre una cuadrícula con tres metas
+// A, B y C. El código sigue el camino, comprueba que no se sale ni pasa dos
+// veces por la misma casilla, y pone UNA meta al final del camino y las otras
+// dos en casillas por las que el camino no pasa.
+const DIRECCIONES = { derecha: [0, 1, '→'], izquierda: [0, -1, '←'], arriba: [-1, 0, '↑'], abajo: [1, 0, '↓'] };
+function renderRecorridoCuadricula(datos) {
+  const pasos = lista(datos.pasos).map(p => {
+    const dir = DIRECCIONES[String(p && p.direccion || '').toLowerCase()];
+    const n = enteroValido(p && p.cuantos, 1, 8);
+    return dir && n !== null ? { dir, n } : null;
+  }).filter(Boolean).slice(0, 6);
+  if (pasos.length < 2) return '';
+  let f = 0, c = 0;
+  const camino = [[0, 0]];
+  for (const { dir, n } of pasos) for (let i = 0; i < n; i++) { f += dir[0]; c += dir[1]; camino.push([f, c]); }
+  const claves = camino.map(p => p.join(','));
+  if (new Set(claves).size !== claves.length) return '';
+  const minF = Math.min(...camino.map(p => p[0])), maxF = Math.max(...camino.map(p => p[0]));
+  const minC = Math.min(...camino.map(p => p[1])), maxC = Math.max(...camino.map(p => p[1]));
+  const filas = Math.max(4, maxF - minF + 2), columnas = Math.max(5, maxC - minC + 2);
+  if (filas > 9 || columnas > 12) return '';
+  const pos = p => (p[0] - minF) * columnas + (p[1] - minC);
+  const ocupadas = new Set(camino.map(pos));
+  const aleatorio = crearAleatorio(claves.join('|'));
+  const libres = barajar(Array.from({ length: filas * columnas }, (_, i) => i).filter(i => !ocupadas.has(i)), aleatorio);
+  if (libres.length < 2) return '';
+  const letras = barajar(['A', 'B', 'C'], aleatorio);
+  const marcas = { [pos(camino[camino.length - 1])]: letras[0], [libres[0]]: letras[1], [libres[1]]: letras[2] };
+  const inicio = pos(camino[0]);
+  const celdas = Array.from({ length: filas * columnas }, (_, i) =>
+    `<span class="reco-celda${i === inicio ? ' reco-inicio' : ''}">${i === inicio ? '●' : marcas[i] ? `<b>${marcas[i]}</b>` : ''}</span>`).join('');
+  return `<div class="reco-bloque">
+    <div class="reco-rejilla" style="grid-template-columns:repeat(${columnas}, 30px)">${celdas}</div>
+    <div class="reco-ordenes">
+      <p>Sal del punto ● y sigue las órdenes:</p>
+      <p class="reco-pasos">${pasos.map(p => `<span>${p.n} ${p.dir[2]}</span>`).join('')}</p>
+      <p>Llegas a la letra ${casillaRespuesta()}</p>
+    </div>
+  </div>`;
+}
+
+// ── Tipos de líneas ──────────────────────────────────────────────────────
+// Catálogo cerrado de dibujos: la respuesta correcta es un dato del código.
+const LINEAS = {
+  recta: '<path d="M8 44 L92 12"/>',
+  curva: '<path d="M8 40 C28 2 50 60 70 26 S90 14 92 30"/>',
+  poligonal_abierta: '<path d="M8 44 L28 12 L48 40 L68 14 L92 36"/>',
+  poligonal_cerrada: '<path d="M14 42 L30 10 L66 8 L90 30 L62 46 Z"/>',
+  curva_cerrada: '<path d="M50 8 C82 6 94 30 74 44 C56 54 22 50 12 34 C4 18 26 8 50 8 Z"/>'
+};
+const PARES_RECTAS = {
+  paralelas: '<path d="M8 16 L92 28 M8 34 L92 46"/>',
+  secantes: '<path d="M8 14 L92 44 M10 46 L90 18"/>',
+  perpendiculares: '<path d="M10 40 L90 22 M44 4 L54 50"/>'
+};
+function renderTiposLineas(datos) {
+  const modo = ['posicion', 'abierta_cerrada'].includes(datos.modo) ? datos.modo : 'clasificar';
+  const catalogo = modo === 'posicion' ? PARES_RECTAS : LINEAS;
+  const opciones = modo === 'posicion' ? ['paralelas', 'secantes', 'perpendiculares']
+    : modo === 'abierta_cerrada' ? ['abierta', 'cerrada'] : ['recta', 'curva', 'poligonal'];
+  const nombres = lista(datos.lineas).filter(n => catalogo[n]).slice(0, 6);
+  const usar = nombres.length >= 2 ? nombres : barajar(Object.keys(catalogo), crearAleatorio('lineas' + modo));
+  const tarjetas = usar.filter(n => modo !== 'abierta_cerrada' || n !== 'recta').map(n => `<div class="lin-tarjeta">
+      <svg class="lin-dibujo" width="110" height="60" viewBox="0 0 100 54">${catalogo[n]}</svg>
+      <div class="lin-opciones">${opciones.map(o => `<span class="opcion-item"><span class="casilla-test"></span> ${o}</span>`).join('')}</div>
+    </div>`).join('');
+  return `<div class="lin-bloque">${tarjetas}</div>`;
+}
+
+// ── Serie de figuras o dibujos ───────────────────────────────────────────
+// Claude da solo el patrón (2-4 elementos); el código lo repite y deja las
+// últimas casillas en blanco para que el alumno continúe.
+function renderSerieFiguras(datos) {
+  const series = (Array.isArray(datos.series) ? datos.series : [datos]).map(s => {
+    const patron = lista(s && s.patron).filter(n => ICONOS[n]).slice(0, 4);
+    if (patron.length < 2 || new Set(patron).size < 2) return null;
+    const huecos = enteroValido(s.huecos, 1, 5) || 3;
+    const longitud = Math.min(12, Math.max(patron.length * 2 + huecos, enteroValido(s.longitud, 5, 12) || 9));
+    return Array.from({ length: longitud }, (_, i) => i < longitud - huecos
+      ? `<span class="sf-celda">${htmlIcono(patron[i % patron.length])}</span>` : '<span class="sf-celda sf-hueco"></span>').join('');
+  }).filter(Boolean).slice(0, 4);
+  return series.length ? `<div class="sf-bloque">${series.map(s => `<div class="sf-fila">${s}</div>`).join('')}</div>` : '';
+}
+
+// ── Tabla de doble entrada (horarios, encuestas...) ──────────────────────
+// "leer": tabla rellena + preguntas. "completar": pistas + tabla vacía.
+function renderTablaDobleEntrada(datos) {
+  const columnas = lista(datos.columnas).map(c => String(c || '').slice(0, 20)).slice(0, 7);
+  const filas = lista(datos.filas).slice(0, 6);
+  if (columnas.length < 2 || filas.length === 0) return '';
+  const completar = datos.modo === 'completar';
+  const cuerpo = filas.map(f => `<tr><th>${escapeHtml(f && f.etiqueta)}</th>${columnas.map((_, i) =>
+    `<td>${completar ? '' : escapeHtml(lista(f && f.celdas)[i] ?? '')}</td>`).join('')}</tr>`).join('');
+  const pistas = completar ? lista(datos.pistas).map(p => String(p || '').trim()).filter(Boolean).slice(0, 8) : [];
+  return `<div class="tde-bloque">
+    ${pistas.length ? `<ul class="tde-pistas">${pistas.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
+    <table class="tde-tabla${completar ? ' tde-vacia' : ''}"><thead><tr><th></th>${columnas.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>
+    ${listaPreguntas(datos.preguntas)}
+  </div>`;
+}
+
+// ── Sopa de operaciones ──────────────────────────────────────────────────
+// Rejilla de números con operaciones escondidas (a b c seguidos, en
+// horizontal o en vertical, con a ○ b = c). El código calcula c, coloca cada
+// trío y rellena el resto con números que no formen por casualidad otra
+// operación válida.
+function renderSopaOperaciones(datos) {
+  const esProducto = ['x', 'X', '×', '*'].includes(String(datos.signo));
+  const op = (a, b) => (esProducto ? a * b : a + b);
+  const vistos = new Set();
+  const trios = lista(datos.operaciones).map(o => {
+    const [a, b] = lista(o).map(n => enteroValido(n, 1, esProducto ? 10 : 50)).filter(n => n !== null);
+    if (a === undefined || b === undefined || vistos.has(`${a},${b}`)) return null;
+    vistos.add(`${a},${b}`);
+    return [a, b, op(a, b)];
+  }).filter(Boolean).slice(0, 6);
+  if (trios.length < 2) return '';
+  const N = trios.length > 4 ? 7 : 6;
+  const maximo = Math.max(...trios.map(t => t[2]), 12);
+  const aleatorio = crearAleatorio(trios.join('|'));
+  const g = Array.from({ length: N }, () => Array(N).fill(null));
+  const fijo = Array.from({ length: N }, () => Array(N).fill(false));
+  let colocados = 0;
+  trios.forEach(t => {
+    for (let intento = 0; intento < 200; intento++) {
+      const h = aleatorio() < 0.5, f = Math.floor(aleatorio() * (h ? N : N - 2)), c = Math.floor(aleatorio() * (h ? N - 2 : N));
+      const cel = [0, 1, 2].map(k => (h ? [f, c + k] : [f + k, c]));
+      if (cel.some(([y, x]) => g[y][x] !== null)) continue;
+      cel.forEach(([y, x], k) => { g[y][x] = t[k]; fijo[y][x] = true; });
+      colocados++;
+      return;
+    }
+  });
+  if (colocados < 2) return '';
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (g[y][x] === null) g[y][x] = 1 + Math.floor(aleatorio() * maximo);
+  // Quita las operaciones "accidentales" cambiando una casilla de relleno.
+  const validos = new Set();
+  const esFijo = cel => cel.every(([y, x]) => fijo[y][x]);
+  for (let pasada = 0; pasada < 40; pasada++) {
+    let cambios = 0;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) for (const h of [true, false]) {
+      const cel = [0, 1, 2].map(k => (h ? [y, x + k] : [y + k, x]));
+      if (cel.some(([yy, xx]) => yy >= N || xx >= N)) continue;
+      const [a, b, r] = cel.map(([yy, xx]) => g[yy][xx]);
+      if (op(a, b) !== r || esFijo(cel)) continue;
+      const libre = cel.find(([yy, xx]) => !fijo[yy][xx]);
+      if (!libre) continue;
+      g[libre[0]][libre[1]] = 1 + Math.floor(aleatorio() * maximo);
+      cambios++;
+    }
+    if (cambios === 0) { validos.add('ok'); break; }
+  }
+  const celdas = g.map(fila => fila.map(n => `<span class="sopa-celda">${n}</span>`).join('')).join('');
+  return `<div class="sopa-bloque">
+    <div class="sopa-rejilla" style="grid-template-columns:repeat(${N}, 36px)">${celdas}</div>
+    <p class="sopa-nota">Hay <b>${colocados}</b> ${esProducto ? 'multiplicaciones' : 'sumas'} escondidas, en horizontal → o en vertical ↓. Rodéalas así: <span class="sopa-ejemplo">${trios[0][0]} ${trios[0][1]} ${trios[0][2]}</span> porque ${trios[0][0]} ${esProducto ? '×' : '+'} ${trios[0][1]} = ${trios[0][2]}.</p>
+  </div>`;
+}
+
+// ── Contar figuras ───────────────────────────────────────────────────────
+// Figuras con otras escondidas dentro, de un catálogo cerrado.
+function renderContarFiguras(datos) {
+  const tarjetas = lista(datos.figuras).map(f => {
+    const tipo = f && f.tipo;
+    if (tipo === 'triangulos') {
+      const n = enteroValido(f.divisiones, 2, 5) || 3;
+      const lineas = Array.from({ length: n - 1 }, (_, i) => `<line x1="60" y1="8" x2="${10 + 100 * (i + 1) / n}" y2="92"/>`).join('');
+      return { svg: `<path d="M60 8 L10 92 L110 92 Z"/>${lineas}`, nombre: 'triángulos' };
+    }
+    if (tipo === 'cuadrados') {
+      const n = enteroValido(f.lado, 2, 3) || 2, l = 84 / n;
+      let r = '';
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) r += `<rect x="${18 + x * l}" y="${8 + y * l}" width="${l}" height="${l}"/>`;
+      return { svg: r, nombre: 'cuadrados' };
+    }
+    if (tipo === 'rectangulos') {
+      const n = enteroValido(f.celdas, 2, 5) || 3, w = 104 / n;
+      return { svg: Array.from({ length: n }, (_, i) => `<rect x="${8 + i * w}" y="30" width="${w}" height="40"/>`).join(''), nombre: 'rectángulos' };
+    }
+    return null;
+  }).filter(Boolean).slice(0, 4).map(t => `<div class="cf-tarjeta">
+      <svg class="cf-dibujo" width="120" height="100" viewBox="0 0 120 100">${t.svg}</svg>
+      <p>¿Cuántos ${t.nombre} hay en total? ${casillaRespuesta()}</p>
+    </div>`).join('');
+  return tarjetas ? `<div class="cf-bloque">${tarjetas}</div>` : '';
+}
+
+// ── Elegir la unidad de medida ───────────────────────────────────────────
+function renderElegirUnidad(datos) {
+  const filas = lista(datos.items).map(it => {
+    const texto = String(it && it.texto || '').trim();
+    const opciones = lista(it && it.opciones).map(o => String(o || '').trim()).filter(Boolean).slice(0, 4);
+    if (!texto || opciones.length < 2) return '';
+    return `<div class="eu-fila"><span class="eu-texto">${escapeHtml(texto)}</span><span class="eu-opciones">${opciones.map(o =>
+      `<span class="opcion-item"><span class="casilla-test"></span> ${escapeHtml(o)}</span>`).join('')}</span></div>`;
+  }).filter(Boolean).slice(0, 8).join('');
+  return filas ? `<div class="eu-bloque">${filas}</div>` : '';
+}
+
+// ── Trazo de cifras con punto de inicio y flechas ────────────────────────
+// Cada cifra es un esqueleto propio (el camino que sigue el lápiz), en gris
+// claro para repasar, con el punto donde se empieza y una flecha numerada
+// por cada trazo. Casilla con cruz punteada, como en los cuadernos.
+const TRAZOS_CIFRA = {
+  0: ['M20 6 C8 6 6 20 6 30 C6 44 10 54 20 54 C30 54 34 44 34 30 C34 18 31 6 20 6'],
+  1: ['M9 19 L22 6 L22 54'],
+  2: ['M8 17 C10 3 32 3 32 18 C32 29 16 40 8 54 L34 54'],
+  3: ['M8 12 C14 3 32 5 32 17 C32 26 22 29 16 29 C24 29 34 33 34 42 C34 56 12 57 7 47'],
+  4: ['M24 6 L6 40 L36 40', 'M28 22 L28 54'],
+  5: ['M12 6 L9 27 C16 22 34 24 34 39 C34 55 13 57 7 47', 'M12 6 L31 6'],
+  6: ['M30 8 C14 8 7 26 7 40 C7 50 13 54 20 54 C28 54 33 48 33 41 C33 33 27 29 20 29 C13 29 8 34 7 40'],
+  7: ['M7 6 L33 6 L16 54'],
+  8: ['M20 6 C9 6 10 26 20 29 C33 33 32 54 20 54 C8 54 7 33 20 29 C30 26 31 6 20 6'],
+  9: ['M33 20 C33 10 27 6 20 6 C12 6 7 12 7 19 C7 27 13 31 20 31 C27 31 33 26 33 20 C33 36 30 54 14 54']
+};
+// Dirección inicial de cada trazo (para la flechita): [dx, dy] ya normalizado.
+const SALIDA_TRAZO = { 0: [[-1, 0.4]], 1: [[0.7, -0.7]], 2: [[0.5, -0.85]], 3: [[0.7, -0.7]], 4: [[-0.47, 0.88], [0, 1]], 5: [[-0.14, 0.99], [1, 0]], 6: [[-1, 0.2]], 7: [[1, 0]], 8: [[-1, 0.5]], 9: [[-0.3, -0.95]] };
+function svgCifraTrazo(cifra, conGuia) {
+  const trazos = TRAZOS_CIFRA[cifra];
+  if (!trazos) return '';
+  const caminos = trazos.map(d => `<path class="tc-trazo" d="${d}"/>`).join('');
+  let guia = '';
+  if (conGuia) {
+    guia = trazos.map((d, i) => {
+      const [x, y] = d.match(/^M(-?[\d.]+) (-?[\d.]+)/).slice(1).map(Number);
+      const [dx, dy] = SALIDA_TRAZO[cifra][i];
+      // La flecha va desplazada hacia un lado del trazo, para no taparlo.
+      const ox = x - dy * 8, oy = y + dx * 8;
+      const x2 = ox + dx * 12, y2 = oy + dy * 12;
+      const numero = trazos.length > 1 ? `<text class="tc-orden" x="${(ox - dx * 6).toFixed(1)}" y="${(oy - dy * 6 + 3).toFixed(1)}" text-anchor="middle">${i + 1}</text>` : '';
+      return `<circle class="tc-inicio" cx="${x}" cy="${y}" r="2.6"/><path class="tc-flecha" d="M${ox.toFixed(1)} ${oy.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}"/><path class="tc-punta" d="M${x2.toFixed(1)} ${y2.toFixed(1)} l${(-dx * 5 - dy * 3).toFixed(1)} ${(-dy * 5 + dx * 3).toFixed(1)} l${(dy * 6).toFixed(1)} ${(-dx * 6).toFixed(1)} z"/>${numero}`;
+    }).join('');
+  }
+  return `<svg class="tc-cifra" width="40" height="60" viewBox="-6 -4 52 68">${caminos}${guia}</svg>`;
+}
+function celdaTrazo(numero, conGuia) {
+  const cifras = String(numero).split('').map(c => svgCifraTrazo(Number(c), conGuia)).join('');
+  return `<span class="tc-celda${String(numero).length > 1 ? ' tc-doble' : ''}">${cifras}</span>`;
+}
+function renderTrazoNumero(datos) {
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, 0, 20)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 11);
+  if (numeros.length === 0) return '';
+  const repasar = enteroValido(datos.repasar, 1, 5) || 3;
+  const solo = enteroValido(datos.solo, 0, 6) ?? 3;
+  const filas = numeros.map(n => {
+    const doble = n > 9;
+    const vacias = `<span class="tc-celda${doble ? ' tc-doble' : ''}"></span>`.repeat(solo);
+    return `<div class="tc-fila">${celdaTrazo(n, true)}${celdaTrazo(n, false).repeat(repasar)}${vacias}<span class="tc-palabra">${numeroALetras(n)}</span></div>`;
+  }).join('');
+  return `<div class="tc-bloque">${filas}</div>`;
+}
+
+// ════════════ MODOS NUEVOS SOBRE TIPOS QUE YA EXISTÍAN (02/10/2026) ══════
+
+// operacion_vertical — "prueba": resta en columna y, al lado, la suma que la
+// comprueba (resultado + sustraendo = minuendo), con el sustraendo ya puesto.
+function renderRestaConPrueba(datos) {
+  const ops = lista(datos.operaciones).map(op => {
+    const nums = lista(op && op.numeros).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 2);
+    if (nums.length < 2) return null;
+    if (nums[1] > nums[0]) nums.reverse();
+    return nums;
+  }).filter(Boolean).slice(0, 4);
+  if (ops.length === 0) return '';
+  return `<div class="prueba-bloque">${ops.map(([a, b]) => `<div class="prueba-item">
+    ${renderOperacionColumna({ signo: '-', numeros: [a, b] })}
+    <span class="prueba-flecha">Prueba ▶</span>
+    <div class="operacion-columna">
+      <div class="operacion-fila"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
+      <div class="operacion-fila"><span class="op-signo">+</span><span class="num">${b}</span></div>
+      <hr class="linea-op"><div class="operacion-fila"><span class="op-signo"></span><span class="resultado-hueco"></span></div>
+    </div>
+  </div>`).join('')}</div>`;
+}
+// operacion_vertical — "hueco": "sumando": falta el segundo número; el
+// resultado (calculado por el código) ya está puesto.
+function renderSumandoOculto(datos) {
+  const ops = lista(datos.operaciones).map(op => {
+    const signo = op && (op.signo === '-' || op.signo === '−') ? '-' : '+';
+    const nums = lista(op && op.numeros).map(n => enteroValido(n, 0, 99999)).filter(n => n !== null).slice(0, 2);
+    if (nums.length < 2) return null;
+    if (signo === '-' && nums[1] > nums[0]) nums.reverse();
+    return { signo, a: nums[0], r: signo === '+' ? nums[0] + nums[1] : nums[0] - nums[1] };
+  }).filter(Boolean).slice(0, 8);
+  if (ops.length === 0) return '';
+  return `<div class="operaciones-fila sumando-oculto">${ops.map(op => `<div class="operacion-columna">
+      <div class="operacion-fila"><span class="op-signo"></span><span class="num">${op.a}</span></div>
+      <div class="operacion-fila"><span class="op-signo">${op.signo}</span><span class="resultado-hueco"></span></div>
+      <hr class="linea-op"><div class="operacion-fila"><span class="op-signo"></span><span class="num">${op.r}</span></div>
+    </div>`).join('')}</div>`;
+}
+
+// ecuacion_sencilla — posicionIncognita "signo" (¿suma o resta?) y "ambos"
+// (inventa una operación para un resultado dado).
+function renderEcuacionExtra(datos) {
+  const filas = lista(datos.operaciones).slice(0, 8).map(op => {
+    const a = Math.round(numeroDesdeJSON(op && op.a)), b = Math.round(numeroDesdeJSON(op && op.b));
+    const signo = op.signo === '-' || op.signo === '−' ? '−' : '+';
+    if (signo === '−' && b > a) return null;
+    const r = signo === '+' ? a + b : a - b;
+    const num = v => `<span class="ecuacion-numero">${v}</span>`;
+    const hueco = '<span class="hueco hueco-corto ecuacion-hueco"></span>';
+    if (op.posicionIncognita === 'signo') {
+      if (b === 0) return null; // con 0, sumar y restar dan lo mismo
+      return `<div class="ecuacion-fila">${num(a)}<span class="ecuacion-circulo"></span>${num(b)}<span class="ecuacion-signo">=</span>${num(r)}</div>`;
+    }
+    return `<div class="ecuacion-fila">${hueco}<span class="ecuacion-signo">${signo}</span>${hueco}<span class="ecuacion-signo">=</span>${num(r)}</div>`;
+  }).filter(Boolean).join('');
+  return filas ? `<div class="ecuacion-sencilla-bloque">${filas}</div>` : '';
+}
+
+// reparto — "resto": true: no se ajusta al múltiplo; "y sobran □".
+function renderRepartoConResto(datos) {
+  const grupos = enteroValido(datos.grupos, 2, 6) || 2;
+  const total = Math.min(30, Math.max(grupos, enteroValido(datos.total, 2, 30) || grupos));
+  return `<div class="reparto-bloque">
+    <p class="reparto-operacion">${total} : ${grupos} = ${casillaRespuesta()} y sobran ${casillaRespuesta()}</p>
+    <div class="reparto-objetos">${htmlIcono(iconoValido(datos.icono)).repeat(total)}</div>
+    <div class="reparto-grupos">${'<div class="reparto-grupo-caja"></div>'.repeat(grupos)}</div>
+  </div>`;
+}
+
+// barritas_decenas — placas de centena, "agrupar" de 10 en 10 y "operar"
+// (sumar o restar decenas con decenas y unidades con unidades, sin llevadas).
+function svgBase10(numero) {
+  const c = Math.floor(numero / 100), d = Math.floor(numero / 10) % 10, u = numero % 10, l = 8;
+  let partes = '', x = 2;
+  for (let k = 0; k < c; k++) {
+    for (let i = 0; i < 100; i++) partes += `<rect class="base10-cubo" x="${x + (i % 10) * l}" y="${2 + Math.floor(i / 10) * l}" width="${l}" height="${l}"/>`;
+    x += 10 * l + 6;
+  }
+  for (let k = 0; k < d; k++) {
+    for (let i = 0; i < 10; i++) partes += `<rect class="base10-cubo" x="${x}" y="${2 + i * l}" width="${l}" height="${l}"/>`;
+    x += l + 4;
+  }
+  if (u > 0) x += 3;
+  for (let i = 0; i < u; i++) partes += `<rect class="base10-cubo base10-suelto" x="${x + Math.floor(i / 5) * (l + 3)}" y="${2 + (5 + i % 5) * l}" width="${l}" height="${l}"/>`;
+  const ancho = x + (u > 5 ? 2 : u > 0 ? 1 : 0) * (l + 3) + 3;
+  return `<svg width="${ancho}" height="${10 * l + 4}" viewBox="0 0 ${ancho} ${10 * l + 4}">${partes}</svg>`;
+}
+function renderBarritasExtra(datos) {
+  if (datos.modo === 'agrupar') {
+    const numeros = lista(datos.numeros).map(n => enteroValido(n, 11, 60)).filter(n => n !== null).slice(0, 2);
+    if (numeros.length === 0) return '';
+    return `<div class="agrupar-bloque">${numeros.map(n => {
+      const aleatorio = crearAleatorio('agrupar' + n);
+      const columnas = 12, filas = Math.ceil(n / columnas) + 1;
+      const sitios = barajar(Array.from({ length: columnas * filas }, (_, i) => i), aleatorio).slice(0, n);
+      const bolas = sitios.map(s => `<circle class="agrupar-bola" cx="${(14 + (s % columnas) * 27 + aleatorio() * 9).toFixed(1)}" cy="${(14 + Math.floor(s / columnas) * 27 + aleatorio() * 9).toFixed(1)}" r="7"/>`).join('');
+      return `<div class="agrupar-item">
+        <svg width="${columnas * 27 + 14}" height="${filas * 27 + 14}" viewBox="0 0 ${columnas * 27 + 14} ${filas * 27 + 14}">${bolas}</svg>
+        <p>Rodea grupos de 10. Hay ${casillaRespuesta()} grupos de 10 y ${casillaRespuesta()} sueltas. En total: ${casillaRespuesta('casilla-ancha')}</p>
+      </div>`;
+    }).join('')}</div>`;
+  }
+  if (datos.modo === 'operar') {
+    const ops = lista(datos.operaciones).map(op => {
+      const resta = op && (op.signo === '-' || op.signo === '−');
+      let [a, b] = lista(op && op.numeros).map(n => enteroValido(n, 1, 99)).filter(n => n !== null);
+      if (a === undefined || b === undefined) return null;
+      if (resta && b > a) [a, b] = [b, a];
+      const ok = resta ? (a % 10 >= b % 10) : (a % 10 + b % 10 < 10 && a + b < 100);
+      return ok ? { a, b, s: resta ? '−' : '+' } : null;
+    }).filter(Boolean).slice(0, 3);
+    if (ops.length === 0) return '';
+    const linea = (nombre, s) => `<p><span class="operar-nombre">${nombre}</span> ${casillaRespuesta()} <span>${s}</span> ${casillaRespuesta()} <span>=</span> ${casillaRespuesta()}</p>`;
+    return `<div class="operar-bloque">${ops.map(({ a, b, s }) => `<div class="operar-item">
+      <p class="operar-cuenta">${a} ${s} ${b}</p>
+      <div class="operar-dibujos"><span>${svgBarritasDecenas(a)}</span><b>${s}</b><span>${svgBarritasDecenas(b)}</span></div>
+      <div class="operar-lineas">${linea('Decenas', s)}${linea('Unidades', s)}<p><span class="operar-nombre">Resultado</span> ${casillaRespuesta('casilla-ancha')}</p></div>
+    </div>`).join('')}</div>`;
+  }
+  // Números de tres cifras en modo "contar": placas de centena.
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, 100, 999)).filter(n => n !== null).slice(0, 3);
+  if (numeros.length === 0) return '';
+  return `<div class="base10-bloque">${numeros.map(n => `<div class="base10-tarjeta base10-centenas">
+    ${svgBase10(n)}
+    <div class="base10-respuesta"><p>${casillaRespuesta()} C, ${casillaRespuesta()} D y ${casillaRespuesta()} U</p><p>Número: ${casillaRespuesta('casilla-ancha')}</p></div>
+  </div>`).join('')}</div>`;
+}
+
+// suma_asociativa — "conmutativa": a + b = b + □ = □
+function renderConmutativa(datos) {
+  const pares = lista(datos.pares).map(p => lista(p).map(n => enteroValido(n, 0, 999)).filter(n => n !== null))
+    .filter(p => p.length === 2 && p[0] !== p[1]).slice(0, 6);
+  if (pares.length === 0) return '';
+  return `<div class="conmutativa-bloque">${pares.map(([a, b]) =>
+    `<p class="conmutativa-fila">${a} + ${b} = ${b} + ${casillaRespuesta()} = ${casillaRespuesta('casilla-ancha')}</p>`).join('')}</div>`;
+}
+
+// reloj_analogico — "despues" (media hora después/antes), "elegir" (colorea
+// el reloj que marca la hora escrita) y "tabla24" (mañana ↔ tarde).
+function svgReloj(hora, minuto) {
+  const numeros = Array.from({ length: 12 }, (_, i) => {
+    const ang = ((i + 1) / 12) * 2 * Math.PI - Math.PI / 2;
+    return `<text x="${(55 + 42 * Math.cos(ang)).toFixed(1)}" y="${(58 + 42 * Math.sin(ang)).toFixed(1)}" font-size="9" text-anchor="middle" font-family="Arial">${i + 1}</text>`;
+  }).join('');
+  const am = (minuto / 60) * 2 * Math.PI, ah = (((hora % 12) + minuto / 60) / 12) * 2 * Math.PI;
+  return `<svg width="110" height="110" viewBox="0 0 110 110"><circle cx="55" cy="55" r="48" fill="#fff" stroke="#000" stroke-width="2"/>${numeros}
+    <line x1="55" y1="55" x2="${(55 + 22 * Math.sin(ah)).toFixed(1)}" y2="${(55 - 22 * Math.cos(ah)).toFixed(1)}" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+    <line x1="55" y1="55" x2="${(55 + 34 * Math.sin(am)).toFixed(1)}" y2="${(55 - 34 * Math.cos(am)).toFixed(1)}" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="55" cy="55" r="2.5" fill="#000"/></svg>`;
+}
+function renderRelojExtra(datos) {
+  if (datos.modo === 'tabla24') {
+    const horas = lista(datos.horas).map(h => enteroValido(h, 1, 11)).filter(h => h !== null)
+      .filter((h, i, arr) => arr.indexOf(h) === i).slice(0, 6);
+    if (horas.length < 2) return '';
+    const filas = horas.map((h, i) => `<tr><td>${i % 2 === 0 || i === 0 ? `${h}:00` : ''}</td><td>${i === 0 ? `${h + 12}:00` : i % 2 === 1 ? `${h + 12}:00` : ''}</td></tr>`).join('');
+    return `<table class="tabla24"><thead><tr><th>Por la mañana</th><th>Por la tarde</th></tr></thead><tbody>${filas}</tbody></table>`;
+  }
+  const relojes = (Array.isArray(datos.relojes) ? datos.relojes : [datos]).map(r => {
+    const hora = enteroValido(r && r.hora, 0, 23), minuto = enteroValido(r && r.minuto, 0, 59) ?? 0;
+    return hora === null ? null : { hora: hora % 12, minuto: Math.round(minuto / 5) * 5 % 60, dif: r.minutosDespues };
+  }).filter(Boolean).slice(0, 4);
+  if (relojes.length === 0) return '';
+  if (datos.modo === 'elegir') {
+    return `<div class="reloj-elegir-bloque">${relojes.map(({ hora, minuto }) => {
+      const falsas = [[(hora + 1) % 12, minuto], [hora, (minuto + 30) % 60]];
+      const orden = barajar([[hora, minuto], ...falsas], crearAleatorio(`elegir${hora}:${minuto}`));
+      return `<div class="reloj-elegir"><p class="reloj-objetivo">${horaEnPalabras(hora, minuto)}</p>
+        <div class="reloj-opciones">${orden.map(([h, m]) => `<span class="reloj-opcion">${svgReloj(h, m)}<span class="casilla-test"></span></span>`).join('')}</div></div>`;
+    }).join('')}</div>`;
+  }
+  const TEXTOS = { 30: 'Media hora después', 60: 'Una hora después', 15: 'Un cuarto de hora después', '-30': 'Media hora antes', '-60': 'Una hora antes', '-15': 'Un cuarto de hora antes' };
+  return `<div class="reloj-despues-bloque">${relojes.map(({ hora, minuto, dif }) => {
+    const d = TEXTOS[parseInt(dif, 10)] ? parseInt(dif, 10) : 30;
+    return `<div class="reloj-despues">${svgReloj(hora, minuto)}<p>${TEXTOS[d]} son las</p>${relojDigital(0, 0, true)}</div>`;
+  }).join('')}</div>`;
+}
+
+// simetria — "eje": la figura entera, sin eje: lo dibuja el alumno.
+function renderSimetriaEje(datos) {
+  const nombres = lista(datos.figuras).filter(n => PATRONES_SIMETRIA[n]);
+  const usar = (nombres.length ? nombres : [PATRONES_SIMETRIA[datos.figura] ? datos.figura : 'corazon']).slice(0, 4);
+  const C = 16, columnas = 10, filas = 6;
+  return `<div class="simetria-bloque simetria-eje">${usar.map(nombre => {
+    const llenas = new Set();
+    PATRONES_SIMETRIA[nombre].forEach(([f, c]) => { llenas.add(`${f},${c}`); llenas.add(`${f},${columnas - 1 - c}`); });
+    let rects = '';
+    for (let f = 0; f < filas; f++) for (let c = 0; c < columnas; c++) rects += `<rect x="${c * C}" y="${f * C}" width="${C}" height="${C}" class="${llenas.has(`${f},${c}`) ? 'simetria-celda-llena' : 'simetria-celda-vacia'}"/>`;
+    return `<svg width="${columnas * C}" height="${filas * C}" viewBox="0 0 ${columnas * C} ${filas * C}">${rects}</svg>`;
+  }).join('')}</div>`;
+}
+
+// figura_geometrica — "triangulos" (según sus lados), "circulo" (centro,
+// radio y diámetro) y "objetos" (unir cada cuerpo con un objeto del banco).
+const TRIANGULOS_LADOS = {
+  'equilátero': 'M50 8 L92 80 L8 80 Z', 'isósceles': 'M50 6 L78 82 L22 82 Z', 'escaleno': 'M14 16 L94 82 L6 82 Z'
+};
+const OBJETOS_CUERPO = { esfera: ['balon', 'pelota', 'naranja'], cubo: ['dado'], cilindro: ['lata', 'bote', 'tambor'], cono: ['cono', 'tipi'], prisma: ['caja', 'ladrillo', 'paquete', 'libro'] };
+function renderFiguraExtra(datos) {
+  if (datos.modo === 'triangulos') {
+    const orden = barajar(Object.keys(TRIANGULOS_LADOS), crearAleatorio('tri' + (datos.semilla || '')));
+    return `<div class="lin-bloque">${orden.map(n => `<div class="lin-tarjeta">
+      <svg class="lin-dibujo" width="100" height="90" viewBox="0 0 100 90"><path d="${TRIANGULOS_LADOS[n]}"/></svg>
+      <div class="lin-opciones">${Object.keys(TRIANGULOS_LADOS).map(o => `<span class="opcion-item"><span class="casilla-test"></span> ${o}</span>`).join('')}</div>
+    </div>`).join('')}</div>`;
+  }
+  if (datos.modo === 'circulo') {
+    return `<div class="circ-bloque">
+      <svg width="250" height="150" viewBox="0 0 250 150">
+        <circle class="circ-linea" cx="80" cy="75" r="60"/><circle cx="80" cy="75" r="3"/>
+        <line class="circ-linea" x1="80" y1="75" x2="122.4" y2="32.6"/><line class="circ-linea" x1="22" y1="90.5" x2="138" y2="59.5"/>
+        <path class="circ-guia" d="M80 75 L165 118 M104 51 L165 22 M118 65 L165 70"/>
+        <rect class="circ-caja" x="165" y="10" width="80" height="24"/><rect class="circ-caja" x="165" y="58" width="80" height="24"/><rect class="circ-caja" x="165" y="106" width="80" height="24"/>
+      </svg>
+      <p class="pos-banco"><span>centro</span><span>radio</span><span>diámetro</span></p>
+    </div>`;
+  }
+  // "objetos"
+  const cuerpos = lista(datos.cuerpos).filter(n => FIGURAS_3D[n] && OBJETOS_CUERPO[n]).filter((n, i, arr) => arr.indexOf(n) === i);
+  const aleatorio = crearAleatorio('objetos' + cuerpos.join(','));
+  const parejas = cuerpos.map(n => {
+    const disponibles = OBJETOS_CUERPO[n].filter(o => IMAGENES_BN.has(o) || IMAGENES_COLOR.has(o));
+    return disponibles.length ? { n, objeto: disponibles[Math.floor(aleatorio() * disponibles.length)] } : null;
+  }).filter(Boolean).slice(0, 4);
+  if (parejas.length < 2) return '';
+  const orden = barajaDeterministaFig(parejas.length, hashTextoFig(parejas.map(p => p.objeto).join(',')));
+  return unirRejilla([
+    parejas.map(p => `<span class="unir-dibujo">${FIGURAS_3D[p.n].svg}</span><span class="unir-punto"></span>`),
+    orden.map(i => `<span class="unir-punto"></span><span class="unir-dibujo">${imagenBanco(parejas[i].objeto, parejas[i].objeto)}</span>`)
+  ]);
+}
+
+// conteo_svg — "unir": dibujos ↔ número ↔ cubitos, en tres columnas.
+function renderUnirConteo(datos) {
+  const grupos = lista(datos.grupos).map(g => {
+    const n = enteroValido(g && g.cantidad, 1, 10);
+    return n === null ? null : { n, icono: iconoValido(g.icono) };
+  }).filter(Boolean).filter((g, i, arr) => arr.findIndex(x => x.n === g.n) === i).slice(0, 5);
+  if (grupos.length < 2) return '';
+  const semilla = hashTextoFig(grupos.map(g => g.n).join(','));
+  const ordenNum = grupos.map((_, i) => i).sort((a, b) => grupos[a].n - grupos[b].n);
+  const ordenCubos = barajaDeterministaFig(grupos.length, semilla + 3);
+  const cubitos = n => `<svg width="${Math.min(n, 5) * 13 + 2}" height="${n > 5 ? 28 : 15}" viewBox="0 0 ${Math.min(n, 5) * 13 + 2} ${n > 5 ? 28 : 15}">${Array.from({ length: n }, (_, i) =>
+    `<rect class="base10-cubo" x="${1 + (i % 5) * 13}" y="${1 + Math.floor(i / 5) * 13}" width="13" height="13"/>`).join('')}</svg>`;
+  return `<div class="unir-conteo">${unirRejilla([
+    grupos.map(g => `<span class="unir-dibujo uc-dibujos">${htmlIcono(g.icono).repeat(g.n)}</span><span class="unir-punto"></span>`),
+    ordenNum.map(i => `<span class="unir-punto"></span>${marcoTematico('caja', `<b>${grupos[i].n}</b>`)}<span class="unir-punto"></span>`),
+    ordenCubos.map(i => `<span class="unir-punto"></span><span class="unir-dibujo">${cubitos(grupos[i].n)}</span>`)
+  ])}</div>`;
+}
+
+// mismo_resultado — "completar": une los dos montones que juntos hacen N.
+function renderUnirParaHacer(datos) {
+  const total = enteroValido(datos.total, 3, 10);
+  if (total === null) return '';
+  const icono = iconoValido(datos.icono);
+  const partes = lista(datos.partes).map(n => enteroValido(n, 1, total - 1)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 5);
+  if (partes.length < 2) return '';
+  const orden = barajaDeterministaFig(partes.length, hashTextoFig(`hacer${total}:${partes.join(',')}`));
+  const monton = n => `<span class="unir-dibujo uc-dibujos">${htmlIcono(icono).repeat(n)}</span>`;
+  return `<div class="unir-conteo"><p class="cc-nota">Une los dos montones que juntos hacen <b>${total}</b>.</p>${unirRejilla([
+    partes.map(n => `${monton(n)}<span class="unir-punto"></span>`),
+    orden.map(i => `<span class="unir-punto"></span>${monton(total - partes[i])}`)
+  ])}</div>`;
+}
+
+// recta_numerica — "senalar": ¿qué número señala cada flecha?
+function renderRectaSenalar(datos) {
+  const paso = [1, 2, 5, 10, 100].includes(enteroValido(datos.paso, 1, 100)) ? enteroValido(datos.paso, 1, 100) : 1;
+  const desde = enteroValido(datos.desde, 0, 9999) ?? 0;
+  let hasta = enteroValido(datos.hasta, 1, 99999) ?? desde + 20 * paso;
+  let tramos = Math.round((hasta - desde) / paso);
+  if (tramos < 5) tramos = 10;
+  if (tramos > 25) tramos = 25;
+  hasta = desde + tramos * paso;
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, desde, hasta)).filter(n => n !== null && (n - desde) % paso === 0)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 5);
+  if (numeros.length === 0) return '';
+  const X0 = 20, ANCHO = 560, dx = ANCHO / tramos;
+  let svg = `<line class="red-linea" x1="${X0 - 8}" y1="50" x2="${X0 + ANCHO + 8}" y2="50"/>`;
+  for (let i = 0; i <= tramos; i++) {
+    const v = desde + i * paso, x = X0 + i * dx, gordo = i % 5 === 0;
+    svg += `<line class="red-marca" x1="${x}" y1="${gordo ? 40 : 44}" x2="${x}" y2="${gordo ? 60 : 56}"/>`;
+    if (numeros.includes(v)) svg += `<path class="red-flecha" d="M${x} 38 l-4 -8 h8 z"/><rect class="recta-caja" x="${x - 16}" y="2" width="32" height="26" rx="5"/>`;
+    else if (gordo) svg += `<text class="red-extremo" x="${x}" y="76" text-anchor="middle">${v}</text>`;
+  }
+  return `<div class="recta-senalar"><svg width="${ANCHO + 2 * X0}" height="82" viewBox="0 0 ${ANCHO + 2 * X0} 82">${svg}</svg></div>`;
+}
+
+// comparar_numeros — "ordenar": ordena una lista con "<" o ">" entre casillas.
+function renderOrdenarNumeros(datos) {
+  const numeros = lista(datos.numeros).map(n => enteroValido(n, 0, 999999)).filter(n => n !== null)
+    .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 7);
+  if (numeros.length < 3) return '';
+  const signo = datos.orden === 'mayor_a_menor' ? '&gt;' : '&lt;';
+  return `<div class="ordenar-bloque">
+    <p class="ordenar-numeros">${numeros.map(n => marcoTematico('caja', `<b>${n}</b>`)).join('')}</p>
+    <p class="ordenar-nota">Ordena de ${datos.orden === 'mayor_a_menor' ? 'mayor a menor' : 'menor a mayor'}:</p>
+    <p class="ordenar-casillas">${numeros.map(() => casillaRespuesta('casilla-ancha')).join(`<span class="ordenar-signo">${signo}</span>`)}</p>
+  </div>`;
+}
+
+// medir_con_regla — "dibujar" (dibuja una línea de N cm), "leer" (qué marca
+// cada flecha en la regla) y "cuadros" (cuántos cuadrados mide cada tira).
+function renderReglaExtra(datos) {
+  if (datos.modo === 'dibujar') {
+    const largos = lista(datos.longitudes).map(n => enteroValido(n, 1, 15)).filter(n => n !== null).slice(0, 5);
+    if (largos.length === 0) return '';
+    return `<div class="regla-bloque">${largos.map(cm => `<div class="regla-dibujar"><span>Dibuja una línea de <b>${cm} cm</b>:</span><span class="regla-punto-inicio"></span></div>`).join('')}</div>`;
+  }
+  if (datos.modo === 'leer') {
+    const marcas = lista(datos.marcas).map(n => enteroValido(n, 1, 14)).filter(n => n !== null)
+      .filter((n, i, arr) => arr.indexOf(n) === i).slice(0, 4);
+    if (marcas.length === 0) return '';
+    const numeros = Array.from({ length: 16 }, (_, i) => `<span class="regla-marca" style="left:${i}cm;">${i}</span>`).join('');
+    const flechas = marcas.map((cm, i) => `<span class="regla-flecha" style="left:${cm}cm;">▲<b>${String.fromCharCode(97 + i)}</b></span>`).join('');
+    return `<div class="regla-bloque regla-leer">
+      <div class="regla-guia"><div class="regla-linea"></div>${numeros}${flechas}</div>
+      <p class="regla-respuestas">${marcas.map((_, i) => `<span>${String.fromCharCode(97 + i)}) ${casillaRespuesta()} cm</span>`).join('')}</p>
+    </div>`;
+  }
+  const tiras = lista(datos.tiras).map(n => enteroValido(n, 1, 12)).filter(n => n !== null).slice(0, 5);
+  if (tiras.length < 2) return '';
+  return `<div class="tiras-bloque">${tiras.map((n, i) => `<div class="tiras-fila"><b>${String.fromCharCode(65 + i)}</b>
+      <span class="tira">${'<i></i>'.repeat(n)}</span>${casillaRespuesta()}</div>`).join('')}
+    <p class="tiras-pregunta">La más larga es ${casillaRespuesta()} y la más corta es ${casillaRespuesta()}</p></div>`;
+}
+
+// tabla_frecuencia — "grafico": true: debajo de la tabla, una cuadrícula para
+// colorear un cuadro por cada dibujo contado, y preguntas.
+function graficoParaColorear(datos) {
+  const categorias = lista(datos.categorias).slice(0, 6);
+  const alto = Math.min(10, Math.max(...categorias.map(c => Math.max(1, Math.min(10, parseInt(c.cantidad, 10) || 1)))) + 1);
+  const columnas = categorias.map(c => `<div class="gc-columna">${'<span class="gc-cuadro"></span>'.repeat(alto)}<span class="gc-pie">${renderIconos(c.icono, 1)}</span></div>`).join('');
+  const escala = `<div class="gc-escala">${Array.from({ length: alto }, (_, i) => `<span>${alto - i}</span>`).join('')}<span class="gc-pie"></span></div>`;
+  return `<div class="gc-bloque"><p class="cc-nota">Colorea un cuadro por cada dibujo que has contado.</p><div class="gc-grafico">${escala}${columnas}</div>${listaPreguntas(datos.preguntas)}</div>`;
+}
+
+
 const RENDERERS_POR_TIPO = {
-  operacion_vertical: (datos) => renderOperacionVertical(datos),
+  operacion_vertical: (datos) => datos.prueba === true ? renderRestaConPrueba(datos) : datos.hueco === 'sumando' ? renderSumandoOculto(datos) : renderOperacionVertical(datos),
   multiplicacion_vertical: (datos) => renderMultiplicacionVertical(datos),
   division_vertical:  (datos) => renderDivisionVertical(datos),
-  conteo_svg:          (datos) => renderConteoSvg(datos),
+  conteo_svg:          (datos) => datos.modo === 'unir' ? renderUnirConteo(datos) : renderConteoSvg(datos),
   calculo_mental:       (datos, curso) => renderCalculoMental(datos, curso),
   problema:             (datos, curso) => renderProblema(datos, curso),
   tipo_test:            (datos) => renderTipoTest(datos),
   dibujo:               () => renderDibujo(),
   serie_numerica:       (datos) => renderSerieNumerica(datos),
-  comparar_numeros:     (datos) => renderCompararNumeros(datos),
-  tabla_frecuencia:     (datos, curso) => renderTablaFrecuencia(datos, curso),
-  reloj_analogico:      (datos) => renderRelojAnalogico(datos),
+  comparar_numeros:     (datos) => datos.modo === 'ordenar' ? renderOrdenarNumeros(datos) : renderCompararNumeros(datos),
+  tabla_frecuencia:     (datos, curso) => { const tabla = renderTablaFrecuencia(datos, curso); return tabla && datos.grafico === true && !['5º', '6º'].includes(curso) ? tabla + graficoParaColorear(datos) : tabla; },
+  reloj_analogico:      (datos) => ['despues', 'elegir', 'tabla24'].includes(datos.modo) ? renderRelojExtra(datos) : renderRelojAnalogico(datos),
   grafico_barras:       (datos) => renderGraficoBarras(datos),
   grafico_quesitos:     (datos) => renderGraficoQuesitos(datos),
   resta_barritas:       (datos) => renderRestaBarritas(datos),
+  suma_barritas:        (datos) => renderSumaBarritas(datos),
   cuadro_numerico:      (datos) => renderCuadroNumerico(datos),
-  figura_geometrica:    (datos) => renderFiguraGeometrica(datos),
-  recta_numerica:       (datos) => renderRectaNumerica(datos),
-  rejilla_numerica:     (datos) => renderRejillaNumerica(datos),
+  figura_geometrica:    (datos) => ['triangulos', 'circulo', 'objetos'].includes(datos.modo) ? renderFiguraExtra(datos) : renderFiguraGeometrica(datos),
+  recta_numerica:       (datos) => datos.modo === 'senalar' ? renderRectaSenalar(datos) : renderRectaNumerica(datos),
+  rejilla_numerica:     (datos) => datos.modo === 'recortes' ? renderRecortesTabla(datos) : renderRejillaNumerica(datos),
   tabla_multiplicar:    (datos) => renderTablaMultiplicar(datos),
-  reparto:              (datos) => renderReparto(datos),
+  reparto:              (datos) => datos.resto === true ? renderRepartoConResto(datos) : renderReparto(datos),
   dinero_euros:            (datos) => renderDineroEuros(datos),
   proporcionalidad:        (datos) => renderProporcionalidad(datos),
   conversion_unidades:     (datos) => renderConversionUnidades(datos),
-  medir_con_regla:         (datos) => renderMedirConRegla(datos),
+  medir_con_regla:         (datos) => ['dibujar', 'leer', 'cuadros'].includes(datos.modo) ? renderReglaExtra(datos) : renderMedirConRegla(datos),
   angulos:                 (datos) => renderAngulos(datos),
-  simetria:                (datos) => renderSimetria(datos),
+  simetria:                (datos) => datos.modo === 'eje' ? renderSimetriaEje(datos) : renderSimetria(datos),
   coordenadas:              (datos) => renderCoordenadas(datos),
   probabilidad:             (datos) => renderProbabilidad(datos),
   medidas_centralizacion:   (datos) => renderMedidasCentralizacion(datos),
-  ecuacion_sencilla:        (datos) => renderEcuacionSencilla(datos),
+  ecuacion_sencilla:        (datos) => {
+    const extra = o => o && ['signo', 'ambos'].includes(o.posicionIncognita);
+    const ops = lista(datos.operaciones);
+    return renderEcuacionSencilla({ ...datos, operaciones: ops.filter(o => !extra(o)) }) + renderEcuacionExtra({ operaciones: ops.filter(extra) });
+  },
   crucigrama:               (datos) => renderCrucigrama(datos),
   colorea_por_operacion:    (datos) => renderColoreaPorOperacion(datos),
   conecta_los_puntos:       (datos) => renderConectaLosPuntos(datos),
@@ -3362,22 +4685,141 @@ const RENDERERS_POR_TIPO = {
   acertijo_numerico:        (datos) => renderAcertijoNumerico(datos),
   // Octava ampliación (22/09/2026) — fichas reales de 1º, 1ª evaluación
   abaco:                    (datos) => renderAbaco(datos),
-  barritas_decenas:         (datos) => renderBarritasDecenas(datos),
+  barritas_decenas:         (datos) => ['agrupar', 'operar'].includes(datos.modo) ? renderBarritasExtra(datos)
+    : renderBarritasDecenas(datos) + (!datos.modo || datos.modo === 'contar' ? renderBarritasExtra(datos) : ''),
   numero_en_letras:         (datos) => renderNumeroEnLetras(datos),
   anterior_posterior:       (datos) => renderAnteriorPosterior(datos),
   casita_descomposicion:    (datos) => renderCasitaDescomposicion(datos),
   maquina_operador:         (datos) => renderMaquinaOperador(datos),
   clasificar_numeros:       (datos) => renderClasificarNumeros(datos),
-  mismo_resultado:          (datos) => renderMismoResultado(datos),
+  mismo_resultado:          (datos) => datos.modo === 'completar' ? renderUnirParaHacer(datos) : renderMismoResultado(datos),
   operacion_cifras_ocultas: (datos) => renderOperacionCifrasOcultas(datos),
-  suma_asociativa:          (datos) => renderSumaAsociativa(datos),
+  suma_asociativa:          (datos) => datos.modo === 'conmutativa' ? renderConmutativa(datos) : renderSumaAsociativa(datos),
   camino_resultados:        (datos) => renderCaminoResultados(datos),
-  operacion_dibujos:        (datos) => renderOperacionDibujos(datos)
+  operacion_dibujos:        (datos) => renderOperacionDibujos(datos),
+  // Novena ampliación (02/10/2026) — cuadernos de 1º y 2º
+  fracciones:               (datos) => renderFracciones(datos),
+  suma_repetida:            (datos) => renderSumaRepetida(datos),
+  ordinales:                (datos) => renderOrdinales(datos),
+  calendario:               (datos) => renderCalendario(datos),
+  redondeo:                 (datos) => renderRedondeo(datos),
+  encuentra_error:          (datos) => renderEncuentraError(datos),
+  domino_operaciones:       (datos) => renderDominoOperaciones(datos),
+  posicion_cuadricula:      (datos) => renderPosicionCuadricula(datos),
+  comparar_cantidades:      (datos) => renderCompararCantidades(datos),
+  recorrido_cuadricula:     (datos) => renderRecorridoCuadricula(datos),
+  tipos_lineas:             (datos) => renderTiposLineas(datos),
+  serie_figuras:            (datos) => renderSerieFiguras(datos),
+  tabla_doble_entrada:      (datos) => renderTablaDobleEntrada(datos),
+  sopa_operaciones:         (datos) => renderSopaOperaciones(datos),
+  contar_figuras:           (datos) => renderContarFiguras(datos),
+  elegir_unidad:            (datos) => renderElegirUnidad(datos),
+  trazo_numero:             (datos) => renderTrazoNumero(datos)
 };
 
-function renderEjercicio(ejercicio, indice, curso) {
+
+// ── Normalización y agrupado de operaciones (23/09/2026) ─────────────────
+// Motivo: en una ficha real de 6º las multiplicaciones y divisiones salieron
+// con su enunciado pero SIN ninguna cuenta, y tres sumas salieron como tres
+// ejercicios sueltos. Causa: si Claude se desvía un poco del esquema (un
+// nombre de tipo parecido, "numeros" con otra forma, el signo × dentro de
+// operacion_vertical...), el renderer no encontraba lo que esperaba y no
+// dibujaba nada. En vez de depender de que el modelo acierte siempre la
+// forma exacta, se normaliza aquí antes de dibujar:
+const ALIAS_TIPOS = {
+  multiplicacion: 'multiplicacion_vertical', multiplicaciones: 'multiplicacion_vertical',
+  multiplicacion_columna: 'multiplicacion_vertical', multiplicacion_en_columna: 'multiplicacion_vertical',
+  division: 'division_vertical', divisiones: 'division_vertical', division_columna: 'division_vertical',
+  division_en_columna: 'division_vertical',
+  suma: 'operacion_vertical', sumas: 'operacion_vertical', resta: 'operacion_vertical', restas: 'operacion_vertical',
+  operacion_columna: 'operacion_vertical', operacion_en_columna: 'operacion_vertical', operaciones: 'operacion_vertical'
+};
+const SIGNOS_MULTIPLICAR = ['x', 'X', '×', '*', '·'];
+const SIGNOS_DIVIDIR = [':', '÷', '/'];
+
+function normalizarOperacion(op) {
+  if (Array.isArray(op)) return { numeros: op };
+  if (!op || typeof op !== 'object') return null;
+  const o = { ...op };
+  if (!Array.isArray(o.numeros)) {
+    if (o.multiplicando !== undefined && o.multiplicador !== undefined) o.numeros = [o.multiplicando, o.multiplicador];
+    else if (o.dividendo !== undefined && o.divisor !== undefined) o.numeros = [o.dividendo, o.divisor];
+    else if (o.a !== undefined && o.b !== undefined) o.numeros = [o.a, o.b];
+    else if (Array.isArray(o.operandos)) o.numeros = o.operandos;
+    else if (Array.isArray(o.sumandos)) o.numeros = o.sumandos;
+  }
+  return Array.isArray(o.numeros) && o.numeros.length >= 2 ? o : null;
+}
+
+function normalizarEjercicio(ej) {
+  if (!ej || typeof ej !== 'object') return ej;
+  const tipoOriginal = String(ej.tipo || '').trim().toLowerCase();
+  let tipo = RENDERERS_POR_TIPO[tipoOriginal] ? tipoOriginal : (ALIAS_TIPOS[tipoOriginal] || tipoOriginal);
+  const datos = { ...(ej.datos || {}) };
+  const esOperacion = ['operacion_vertical', 'multiplicacion_vertical', 'division_vertical'].includes(tipo);
+  if (esOperacion) {
+    let ops = Array.isArray(datos.operaciones) ? datos.operaciones
+      : Array.isArray(datos.numeros) ? [{ numeros: datos.numeros, signo: datos.signo }]
+      : datos.operacion ? [datos.operacion] : [];
+    ops = ops.map(normalizarOperacion).filter(Boolean);
+    // El signo manda sobre el nombre del tipo: una "operacion_vertical" con
+    // signo × o : se dibuja como multiplicación o división de verdad.
+    if (tipo === 'operacion_vertical' && ops.length) {
+      if (ops.every(o => SIGNOS_MULTIPLICAR.includes(String(o.signo)))) tipo = 'multiplicacion_vertical';
+      else if (ops.every(o => SIGNOS_DIVIDIR.includes(String(o.signo)))) tipo = 'division_vertical';
+    }
+    datos.operaciones = ops;
+    delete datos.numeros;
+  }
+  let enunciado = ej.enunciado;
+  let titulo = ej.titulo;
+  // Gráficos: si la IA mete las preguntas dentro del enunciado en vez de en
+  // "preguntas", se sacan de ahí para que cada una salga en su línea con su
+  // raya de respuesta (02/10/2026).
+  if (tipo === 'grafico_barras' && !(Array.isArray(datos.preguntas) && datos.preguntas.length) && typeof enunciado === 'string') {
+    const encontradas = enunciado.match(/¿[^?¿]+\?/g);
+    if (encontradas && encontradas.length) {
+      datos.preguntas = encontradas.map(p => p.trim());
+      enunciado = enunciado.replace(/¿[^?¿]+\?/g, '').replace(/[\s:;,.]+$/, '').trim();
+      enunciado = enunciado ? enunciado + '.' : 'Observa y contesta.';
+    }
+  }
+  // Tabla de sumar/restar: un título "Tabla del 5" se entiende como de multiplicar.
+  if (tipo === 'tabla_multiplicar' && ['suma', 'resta'].includes(datos.operacion) && typeof titulo === 'string' && /^\s*tabla\s+del\b/i.test(titulo)) {
+    titulo = titulo.replace(/^\s*tabla\s+del\s*[+−-]?\s*/i, datos.operacion === 'suma' ? 'Tabla de sumar del ' : 'Tabla de restar del ');
+  }
+  return { ...ej, tipo, datos, enunciado, titulo };
+}
+
+// Agrupa ejercicios de cuentas en columna CONSECUTIVOS del mismo tipo con una
+// sola operación cada uno (el síntoma "tres sumas como tres ejercicios") en un
+// único ejercicio de hasta 4 operaciones — el título y el enunciado son los
+// del primero. Solo de 3º a 6º: en 1º-2º cada cuenta lleva su propio dibujo
+// y DEBE ir sola (ver separarOperacionesParaDibujos).
+const TIPOS_AGRUPABLES = ['operacion_vertical', 'multiplicacion_vertical', 'division_vertical'];
+function agruparOperacionesSueltas(ejercicios, curso) {
+  if (['1º', '2º'].includes(curso)) return ejercicios;
+  const resultado = [];
+  for (const ej of ejercicios) {
+    const anterior = resultado[resultado.length - 1];
+    const suelta = ej && TIPOS_AGRUPABLES.includes(ej.tipo) && !ej.datos?.colocar && !ej.datos?.prueba && !ej.datos?.hueco
+      && Array.isArray(ej.datos?.operaciones) && ej.datos.operaciones.length === 1;
+    if (suelta && anterior && anterior._agrupable && anterior.tipo === ej.tipo && anterior.datos.operaciones.length < 4) {
+      anterior.datos = { ...anterior.datos, operaciones: [...anterior.datos.operaciones, ...ej.datos.operaciones] };
+      continue;
+    }
+    resultado.push(suelta ? { ...ej, datos: { ...ej.datos }, _agrupable: true } : ej);
+  }
+  return resultado.map(ej => { if (ej && ej._agrupable) { const { _agrupable, ...resto } = ej; return resto; } return ej; });
+}
+
+function contenidoEjercicio(ejercicio, curso) {
   const render = RENDERERS_POR_TIPO[ejercicio.tipo];
-  const contenido = render ? render(ejercicio.datos || {}, curso) : '';
+  return render ? render(ejercicio.datos || {}, curso) : '';
+}
+
+function renderEjercicio(ejercicio, indice, curso, contenidoYaCalculado) {
+  const contenido = contenidoYaCalculado !== undefined ? contenidoYaCalculado : contenidoEjercicio(ejercicio, curso);
 
   // Blindaje contra duplicación: para "problema", el texto de la historia YA
   // se imprime dentro de renderProblema() (campo "datos.texto"). Si además se
@@ -3390,11 +4832,17 @@ function renderEjercicio(ejercicio, indice, curso) {
     ? (modoProblema === 'razonado' ? 'Lee y subraya la pregunta.'
       : modoProblema === 'inventar' ? 'Inventa preguntas diferentes para esta situación.'
       : 'Lee el problema y resuélvelo:')
+    : ejercicio.tipo === 'conecta_los_puntos' ? enunciadoConecta(ejercicio.datos)
     : ejercicio.enunciado;
 
-  return `<div class="ejercicio">
+  // "ancho": "medio" → el ejercicio ocupa media ficha (dos seguidos quedan
+  // uno al lado del otro). "recuerda": recuadro de ayuda al pie del ejercicio.
+  const medio = ejercicio.ancho === 'medio' ? ' ejercicio-medio' : '';
+  const recuerda = typeof ejercicio.recuerda === 'string' && ejercicio.recuerda.trim()
+    ? `<p class="recuerda"><b>Recuerda</b>${escapeHtml(ejercicio.recuerda.trim().slice(0, 220))}</p>` : '';
+  return `<div class="ejercicio${medio}">
     ${cabeceraEjercicio(indice + 1, ejercicio.titulo, textoEncabezado)}
-    ${contenido}
+    ${contenido}${recuerda ? '\n    ' + recuerda : ''}
   </div>`;
 }
 
@@ -3418,7 +4866,7 @@ function separarOperacionesParaDibujos(ejercicios, curso) {
   const resultado = [];
   for (const ej of ejercicios) {
     const operaciones = ej?.datos?.operaciones;
-    if (ej.tipo === 'operacion_vertical' && !ej.datos.colocar && Array.isArray(operaciones) && operaciones.length > 1) {
+    if (ej.tipo === 'operacion_vertical' && !ej.datos.colocar && !ej.datos.prueba && !ej.datos.hueco && Array.isArray(operaciones) && operaciones.length > 1) {
       operaciones.forEach((op, idx) => {
         resultado.push({
           ...ej,
@@ -3430,6 +4878,19 @@ function separarOperacionesParaDibujos(ejercicios, curso) {
     }
   }
   return resultado;
+}
+
+// Etiquetas opcionales bajo el título (02/10/2026): nivel de la ficha
+// (Repaso / Refuerzo / Ampliación) y tiempo estimado. Si no llegan, no se
+// imprime nada y la ficha queda como siempre.
+const NIVELES_FICHA = { repaso: 'Repaso', refuerzo: 'Refuerzo', ampliacion: 'Ampliación', 'ampliación': 'Ampliación' };
+export function etiquetasFicha(datosFicha) {
+  const nivel = NIVELES_FICHA[String(datosFicha.nivel || '').trim().toLowerCase()];
+  const minutos = parseInt(datosFicha.minutos, 10);
+  const piezas = [];
+  if (nivel) piezas.push(`<span class="etiqueta-nivel">${nivel}</span>`);
+  if (Number.isInteger(minutos) && minutos >= 5 && minutos <= 90) piezas.push(`<span class="etiqueta-tiempo">${minutos} min</span>`);
+  return piezas.length ? `\n    <p class="etiquetas-ficha">${piezas.join('')}</p>` : '';
 }
 
 export function renderizarFichaMatematicas(datosFicha, contexto) {
@@ -3448,11 +4909,19 @@ export function renderizarFichaMatematicas(datosFicha, contexto) {
     .join(' ');
 
   const titulo = escapeHtml(datosFicha.titulo || `Ficha de ${materia}`);
-  const ejercicios = separarOperacionesParaDibujos(
-    Array.isArray(datosFicha.ejercicios) ? datosFicha.ejercicios : [],
-    curso
-  );
-  const cuerpoEjercicios = ejercicios.map((ej, i) => renderEjercicio(ej, i, curso)).join('');
+  const ejerciciosNormalizados = (Array.isArray(datosFicha.ejercicios) ? datosFicha.ejercicios : []).map(normalizarEjercicio);
+  const ejercicios = separarOperacionesParaDibujos(agruparOperacionesSueltas(ejerciciosNormalizados, curso), curso);
+
+  // Un ejercicio que no dibuja nada (tipo desconocido o datos inservibles) se
+  // descarta en vez de imprimir un enunciado sin nada debajo — y se avisa en
+  // la consola del servidor con sus datos, para poder diagnosticarlo.
+  const conContenido = [];
+  ejercicios.forEach(ej => {
+    const contenido = contenidoEjercicio(ej, curso);
+    if (contenido && contenido.trim()) conContenido.push({ ej, contenido });
+    else console.warn(`⚠️ Ejercicio descartado por no tener contenido dibujable — tipo "${ej?.tipo}":`, JSON.stringify(ej?.datos || {}).slice(0, 300));
+  });
+  const cuerpoEjercicios = conContenido.map(({ ej, contenido }, i) => renderEjercicio(ej, i, curso, contenido)).join('');
 
   // Nombre del centro (30/08/2026): separado del cajón de Nombre/Fecha —
   // antes iba dentro de ".cabecera", pegado a esos datos, y el docente pidió
@@ -3470,7 +4939,7 @@ export function renderizarFichaMatematicas(datosFicha, contexto) {
         <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
       </div>
     </div>
-    <h1 class="titulo-ficha">${titulo}</h1>
+    <h1 class="titulo-ficha">${titulo}</h1>${etiquetasFicha(datosFicha)}
     ${cuerpoEjercicios}
     <p class="nota-pie">Ficha generada con LOMLOE · ${escapeHtml(curso)} · ${escapeHtml(materia)} · ${escapeHtml(comunidad || 'LOMLOE estatal')}</p>
   </div>`;

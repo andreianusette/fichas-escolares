@@ -80,7 +80,7 @@
 // real en vez de quedar pegada a su borde.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 
 const BASELINE = 200;
 const XHEIGHT_TOP = 100;
@@ -903,6 +903,140 @@ function renderEleccionOrtografica(datos) {
   return `<div class="eleccion-ortografica-bloque">${filas}</div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// LECTOESCRITURA INICIAL (02/10/2026) — cuatro tipos blindados para 1º-2º,
+// vistos en fichas de vocales (solo se tomó el formato). Usan los dibujos del
+// banco (public/imagenes-iconos y public/imagenes-color): el código comprueba
+// que cada dibujo existe y por qué letra empieza su nombre.
+// ═══════════════════════════════════════════════════════════════════════
+function listarPngLengua(carpeta) {
+  try {
+    return new Set(readdirSync(new URL(`./public/${carpeta}/`, import.meta.url))
+      .filter(f => f.toLowerCase().endsWith('.png')).map(f => f.slice(0, -4)));
+  } catch { return new Set(); }
+}
+const BANCO_BN = listarPngLengua('imagenes-iconos');
+const BANCO_COLOR = listarPngLengua('imagenes-color');
+// Nombre de archivo de una palabra: minúsculas, sin tildes y con la ñ como "ny".
+function archivoDePalabra(palabra) {
+  return String(palabra || '').trim().toLowerCase().replace(/ñ/g, 'ny')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z_]/g, '');
+}
+function sinTildes(texto) {
+  return String(texto || '').toLowerCase().replace(/ñ/g, '\u0001').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\u0001/g, 'ñ');
+}
+// Palabras con dibujo que se pueden ofrecer a Claude: fuera sílabas sueltas,
+// figuras geométricas y nombres de archivo que no son una palabra corriente.
+export const PALABRAS_CON_DIBUJO = [...new Set([...BANCO_BN, ...BANCO_COLOR])]
+  .filter(n => n.length >= 3 && !n.startsWith('geo_') && !/^(.)\1+$/.test(n)).sort();
+function dibujoBanco(palabra) {
+  const archivo = archivoDePalabra(palabra);
+  const hayColor = BANCO_COLOR.has(archivo), hayBn = BANCO_BN.has(archivo);
+  if (!archivo || (!hayColor && !hayBn)) return '';
+  const img = (carpeta, clase) => `<img class="icono-img ${clase}" src="${carpeta}/${archivo}.png" width="70" height="70" alt="" draggable="false">`;
+  return (hayColor ? img('imagenes-color', 'icono-color') : img('imagenes-iconos', 'icono-color'))
+    + (hayBn ? img('imagenes-iconos', 'icono-bn') : img('imagenes-color', 'icono-bn icono-gris'));
+}
+function aleatorioLengua(semillaTexto) {
+  let s = (hashTexto(String(semillaTexto)) % 2147483647) || 1;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+function letraValida(valor) {
+  const l = sinTildes(valor).trim().charAt(0);
+  return /^[a-zñ]$/.test(l) ? l : '';
+}
+
+// ── Sonido inicial: colorea los dibujos que empiezan por la letra ────────
+// Salen solo los dibujos, sin la palabra. El código descarta las palabras sin
+// dibujo y exige que haya de los dos tipos (que empiezan y que no).
+function renderSonidoInicial(datos) {
+  const letra = letraValida(datos.letra);
+  if (!letra) return '';
+  const vistos = new Set();
+  const dibujos = (Array.isArray(datos.palabras) ? datos.palabras : []).map(p => {
+    const archivo = archivoDePalabra(p), html = dibujoBanco(p);
+    if (!html || vistos.has(archivo)) return null;
+    vistos.add(archivo);
+    // La "h" es muda: "huevo" no sirve ni como acierto ni como distractor de una vocal.
+    const inicial = sinTildes(p).trim().charAt(0);
+    if (inicial === 'h' && letra !== 'h') return null;
+    return { html, empieza: inicial === letra };
+  }).filter(Boolean).slice(0, 10);
+  if (!dibujos.some(d => d.empieza) || !dibujos.some(d => !d.empieza) || dibujos.length < 4) return '';
+  return `<div class="si-bloque">
+    <span class="si-letra">${letra.toUpperCase()} ${letra}</span>
+    <div class="si-dibujos">${dibujos.map(d => `<span class="si-dibujo">${d.html}</span>`).join('')}</div>
+  </div>`;
+}
+
+// ── Mayúscula o minúscula ────────────────────────────────────────────────
+// La misma letra en varias tipografías, mezcladas: una se colorea de rojo y
+// la otra de azul. Mitad y mitad, en un orden que decide el código.
+const FUENTES_LETRA = ['mm-andika', 'mm-fredoka', 'mm-nunito', 'mm-quicksand', 'mm-dimica', 'mm-ligada'];
+function renderMayusculaMinuscula(datos) {
+  const letra = letraValida(datos.letra);
+  if (!letra) return '';
+  const cantidad = Math.min(16, Math.max(8, parseInt(datos.cantidad, 10) || 12));
+  const azar = aleatorioLengua('mm' + letra + cantidad);
+  const piezas = Array.from({ length: cantidad }, (_, i) => ({ mayus: i % 2 === 0, fuente: FUENTES_LETRA[Math.floor(i / 2) % FUENTES_LETRA.length] }));
+  for (let i = piezas.length - 1; i > 0; i--) { const j = Math.floor(azar() * (i + 1)); [piezas[i], piezas[j]] = [piezas[j], piezas[i]]; }
+  return `<div class="mm-bloque">
+    <p class="mm-clave"><span><i class="mm-rojo"></i> mayúscula: rojo</span><span><i class="mm-azul"></i> minúscula: azul</span></p>
+    <div class="mm-letras">${piezas.map(p => `<span class="mm-letra ${p.fuente}">${p.mayus ? letra.toUpperCase() : letra}</span>`).join('')}</div>
+  </div>`;
+}
+
+// ── Laberinto de letra ───────────────────────────────────────────────────
+// De la entrada a la salida siguiendo SOLO la letra pedida (en mayúscula y
+// minúscula). El código traza un único camino (solo derecha y abajo) y
+// rellena el resto con otras letras, nunca con la pedida.
+function renderLaberintoLetra(datos) {
+  const letra = letraValida(datos.letra);
+  if (!letra) return '';
+  const filas = Math.min(7, Math.max(4, parseInt(datos.filas, 10) || 5));
+  const columnas = Math.min(8, Math.max(4, parseInt(datos.columnas, 10) || 6));
+  const azar = aleatorioLengua(`lab${letra}${filas}x${columnas}`);
+  const movs = [...Array(columnas - 1).fill('R'), ...Array(filas - 1).fill('D')];
+  for (let i = movs.length - 1; i > 0; i--) { const j = Math.floor(azar() * (i + 1)); [movs[i], movs[j]] = [movs[j], movs[i]]; }
+  const camino = new Set(['0,0']);
+  let f = 0, c = 0;
+  movs.forEach(m => { if (m === 'R') c++; else f++; camino.add(`${f},${c}`); });
+  const esVocal = 'aeiou'.includes(letra);
+  const otras = (esVocal ? 'aeioumnsl' : 'bdpqmnrstlcfghj').split('').filter(x => x !== letra);
+  let celdas = '', k = 0;
+  for (let y = 0; y < filas; y++) for (let x = 0; x < columnas; x++) {
+    let ch;
+    if (camino.has(`${y},${x}`)) ch = k++ % 2 === 0 ? letra.toUpperCase() : letra;
+    else { const o = otras[Math.floor(azar() * otras.length)]; ch = azar() < 0.5 ? o.toUpperCase() : o; }
+    celdas += `<span class="ll-celda">${ch}</span>`;
+  }
+  return `<div class="ll-bloque">
+    <span class="ll-puerta">Entrada ▶</span>
+    <div class="ll-rejilla" style="grid-template-columns:repeat(${columnas}, 46px)">${celdas}</div>
+    <span class="ll-puerta ll-salida">▶ Salida</span>
+  </div>`;
+}
+
+// ── Recorta y pega ───────────────────────────────────────────────────────
+// Arriba, cada palabra con su hueco "Pega aquí"; abajo, tras la línea de
+// tijera, los dibujos desordenados para recortar. Palabras sin dibujo fuera.
+function renderRecortaPega(datos) {
+  const vistos = new Set();
+  const items = (Array.isArray(datos.palabras) ? datos.palabras : []).map(p => {
+    const archivo = archivoDePalabra(p), html = dibujoBanco(p);
+    if (!html || vistos.has(archivo)) return null;
+    vistos.add(archivo);
+    return { palabra: String(p).trim().toLowerCase(), html };
+  }).filter(Boolean).slice(0, 5);
+  if (items.length < 3) return '';
+  const orden = barajaDeterminista(items.length, hashTexto(items.map(i => i.palabra).join('|')) + 5);
+  return `<div class="rp-bloque">
+    <div class="rp-fila">${items.map(i => `<div class="rp-columna"><span class="rp-hueco">Pega aquí</span><span class="rp-palabra">${escapeHtml(i.palabra)}</span></div>`).join('')}</div>
+    <p class="rp-corte">✂</p>
+    <div class="rp-fila">${orden.map(i => `<div class="rp-columna"><span class="rp-recorte">${items[i].html}</span></div>`).join('')}</div>
+  </div>`;
+}
+
 const RENDERERS_LENGUA_POR_TIPO = {
   trazo_letra: (datos) => renderTrazoLetra(datos),
   contenido_libre: (datos) => renderContenidoLibre(datos),
@@ -912,7 +1046,15 @@ const RENDERERS_LENGUA_POR_TIPO = {
   categoria_gramatical: (datos) => renderCategoriaGramatical(datos),
   formacion_palabras: (datos) => renderFormacionPalabras(datos),
   eleccion_ortografica: (datos) => renderEleccionOrtografica(datos),
+  // Lectoescritura inicial (02/10/2026)
+  sonido_inicial: (datos) => renderSonidoInicial(datos),
+  mayuscula_minuscula: (datos) => renderMayusculaMinuscula(datos),
+  laberinto_letra: (datos) => renderLaberintoLetra(datos),
+  recorta_pega: (datos) => renderRecortaPega(datos),
 };
+// Tipos que pueden quedarse sin nada que dibujar (palabras sin dibujo en el
+// banco, letra no válida...): en ese caso el ejercicio se descarta entero.
+const TIPOS_DESCARTABLES = ['sonido_inicial', 'mayuscula_minuscula', 'laberinto_letra', 'recorta_pega'];
 
 // Cabecera de sección (22/09/2026): mismo formato que Matemáticas — título
 // corto opcional ("titulo") + instrucción pequeña a la derecha. Sin "titulo",
@@ -927,13 +1069,29 @@ function cabeceraEjercicioLengua(numero, titulo, instruccion) {
   return `<p class="enunciado enunciado-con-titulo"><span class="numero-ejercicio">${numero}</span><span class="titulo-ejercicio">${escapeHtml(tituloLimpio)}</span>${textoInstruccion ? `<span class="texto-enunciado instruccion-ejercicio">${escapeHtml(textoInstruccion)}</span>` : ''}</p>`;
 }
 
-function renderEjercicioLengua(ejercicio, indice) {
+function contenidoEjercicioLengua(ejercicio) {
   const render = RENDERERS_LENGUA_POR_TIPO[ejercicio.tipo] || RENDERERS_LENGUA_POR_TIPO.contenido_libre;
-  const contenido = render(ejercicio.datos || {});
-  return `<div class="ejercicio">
+  return render(ejercicio.datos || {});
+}
+function renderEjercicioLengua(ejercicio, indice, contenidoYaCalculado) {
+  const contenido = contenidoYaCalculado !== undefined ? contenidoYaCalculado : contenidoEjercicioLengua(ejercicio);
+  // Mismas opciones de presentación que en Matemáticas (02/10/2026).
+  const medio = ejercicio.ancho === 'medio' ? ' ejercicio-medio' : '';
+  const recuerda = typeof ejercicio.recuerda === 'string' && ejercicio.recuerda.trim()
+    ? `<p class="recuerda"><b>Recuerda</b>${escapeHtml(ejercicio.recuerda.trim().slice(0, 220))}</p>` : '';
+  return `<div class="ejercicio${medio}">
     ${cabeceraEjercicioLengua(indice + 1, ejercicio.titulo, ejercicio.enunciado)}
-    ${contenido}
+    ${contenido}${recuerda ? '\n    ' + recuerda : ''}
   </div>`;
+}
+const NIVELES_FICHA_LENGUA = { repaso: 'Repaso', refuerzo: 'Refuerzo', ampliacion: 'Ampliación', 'ampliación': 'Ampliación' };
+function etiquetasFichaLengua(datosFicha) {
+  const nivel = NIVELES_FICHA_LENGUA[String(datosFicha.nivel || '').trim().toLowerCase()];
+  const minutos = parseInt(datosFicha.minutos, 10);
+  const piezas = [];
+  if (nivel) piezas.push(`<span class="etiqueta-nivel">${nivel}</span>`);
+  if (Number.isInteger(minutos) && minutos >= 5 && minutos <= 90) piezas.push(`<span class="etiqueta-tiempo">${minutos} min</span>`);
+  return piezas.length ? `\n    <p class="etiquetas-ficha">${piezas.join('')}</p>` : '';
 }
 
 /**
@@ -963,7 +1121,13 @@ export function renderizarFichaLengua(datosFicha, contexto) {
 
   const titulo = escapeHtml(datosFicha.titulo || `Ficha de ${materia}`);
   const ejercicios = Array.isArray(datosFicha.ejercicios) ? datosFicha.ejercicios : [];
-  const cuerpoEjercicios = ejercicios.map((ej, i) => renderEjercicioLengua(ej, i)).join('');
+  const dibujables = ejercicios.filter(ej => ej && typeof ej === 'object').map(ej => ({ ej, contenido: contenidoEjercicioLengua(ej) }))
+    .filter(({ ej, contenido }) => {
+      const vacio = TIPOS_DESCARTABLES.includes(ej.tipo) && !String(contenido).trim();
+      if (vacio) console.warn(`⚠️ Ejercicio de Lengua descartado por no tener contenido dibujable — tipo "${ej.tipo}":`, JSON.stringify(ej.datos || {}).slice(0, 300));
+      return !vacio;
+    });
+  const cuerpoEjercicios = dibujables.map(({ ej, contenido }, i) => renderEjercicioLengua(ej, i, contenido)).join('');
 
   const lineaCentro = colegio
     ? `<p class="cabecera-centro">${escapeHtml(colegio)}</p>`
@@ -977,7 +1141,7 @@ export function renderizarFichaLengua(datosFicha, contexto) {
         <p><strong>Fecha:</strong> <span class="hueco-fecha"></span></p>
       </div>
     </div>
-    <h1 class="titulo-ficha">${titulo}</h1>
+    <h1 class="titulo-ficha">${titulo}</h1>${etiquetasFichaLengua(datosFicha)}
     ${cuerpoEjercicios}
     <p class="nota-pie">Ficha generada con LOMLOE · ${escapeHtml(curso)} · ${escapeHtml(materia)} · ${escapeHtml(comunidad || 'LOMLOE estatal')}</p>
   </div>`;

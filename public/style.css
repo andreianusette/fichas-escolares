@@ -4029,3 +4029,475 @@ ol.ejercicio-lista li {
 @media print {
   .tarjeta-calculo, .od-tarjeta { page-break-inside: avoid; break-inside: avoid; }
 }
+
+/* 24/09/2026 — feedback de una ficha real de 4º:
+   (1) operaciones en columna repartidas en FILAS (antes en columnas estrechas apiladas);
+   (2) cálculo mental con enunciados largos: tarjetas más anchas y texto que puede partirse. */
+.distribucion-filas { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.distribucion-filas .grid-operaciones { margin: 0; }
+.tarjetas-calculo.tc-largas { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
+.tarjetas-calculo.tc-muy-largas { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.tc-largas .tarjeta-calculo, .tc-muy-largas .tarjeta-calculo { white-space: normal; justify-content: space-between; text-align: left; font-size: 17px; }
+.tc-largas .tc-texto, .tc-muy-largas .tc-texto { flex: 1; min-width: 0; }
+.piramide-ancha .piramide-celda { min-width: 54px; }
+.piramide-muy-ancha .piramide-celda { min-width: 66px; }
+
+/* ── Dibujos del banco en vez de SVG (01/10/2026) ─────────────────────────
+   Cada icono llega como dos <img> hermanas: .icono-color y .icono-bn.
+   Por defecto se ve la de color; con el interruptor B/N, la de línea
+   (para fotocopiar y que el niño la coloree). */
+.icono-img { object-fit: contain; vertical-align: middle; }
+.icono-bn { display: none; }
+.ficha.modo-blanco-negro .icono-color { display: none; }
+.ficha.modo-blanco-negro .icono-bn { display: inline-block; }
+.ficha.modo-blanco-negro .icono-gris { filter: grayscale(1); }
+.tf-celda-icono img { width: 28px; height: 28px; vertical-align: middle; }
+.balanza-platillo img { width: 26px; height: 26px; }
+.icono-preview img { width: 100%; height: 100%; }
+@media print {
+  .ficha.modo-blanco-negro .icono-color { display: none !important; }
+}
+/* Al reducir el dibujo de 512 px a 30-60 px la línea se aclara mucho:
+   dos sombras sin desplazamiento la engrosan y la oscurecen para fotocopia. */
+.ficha.modo-blanco-negro .icono-bn { filter: drop-shadow(0 0 0.4px #000) drop-shadow(0 0 0.4px #000); }
+
+/* ── Cuerpos geométricos con dibujo (02/10/2026) ──────────────────────────
+   Sustituyen al SVG cuando existe imagenes-iconos/geo_<nombre>.png. Van
+   algo más grandes que el SVG para que se distingan las aristas ocultas. */
+.figura-img { object-fit: contain; vertical-align: middle; }
+.figura-geometrica-icono .figura-img { width: 84px; height: 84px; }
+.fg-clasificar-icono .figura-img { width: 62px; height: 62px; }
+.desarrollo-icono .figura-img { width: 68px; height: 68px; }
+
+/* ══ REVISIÓN DE LA MAESTRA — Matemáticas de 1º (02/10/2026) ═══════════════
+   Ajustes sobre tipos que ya existían y estilos de los modos nuevos. Van al
+   final a propósito: pisan las reglas originales de cada tipo. */
+
+/* Cuenta y colorea: dibujos + casilla grande para el número */
+.conteo-bloque { display: flex; align-items: center; justify-content: center; gap: 28px; margin: 10px 0; flex-wrap: wrap; }
+.conteo-iconos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 360px; }
+.conteo-respuesta { display: flex; align-items: center; gap: 8px; font: bold 20px 'Nunito', sans-serif; }
+.casilla-respuesta.casilla-grande { width: 52px; height: 52px; border-radius: 12px; }
+
+/* El número del día: tres pasos con su orden escrita */
+.numero-dia-bloque { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.numero-dia-paso { flex: 1 1 190px; border: 1.6px solid #cbd5e1; border-radius: 12px; padding: 8px 10px 10px; }
+.numero-dia-orden { margin: 0 0 8px; font: 600 15px 'Nunito', sans-serif; display: flex; align-items: center; gap: 6px; }
+.numero-dia-orden b { font-size: 18px; margin: 0 3px; }
+.numero-dia-n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--calido-azul); color: white; font-size: 12px; font-weight: bold; flex: none; }
+.numero-dia-escribir { display: flex; align-items: center; gap: 6px; }
+.numero-dia-escribir .numero-dia-trazar { margin: 0 6px 0 0; font-size: 58px; }
+.numero-dia-casilla { width: 52px; height: 56px; border: 1.6px dashed #64748b; border-radius: 8px; }
+.numero-dia-marcos { flex-direction: column; gap: 8px; margin: 0; }
+.numero-dia-iconos { gap: 5px; max-width: none; }
+.numero-dia-iconos img, .numero-dia-iconos svg { width: 34px; height: 34px; }
+.numero-dia-dibujar { min-height: 90px; border: 1.6px dashed #64748b; border-radius: 8px; }
+.ficha.modo-blanco-negro .numero-dia-paso, .ficha.modo-blanco-negro .numero-dia-casilla, .ficha.modo-blanco-negro .numero-dia-dibujar { border-color: black !important; }
+.ficha.modo-blanco-negro .numero-dia-n { background: black !important; }
+
+/* Anterior y posterior: los grupos, bien separados entre sí */
+.vecinos-bloque { justify-content: space-around; gap: 26px 56px; }
+
+/* Barritas: un solo montón en la resta, dos en la suma, de cinco en cinco */
+.resta-barritas-grupos { align-items: center; gap: 18px; }
+.resta-barritas-caja { max-width: 330px; padding: 10px 12px; gap: 5px 4px; border-color: #94a3b8; }
+.resta-barritas-caja .barrita { height: 38px; width: 6px; }
+.resta-barritas-caja .barrita:nth-child(5n) { margin-right: 10px; }
+.resta-barritas-caja-vacia { min-width: 220px; min-height: 84px; }
+.barritas-orden { margin: 22px 0 0; font: 600 17px 'Nunito', sans-serif; }
+.barritas-orden b { font-size: 20px; }
+.barritas-signo { font: bold 26px 'Nunito', sans-serif; margin-top: 26px; }
+.resta-barritas-operacion .casilla-respuesta, .recta-numerica-operacion .casilla-respuesta { margin-left: 6px; }
+.ficha.modo-blanco-negro .resta-barritas-caja { border-color: black !important; }
+
+/* Coloca en cuadrícula: un solo cuadrado donde el niño lo coloca todo */
+.colocar-cuadricula { display: grid; border-top: 1.4px solid #64748b; border-left: 1.4px solid #64748b; width: fit-content; background: white; }
+.cuadricula-celda { height: 28px; border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; }
+.colocar-cuadricula .cuadricula-celda:nth-child(n) { box-sizing: border-box; }
+.ficha.modo-blanco-negro .colocar-cuadricula, .ficha.modo-blanco-negro .cuadricula-celda { border-color: #333 !important; }
+
+/* Tabla de sumar / restar: más aire entre filas y columnas */
+.tm-libreta .tabla-multiplicar-columnas { gap: 64px; }
+.tm-libreta .tm-columna { gap: 16px; }
+.tm-libreta .tm-fila { font-size: 19px; gap: 10px; }
+.tm-libreta .tm-texto { min-width: 92px; }
+.tm-libreta .tm-fila .hueco-corto { min-width: 46px; }
+.tm-libreta { padding: 14px 26px 16px 44px; }
+.tm-libreta .tabla-multiplicar-titulo { font-size: 18px; margin-bottom: 14px; }
+
+/* Suma agrupando: todo en una rejilla, flechas justo bajo la pareja */
+.asociativa-bloque { gap: 26px 56px; }
+.asociativa { display: grid; grid-template-columns: repeat(5, 34px) 22px 40px; align-items: center; justify-items: center; row-gap: 2px; }
+.asociativa-sin-guia { row-gap: 0; }
+.asoc-flechas { display: block; justify-self: start; }
+.asoc-flechas path { fill: none; stroke: var(--calido-rosa); stroke-width: 1.8; stroke-linecap: round; }
+.asoc-flechas .asoc-punta { fill: var(--calido-rosa); stroke: none; }
+.asoc-caja { display: flex; justify-content: center; }
+.ficha.modo-blanco-negro .asoc-flechas path { stroke: black !important; }
+.ficha.modo-blanco-negro .asoc-flechas .asoc-punta { fill: black !important; }
+
+/* Detective de números: los casos, en paralelo */
+.detective-numeros-bloque { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; align-items: stretch; }
+
+/* Reparto: cajas grandes para que el niño dibuje dentro */
+.reparto-objetos { max-width: none; gap: 6px; }
+.reparto-grupos { gap: 16px; }
+.reparto-grupo-caja { flex: 1 1 150px; max-width: 240px; min-height: 120px; }
+
+/* ¿Más o menos de 1 litro?: dibujos del banco */
+.estimar-dibujo { align-self: center; height: 84px; display: flex; align-items: center; }
+.estimar-dibujo .estimar-img { width: 82px; height: 82px; }
+
+/* Conecta los puntos */
+.conecta-puntos-bloque { display: flex; justify-content: center; }
+
+/* Preguntas de un gráfico: punto gordo, una por línea y raya de respuesta */
+.preguntas-lista { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.preguntas-lista li { display: flex; align-items: flex-end; gap: 10px; }
+.preguntas-lista li::before { content: '●'; font-size: 15px; line-height: 1.5; }
+.pregunta-raya { flex: 0 0 120px; border-bottom: 1.6px solid #334155; height: 1.3em; }
+.ficha.modo-blanco-negro .pregunta-raya { border-color: black !important; }
+
+/* Cuenta la escena: escena y tabla, una al lado de la otra */
+.tf-en-paralelo { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 28px; }
+.tf-en-paralelo .tabla-frecuencia-iconos { margin-bottom: 0; max-width: none; }
+.tf-en-paralelo .escena-revuelta { margin: 0; }
+
+/* Recta numérica: varias operaciones y punta de flecha en el último salto */
+.recta-numerica-bloque { display: flex; flex-direction: column; gap: 14px; }
+.recta-numerica-punta { fill: var(--calido-azul); }
+.recta-numerica-salto { stroke-width: 2.2; }
+.recta-numerica-svg svg { max-width: 100%; height: auto; }
+.ficha.modo-blanco-negro .recta-numerica-punta { fill: black !important; }
+.recta-numerica-item { page-break-inside: avoid; break-inside: avoid; }
+
+/* ==========================================================================
+   17. NOVENA AMPLIACIÓN (02/10/2026) — tipos y modos de los cuadernos de
+       1º y 2º. Cada bloque lleva su versión en blanco y negro.
+   ========================================================================== */
+
+/* Etiquetas bajo el título, medio ancho y recuadro "Recuerda" */
+.etiquetas-ficha { display: flex; justify-content: center; gap: 10px; margin: -14px 0 16px; }
+.etiqueta-nivel, .etiqueta-tiempo { font-family: var(--fuente-titulo); font-size: 12px; padding: 2px 12px; border-radius: 999px; border: 1.4px solid var(--calido-azul); color: var(--calido-azul); background: var(--calido-azul-fondo); }
+.etiqueta-tiempo::before { content: '⏱ '; }
+.ficha .ejercicio.ejercicio-medio { display: inline-block; vertical-align: top; width: calc(50% - 7px); box-sizing: border-box; }
+.ficha .ejercicio.ejercicio-medio + .ejercicio.ejercicio-medio { margin-left: 8px; }
+.recuerda { margin: 14px 0 0; padding: 8px 12px; border: 1.4px dashed var(--calido-naranja); border-radius: 10px; background: var(--calido-naranja-fondo); font-size: 13px; }
+.recuerda b { display: inline-block; margin-right: 8px; font-family: var(--fuente-titulo); font-weight: 500; color: var(--calido-naranja); }
+.ficha.modo-blanco-negro .etiqueta-nivel, .ficha.modo-blanco-negro .etiqueta-tiempo, .ficha.modo-blanco-negro .recuerda { border-color: black !important; color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .recuerda b { color: black !important; }
+
+/* Respuesta con unidad y frase numérica */
+.respuesta-unidad { margin: 10px 0 0; font-size: 15px; }
+.frase-numerica { margin: 12px 0 0; font-size: 20px; display: flex; align-items: center; gap: 6px; }
+
+/* Fracciones */
+.frac-bloque { display: flex; flex-wrap: wrap; gap: 16px 26px; }
+.frac-tarjeta { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.frac-parte { fill: white; stroke: #1e293b; stroke-width: 1.6; }
+.frac-llena { fill: #cbd5e1; }
+.frac-pie { margin: 0; display: flex; align-items: center; gap: 10px; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; font-size: 19px; font-weight: bold; line-height: 1.1; }
+.frac-num { border-bottom: 2px solid #1e293b; padding: 0 6px 2px; }
+.frac-den { padding: 2px 6px 0; }
+.frac .casilla-respuesta { margin: 2px 0; }
+.frac-nombre { font-size: 13px; }
+.ficha.modo-blanco-negro .frac-parte { stroke: black !important; }
+.ficha.modo-blanco-negro .frac-llena { fill: #bdbdbd !important; }
+
+/* Suma repetida */
+.sr-bloque { display: flex; flex-direction: column; gap: 18px; }
+.sr-grupos { display: flex; flex-wrap: wrap; gap: 10px; }
+.sr-grupo { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 8px; border: 1.6px solid var(--calido-verde); border-radius: 12px; max-width: 124px; }
+.sr-grupo .icono-img, .sr-grupo > svg { width: 34px; height: 34px; }
+.sr-linea { margin: 8px 0 0; font-size: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.sr-linea b { min-width: 118px; font-weight: 600; }
+.ficha.modo-blanco-negro .sr-grupo { border-color: black !important; }
+
+/* Problema con barras */
+.barras-diagrama { margin: 8px 0 2px; }
+.barras-diagrama svg { max-width: 100%; height: auto; }
+.barra { fill: white; stroke: #1e293b; stroke-width: 1.5; }
+.barra-gris { fill: #e2e8f0; }
+.barra-hueco { stroke-dasharray: 5 4; }
+.barra-llave { fill: none; stroke: #475569; stroke-width: 1.3; }
+.barra-texto { font: bold 15px 'Nunito', Arial, sans-serif; fill: #0f172a; }
+.barra-etiqueta { font-weight: normal; font-size: 11.5px; }
+.barra-incognita { font-size: 18px; }
+.ficha.modo-blanco-negro .barra, .ficha.modo-blanco-negro .barra-llave { stroke: black !important; }
+.ficha.modo-blanco-negro .barra-gris { fill: #d9d9d9 !important; }
+
+/* Ordinales */
+.ord-bloque { display: flex; flex-direction: column; gap: 12px; }
+.ord-orden { margin: 0 0 4px; font-size: 15px; }
+.ord-iconos { display: flex; gap: 10px; }
+.ord-iconos .icono-img, .ord-iconos > svg { width: 46px; height: 46px; }
+
+/* Calendario */
+.cal-bloque { display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: flex-start; }
+.cal-bloque .preguntas-lista { flex: 1 1 280px; margin-top: 4px; }
+.cal-bloque .pregunta-texto { font-size: 15px; }
+.cal-bloque .pregunta-raya { flex-basis: 90px; }
+.cal-tabla { border-collapse: collapse; }
+.cal-tabla caption { font-family: var(--fuente-titulo); font-size: 16px; padding-bottom: 6px; text-transform: capitalize; }
+.cal-tabla th, .cal-tabla td { width: 36px; height: 30px; text-align: center; border: 1.3px solid #64748b; font-size: 15px; }
+.cal-tabla th { background: var(--calido-azul-fondo); }
+.cal-semana { display: flex; flex-wrap: wrap; gap: 10px; }
+.cal-dia { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 10px; border: 1.4px solid #64748b; border-radius: 10px; font-size: 14px; }
+.cal-meses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cal-mes { position: relative; min-height: 34px; padding: 6px 8px 6px 28px; border: 1.4px solid #64748b; border-radius: 10px; font-size: 14px; }
+.cal-mes i { position: absolute; left: 8px; top: 7px; font-style: normal; font-size: 11px; color: #64748b; }
+.cal-mes-hueco { border-style: dashed; }
+.ficha.modo-blanco-negro .cal-tabla th { background: white !important; }
+.ficha.modo-blanco-negro .cal-tabla th, .ficha.modo-blanco-negro .cal-tabla td, .ficha.modo-blanco-negro .cal-dia, .ficha.modo-blanco-negro .cal-mes { border-color: black !important; }
+.ficha.modo-blanco-negro .cal-mes i { color: black !important; }
+
+/* Redondeo y recta "¿qué número señala?" */
+.red-bloque { display: flex; flex-wrap: wrap; gap: 10px 26px; }
+.red-nota { flex: 1 1 100%; margin: 0; font-size: 14px; }
+.red-item svg, .recta-senalar svg { max-width: 100%; height: auto; }
+.red-linea { stroke: #1e293b; stroke-width: 2; }
+.red-marca { stroke: #1e293b; stroke-width: 1.4; }
+.red-extremo, .red-numero { font: bold 13px 'Nunito', Arial, sans-serif; fill: #0f172a; }
+.red-flecha { fill: var(--calido-rosa); }
+.red-frase { margin: 2px 0 0; font-size: 15px; }
+.recta-caja { fill: white; stroke: var(--calido-azul); stroke-width: 1.6; }
+.ficha.modo-blanco-negro .red-flecha { fill: black !important; }
+.ficha.modo-blanco-negro .recta-caja, .ficha.modo-blanco-negro .red-linea, .ficha.modo-blanco-negro .red-marca { stroke: black !important; }
+
+/* Encuentra el error, resta con prueba y sumando oculto */
+.error-nota, .domino-nota, .cc-nota, .sopa-nota { margin: 0 0 10px; font-size: 14px; }
+.error-rejilla { display: flex; flex-wrap: wrap; gap: 18px 34px; }
+.error-tarjeta { display: flex; align-items: flex-end; gap: 12px; }
+.error-marcas { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 2px; }
+.error-marcas .casilla-test { width: 20px; height: 20px; }
+.prueba-bloque { display: flex; flex-wrap: wrap; gap: 20px 40px; }
+.prueba-item { display: flex; align-items: center; gap: 12px; }
+.prueba-flecha { font-size: 13px; color: var(--calido-azul); white-space: nowrap; }
+.sumando-oculto { display: flex; flex-wrap: wrap; gap: 20px 34px; }
+.ficha.modo-blanco-negro .prueba-flecha { color: black !important; }
+
+/* Recortes de la tabla del 100 */
+.rec-bloque { display: flex; flex-wrap: wrap; gap: 20px 30px; align-items: flex-start; }
+.rec-pieza { display: grid; }
+.rec-celda, .rec-nada { width: 34px; height: 34px; box-sizing: border-box; }
+.rec-celda { border: 1.3px solid #475569; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; margin: -0.65px; }
+.ficha.modo-blanco-negro .rec-celda { border-color: black !important; background: white !important; }
+
+/* Dominó de operaciones */
+.domino-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.domino-ficha { display: grid; grid-template-columns: 1fr 1fr; border: 1.6px dashed #475569; border-radius: 12px; min-height: 46px; background: white; }
+.domino-ficha span { display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: bold; }
+.domino-izq { border-right: 1.6px solid #475569; font-size: 21px !important; }
+.domino-palabra { font-size: 14px !important; font-weight: normal !important; }
+.ficha.modo-blanco-negro .domino-ficha, .ficha.modo-blanco-negro .domino-izq { border-color: black !important; }
+
+/* Posición en la cuadrícula */
+.pos-bloque { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-start; }
+.pos-tablero { display: grid; gap: 6px; padding: 8px; border: 2px solid #475569; border-radius: 12px; background: #f8fafc; }
+.pos-celda { width: 74px; height: 70px; display: flex; align-items: center; justify-content: center; border: 1.3px solid #94a3b8; border-radius: 8px; background: white; }
+.pos-celda .icono-img, .pos-celda > svg { width: 54px; height: 54px; }
+.pos-frases { flex: 1 1 280px; }
+.pos-banco { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.pos-banco span { padding: 2px 10px; border: 1.3px dashed var(--calido-morado); border-radius: 999px; font-size: 13px; }
+.pos-frase { margin: 0 0 10px; font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.pos-mini { display: inline-flex; }
+.pos-mini .icono-img, .pos-mini > svg { width: 32px; height: 32px; }
+.ficha.modo-blanco-negro .pos-tablero, .ficha.modo-blanco-negro .pos-celda, .ficha.modo-blanco-negro .pos-banco span { border-color: black !important; background: white !important; }
+
+/* Comparar montones */
+.cc-bloque { display: flex; flex-direction: column; gap: 12px; }
+.cc-pareja { display: flex; gap: 14px; }
+.cc-caja { position: relative; flex: 0 1 250px; min-height: 70px; padding: 8px 34px 8px 8px; border: 1.6px solid var(--calido-azul); border-radius: 12px; }
+.cc-caja .casilla-test { position: absolute; right: 8px; bottom: 8px; width: 20px; height: 20px; background: white; }
+.cc-dibujos { display: flex; flex-wrap: wrap; gap: 3px; }
+.cc-dibujos .icono-img, .cc-dibujos > svg, .cc-fila .icono-img, .cc-fila svg { width: 36px; height: 36px; }
+.cc-fila { display: grid; margin-bottom: 4px; }
+.ficha.modo-blanco-negro .cc-caja { border-color: black !important; }
+
+/* Recorrido en cuadrícula */
+.reco-bloque { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-start; }
+.reco-rejilla { display: grid; border-top: 1.3px solid #64748b; border-left: 1.3px solid #64748b; }
+.reco-celda { width: 30px; height: 30px; box-sizing: border-box; border-right: 1.3px solid #64748b; border-bottom: 1.3px solid #64748b; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.reco-inicio { font-size: 18px; color: var(--calido-rosa); }
+.reco-ordenes p { margin: 0 0 8px; font-size: 15px; }
+.reco-pasos { display: flex; flex-wrap: wrap; gap: 8px; }
+.reco-pasos span { padding: 3px 10px; border: 1.4px solid var(--calido-morado); border-radius: 8px; font-size: 17px; font-weight: bold; }
+.ficha.modo-blanco-negro .reco-rejilla, .ficha.modo-blanco-negro .reco-celda, .ficha.modo-blanco-negro .reco-pasos span { border-color: black !important; }
+.ficha.modo-blanco-negro .reco-inicio { color: black !important; }
+
+/* Tipos de líneas, triángulos, círculo y contar figuras */
+.lin-bloque, .cf-bloque { display: flex; flex-wrap: wrap; gap: 16px 30px; }
+.lin-tarjeta { display: flex; align-items: center; gap: 12px; }
+.lin-dibujo path, .cf-dibujo path, .cf-dibujo rect, .cf-dibujo line { fill: none; stroke: #0f172a; stroke-width: 2; stroke-linejoin: miter; }
+.lin-opciones { display: flex; flex-direction: column; gap: 5px; }
+.cf-tarjeta p { margin: 4px 0 0; font-size: 14px; }
+.circ-linea { fill: none; stroke: #0f172a; stroke-width: 1.8; }
+.circ-guia { fill: none; stroke: #64748b; stroke-width: 1; stroke-dasharray: 3 3; }
+.circ-caja { fill: white; stroke: #475569; stroke-width: 1.3; }
+.ficha.modo-blanco-negro .circ-guia, .ficha.modo-blanco-negro .circ-caja { stroke: black !important; }
+
+/* Serie de figuras */
+.sf-bloque { display: flex; flex-direction: column; gap: 10px; }
+.sf-fila { display: flex; flex-wrap: wrap; gap: 6px; }
+.sf-celda { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; }
+.sf-celda .icono-img, .sf-celda > svg { width: 40px; height: 40px; }
+.sf-hueco { border: 1.6px dashed #64748b; border-radius: 10px; }
+.ficha.modo-blanco-negro .sf-hueco { border-color: black !important; }
+
+/* Tabla de doble entrada y tabla mañana/tarde */
+.tde-pistas { margin: 0 0 10px; padding-left: 20px; font-size: 14px; }
+.tde-tabla, .tabla24 { border-collapse: collapse; }
+.tde-tabla th, .tde-tabla td, .tabla24 th, .tabla24 td { border: 1.3px solid #64748b; padding: 6px 10px; text-align: center; font-size: 14px; min-width: 58px; height: 22px; }
+.tde-tabla th, .tabla24 th { background: var(--calido-azul-fondo); font-weight: 600; }
+.tde-vacia td { height: 34px; }
+.tabla24 td { min-width: 120px; height: 26px; }
+.ficha.modo-blanco-negro .tde-tabla th, .ficha.modo-blanco-negro .tabla24 th { background: white !important; }
+.ficha.modo-blanco-negro .tde-tabla th, .ficha.modo-blanco-negro .tde-tabla td, .ficha.modo-blanco-negro .tabla24 th, .ficha.modo-blanco-negro .tabla24 td { border-color: black !important; }
+
+/* Sopa de operaciones */
+.sopa-bloque { display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: flex-start; }
+.sopa-rejilla { display: grid; border-top: 1.3px solid #64748b; border-left: 1.3px solid #64748b; }
+.sopa-celda { width: 36px; height: 34px; box-sizing: border-box; border-right: 1.3px solid #64748b; border-bottom: 1.3px solid #64748b; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.sopa-nota { flex: 1 1 220px; }
+.sopa-ejemplo { padding: 1px 8px; border: 1.5px solid var(--calido-rosa); border-radius: 999px; white-space: nowrap; }
+.ficha.modo-blanco-negro .sopa-rejilla, .ficha.modo-blanco-negro .sopa-celda, .ficha.modo-blanco-negro .sopa-ejemplo { border-color: black !important; }
+
+/* Elegir la unidad */
+.eu-bloque { display: flex; flex-direction: column; gap: 8px; }
+.eu-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 18px; font-size: 15px; }
+.eu-opciones { display: flex; gap: 16px; }
+
+/* Trazo de cifras */
+.tc-bloque { display: flex; flex-direction: column; gap: 8px; }
+.tc-fila { display: flex; align-items: center; }
+.tc-celda { width: 52px; height: 66px; box-sizing: border-box; margin-right: -1.4px; border: 1.4px solid #475569; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; background-color: white;
+  background-image: repeating-linear-gradient(to bottom, #94a3b8 0 3px, transparent 3px 7px), repeating-linear-gradient(to right, #94a3b8 0 3px, transparent 3px 7px);
+  background-size: 1px 100%, 100% 1px; background-position: center, center; background-repeat: no-repeat; }
+.tc-doble { width: 84px; }
+.tc-doble .tc-cifra { width: 34px; height: 51px; }
+.tc-trazo { fill: none; stroke: #cbd5e1; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.tc-inicio { fill: #0f172a; }
+.tc-flecha { fill: none; stroke: #0f172a; stroke-width: 1.6; }
+.tc-punta { fill: #0f172a; }
+.tc-orden { font: bold 9px Arial, sans-serif; fill: #0f172a; }
+.tc-palabra { margin-left: 18px; font-size: 15px; }
+.numero-dia-escribir .tc-celda { margin-right: 6px; border-radius: 8px; }
+.ficha.modo-blanco-negro .tc-celda { border-color: black !important; }
+.ficha.modo-blanco-negro .tc-trazo { stroke: #c4c4c4 !important; }
+
+/* Agrupar de 10 en 10 y operar con barritas */
+.agrupar-bloque, .operar-bloque { display: flex; flex-direction: column; gap: 16px; }
+.agrupar-item svg { max-width: 100%; height: auto; border: 1.4px solid #94a3b8; border-radius: 12px; }
+.agrupar-bola { fill: var(--calido-naranja-fondo); stroke: var(--calido-naranja); stroke-width: 1.4; }
+.agrupar-item p { margin: 8px 0 0; font-size: 15px; }
+.operar-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; }
+.operar-cuenta { margin: 0; font-size: 20px; font-weight: bold; min-width: 78px; }
+.operar-dibujos { display: flex; align-items: center; gap: 12px; }
+.operar-dibujos b { font-size: 22px; }
+.operar-lineas p { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 4px; }
+.operar-nombre { min-width: 78px; }
+.base10-centenas svg { max-width: 100%; height: auto; }
+.ficha.modo-blanco-negro .agrupar-item svg { border-color: black !important; }
+.ficha.modo-blanco-negro .agrupar-bola { fill: white !important; stroke: black !important; }
+
+/* Conmutativa, ordenar números, ¿suma o resta? */
+.conmutativa-fila { margin: 0 0 8px; font-size: 18px; }
+.ordenar-numeros { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 8px; }
+.ordenar-nota { margin: 0 0 6px; font-size: 14px; }
+.ordenar-casillas { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.ordenar-signo { font-size: 18px; font-weight: bold; margin: 0 2px; }
+.ecuacion-circulo { display: inline-block; width: 26px; height: 26px; border: 1.8px solid var(--calido-rosa); border-radius: 50%; vertical-align: middle; margin: 0 6px; }
+.ficha.modo-blanco-negro .ecuacion-circulo { border-color: black !important; }
+
+/* Reloj: después, elegir */
+.reloj-despues-bloque, .reloj-elegir-bloque { display: flex; flex-wrap: wrap; gap: 16px 30px; }
+.reloj-despues { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.reloj-despues p { margin: 0; font-size: 14px; }
+.reloj-elegir { display: flex; flex-direction: column; gap: 6px; }
+.reloj-opciones { display: flex; gap: 14px; }
+.reloj-opcion { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.reloj-opcion svg { width: 92px; height: 92px; }
+.simetria-eje { display: flex; flex-wrap: wrap; gap: 22px; }
+
+/* Unir en tres columnas / une para hacer N */
+.unir-conteo .unir-bloque { column-gap: 60px; }
+.uc-dibujos { display: flex; flex-wrap: wrap; max-width: 170px; gap: 2px; justify-content: flex-end; }
+.uc-dibujos .icono-img, .uc-dibujos > svg { width: 30px; height: 30px; }
+.unir-fila:not(.unir-fila-izq) .uc-dibujos { justify-content: flex-start; }
+
+/* Regla: dibujar, leer y tiras de cuadros */
+.regla-dibujar { display: flex; align-items: center; gap: 14px; min-height: 44px; font-size: 15px; }
+.regla-punto-inicio { width: 9px; height: 9px; border-radius: 50%; background: #0f172a; }
+.regla-leer .regla-guia { margin-bottom: 34px; }
+.regla-flecha { position: absolute; top: 100%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-size: 12px; line-height: 1.1; }
+.regla-respuestas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; font-size: 15px; }
+.tiras-bloque { display: flex; flex-direction: column; gap: 8px; }
+.tiras-fila { display: flex; align-items: center; gap: 10px; }
+.tira { display: inline-flex; border-left: 1.4px solid #1e293b; }
+.tira i { width: 26px; height: 22px; box-sizing: border-box; border: 1.4px solid #1e293b; border-left: 0; background: #f1f5f9; }
+.tiras-pregunta { margin: 6px 0 0; font-size: 15px; }
+.ficha.modo-blanco-negro .tira, .ficha.modo-blanco-negro .tira i { border-color: black !important; background: white !important; }
+
+/* Gráfico para colorear bajo la tabla de conteo */
+.gc-bloque { margin-top: 14px; }
+.gc-grafico { display: flex; align-items: flex-end; }
+.gc-columna, .gc-escala { display: flex; flex-direction: column; align-items: center; }
+.gc-cuadro { width: 44px; height: 22px; box-sizing: border-box; border: 1.2px solid #64748b; margin: -0.6px; background: white; }
+.gc-escala .gc-pie { width: 24px; }
+.gc-escala span { height: 22px; width: 24px; font-size: 12px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; box-sizing: border-box; }
+.gc-pie { width: 44px; height: 40px !important; display: flex; align-items: center; justify-content: center; }
+.gc-pie .icono-img, .gc-pie > svg { width: 32px; height: 32px; }
+.ficha.modo-blanco-negro .gc-cuadro { border-color: black !important; }
+
+/* Cifras sueltas de estos tipos: fuera de la letra ligada de 1º-2º */
+.ficha.fuente-nunito .frac, .ficha.fuente-nunito .frase-numerica, .ficha.fuente-nunito .cal-tabla td, .ficha.fuente-nunito .rec-celda,
+.ficha.fuente-nunito .domino-ficha, .ficha.fuente-nunito .sopa-celda, .ficha.fuente-nunito .sopa-ejemplo, .ficha.fuente-nunito .reco-celda,
+.ficha.fuente-nunito .reco-pasos, .ficha.fuente-nunito .conmutativa-fila, .ficha.fuente-nunito .operar-cuenta, .ficha.fuente-nunito .tabla24 td,
+.ficha.fuente-nunito .gc-escala, .ficha.fuente-nunito .ordenar-signo, .ficha.fuente-nunito .regla-flecha, .ficha.fuente-nunito .cal-mes i,
+.ficha.fuente-nunito .sr-linea span, .ficha.fuente-nunito .operar-dibujos b {
+  font-family: 'Nunito', sans-serif;
+}
+
+@media print {
+  .frac-tarjeta, .sr-item, .problema-barras, .ord-fila, .cal-bloque, .red-item, .error-tarjeta, .rec-pieza, .domino-ficha,
+  .pos-bloque, .cc-pareja, .cc-diferencia, .reco-bloque, .lin-tarjeta, .sf-fila, .tde-bloque, .sopa-bloque, .cf-tarjeta,
+  .tc-fila, .agrupar-item, .operar-item, .reloj-elegir, .reloj-despues, .gc-bloque, .prueba-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* ── Lectoescritura inicial (02/10/2026): sonido inicial, mayúscula o
+   minúscula, laberinto de letra y recorta y pega ───────────────────────── */
+.si-bloque { display: flex; align-items: center; gap: 18px; }
+.si-letra { flex: 0 0 auto; padding: 6px 14px; border: 2px solid var(--calido-morado); border-radius: 14px; background: var(--calido-morado-fondo); font-family: 'Nunito', sans-serif; font-size: 34px; font-weight: 800; }
+.si-dibujos { display: flex; flex-wrap: wrap; gap: 10px; }
+.si-dibujo { width: 92px; height: 88px; display: flex; align-items: center; justify-content: center; border: 1.4px solid #94a3b8; border-radius: 12px; }
+.si-dibujo .icono-img { width: 74px; height: 74px; }
+.mm-clave { display: flex; gap: 24px; margin: 0 0 10px; font-size: 14px; }
+.mm-clave i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 4px; border: 1.4px solid #000; }
+.mm-rojo { background: #ef4444; } .mm-azul { background: #3b82f6; }
+.mm-letras { display: grid; grid-template-columns: repeat(auto-fill, 76px); gap: 10px; }
+.mm-letra { width: 76px; height: 76px; display: flex; align-items: center; justify-content: center; border: 1.6px solid #64748b; border-radius: 50%; font-size: 44px; line-height: 1; color: transparent; -webkit-text-stroke: 1.5px #0f172a; }
+.mm-andika { font-family: 'Andika', sans-serif; } .mm-fredoka { font-family: 'Fredoka', sans-serif; font-weight: 600; }
+.mm-nunito { font-family: 'Nunito', sans-serif; font-weight: 800; } .mm-quicksand { font-family: 'Quicksand', sans-serif; font-weight: 700; }
+.mm-dimica { font-family: 'Dimica', sans-serif; } .mm-ligada { font-family: 'Escolar Ligada', cursive; }
+.ll-bloque { display: flex; align-items: flex-start; gap: 10px; }
+.ll-puerta { font-size: 13px; margin-top: 12px; white-space: nowrap; }
+.ll-salida { align-self: flex-end; margin: 0 0 12px; }
+.ll-rejilla { display: grid; border-top: 1.4px solid #475569; border-left: 1.4px solid #475569; }
+.ll-celda { width: 46px; height: 44px; box-sizing: border-box; border-right: 1.4px solid #475569; border-bottom: 1.4px solid #475569; display: flex; align-items: center; justify-content: center; font-family: 'Nunito', sans-serif; font-size: 24px; font-weight: 700; }
+.rp-fila { display: flex; gap: 12px; justify-content: space-between; }
+.rp-columna { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.rp-hueco, .rp-recorte { width: 96px; height: 92px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.rp-hueco { border: 1.6px solid #64748b; font-size: 11px; color: #94a3b8; }
+.rp-recorte { border: 1.6px dashed #475569; }
+.rp-recorte .icono-img { width: 78px; height: 78px; }
+.rp-palabra { font-size: 22px; }
+.rp-corte { margin: 12px 0; border-top: 1.6px dashed #475569; height: 0; line-height: 0; font-size: 16px; }
+.ficha.modo-blanco-negro .si-letra, .ficha.modo-blanco-negro .si-dibujo, .ficha.modo-blanco-negro .mm-letra, .ficha.modo-blanco-negro .ll-rejilla,
+.ficha.modo-blanco-negro .ll-celda, .ficha.modo-blanco-negro .rp-hueco, .ficha.modo-blanco-negro .rp-recorte, .ficha.modo-blanco-negro .rp-corte { border-color: black !important; background: white !important; }
+.ficha.modo-blanco-negro .mm-rojo, .ficha.modo-blanco-negro .mm-azul { background: white !important; }
+.ficha.modo-blanco-negro .rp-hueco { color: #555 !important; }
+@media print { .si-bloque, .mm-bloque, .ll-bloque, .rp-bloque { page-break-inside: avoid; break-inside: avoid; } }
