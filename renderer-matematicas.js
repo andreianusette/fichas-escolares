@@ -114,6 +114,69 @@ Object.assign(ICONOS, {
   octogono: "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linejoin=\"miter\"><path d=\"M15.83 2.76 L21.24 8.17 L21.24 15.83 L15.83 21.24 L8.17 21.24 L2.76 15.83 L2.76 8.17 L8.17 2.76z\"/></svg>"
 });
 
+const DIR_PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
+function listarPng(carpeta) {
+  try {
+    return new Set(fs.readdirSync(path.join(DIR_PUBLIC, carpeta))
+      .filter(f => f.toLowerCase().endsWith('.png'))
+      .map(f => f.slice(0, -4)));
+  } catch {
+    return new Set();
+  }
+}
+const IMAGENES_COLOR = listarPng('imagenes-color');
+const IMAGENES_BN = listarPng('imagenes-iconos');
+
+// ─────────────────────────────────────────────────────────────────
+// DIBUJOS DEL BANCO COMO ICONOS PARA CONTAR (02/10/2026, maestra)
+// "Teniendo tantos dibujos, la IA elige siempre los mismos": hasta hoy solo
+// podía elegir entre los 84 iconos con SVG. Esta lista abre el catálogo a los
+// dibujos del banco que son cosas CONTABLES y reconocibles para un niño
+// (animales, comida, objetos). Quedan fuera a propósito los sonidos ("aaa"),
+// nombres propios, acciones, escenas, partes del cuerpo y figuras geométricas.
+// Solo se añade el que tiene de verdad su PNG en la carpeta; el SVG de la
+// estrella queda como reserva técnica (no llega a verse, porque hay imagen).
+// Para ofrecer un dibujo nuevo basta con añadir aquí su nombre de archivo.
+// ─────────────────────────────────────────────────────────────────
+const DIBUJOS_BANCO_CONTABLES = [
+  'abeja alce almeja anguila ardilla armadillo asno ballena buho burro caballo cabra caiman cangrejo',
+  'caracol cebra cerdo chimpance ciempies ciervo ciguenya cisne cobra cocodrilo conejo dalmata delfin',
+  'dinosaurio dragon dromedario elefante erizo escarabajo faisan flamenco foca gallina gallo gamba gato',
+  'gaviota golondrina gorila grillo guepardo gusano hiena hipopotamo hormiga iguana jabali jaguar',
+  'jilguero jirafa koala leon llama lobo loro mariposa mariquita mono mosquito mula nyandu nyu',
+  'orangutan orca oso ostra oveja pajaro pato pavo perro pez pinguino pollo pulpo puma quetzal rana',
+  'rata raton reno rinoceronte sapo sepia serpiente tiburon tigre topo tortuga trucha unicornio vaca',
+  'yak yegua zarigueya zorro alpaca bufalo chinchilla chivo escorpion ganso gorrion nutria ornitorrinco',
+  'toro tucan venado yacare zancudo zorrillo murcielago albaricoque alcachofa almendra bollo bombon',
+  'brocheta brocoli castanya cebolla cereza champinyon chile chuleta churro clementina coco crepe',
+  'croqueta cruasan datil donut empanada esparrago flan frambuesa fresa galleta garbanzo gelatina',
+  'granada grosella guinda guindilla guisante hamburguesa helado huevo jamon kiwi lechuga lima limon',
+  'manzana melon naranja nuez pan patata pera pinya pizza platano quesito queso sandia sandwich seta',
+  'tarta tomate uva zanahoria zarzamora caramelo piruleta ciruela dona maiz papaya rabano waffle salami',
+  'abrigo album alfiler alfombra almohada altavoz ancla anillo antifaz armario armonica arpa aspiradora',
+  'autobus avion balon banco banyera barco bate biberon bici bicicleta bloc boligrafo bolso bota bote',
+  'botella boton brocha broche brujula bufanda cactus caja cama camion carretilla carro casa casco',
+  'cesta chaleco chancla chaqueta chincheta chupete clarinete clavel clavo clip coche cofre cohete',
+  'cometa copa corazon cuadro cuna dado dardo delantal diamante diana diploma embudo enchufe escalera',
+  'escoba escudo espada espejo esponja estrella estufa extintor falda faro farola flauta flecha flexo',
+  'flor florero flotador foco fregona gafas gaita girasol globo goma gorra gorro grapadora grifo guante',
+  'guitarra hacha hamaca hoja hucha hueso iman imperdible impresora jarra jarron jaula jersey joya',
+  'juguete kart kayak kimono ladrillo lapiz lata libro llave llavero luna lupa maleta manopla mapa',
+  'martillo mesa microfono moto munyeca nido nube ordenador pala panyuelo paquete pelota pila pino pipa',
+  'plancha planeta planta plato pluma plumero quitasol radio ramo raqueta regalo regla reloj remo rosa',
+  'rotulador rueda sable saco salero saxofon sello semaforo silla sobre sofa sol sombrero tambor taxi',
+  'taza teclado telefono tenedor tiesto tijeras tipi torre tractor tranvia trebol tren triciclo trineo',
+  'trofeo trompeta trompo trono vagon vaso vela velero ventana ventilador vestido violeta violin',
+  'volante xilofono yate yoyo yunque zapatilla zapato zueco arbol arcoiris copo helicoptero lampara',
+  'bandera canoa castillo crayon cuchara herradura hidroavion hongo microscopio sarten serrucho silbato',
+  'sueter cubo regadera garrafa robot fantasma payaso bruja sirena vampiro hada astronauta zepelin',
+  'zambomba tableta taladro quinque proyector prismaticos nave guirnalda grua excavadora cronometro',
+  'domino',
+].join(' ').split(' ');
+DIBUJOS_BANCO_CONTABLES.forEach(n => {
+  if (!ICONOS[n] && (IMAGENES_BN.has(n) || IMAGENES_COLOR.has(n))) ICONOS[n] = ICONOS.estrella;
+});
+
 export const ICONOS_DISPONIBLES = Object.keys(ICONOS);
 
 // Export del objeto completo (nombre -> SVG), usado por el nuevo endpoint
@@ -143,18 +206,6 @@ const SVG_CONO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"n
 const SVG_CILINDRO = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14\"/><path d=\"M20 5v14\"/><path d=\"M4 19a8 3 0 0 0 16 0\"/></svg>";
 const SVG_ESFERA = "<svg width=\"60\" height=\"60\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12a9 4 0 0 0 18 0\"/><path d=\"M3 12a9 4 0 0 1 18 0\"/></svg>";
 
-const DIR_PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
-function listarPng(carpeta) {
-  try {
-    return new Set(fs.readdirSync(path.join(DIR_PUBLIC, carpeta))
-      .filter(f => f.toLowerCase().endsWith('.png'))
-      .map(f => f.slice(0, -4)));
-  } catch {
-    return new Set();
-  }
-}
-const IMAGENES_COLOR = listarPng('imagenes-color');
-const IMAGENES_BN = listarPng('imagenes-iconos');
 
 // Cuerpos geométricos: si existe public/imagenes-iconos/geo_<nombre>.png se
 // usa ese dibujo (aristas ocultas en discontinua, para contar caras, aristas

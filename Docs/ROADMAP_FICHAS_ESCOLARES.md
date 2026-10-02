@@ -1320,13 +1320,19 @@ Validado: `node --check`; prompt de los 6 cursos (cada tipo con su bloque); regr
 30 ejercicios de tipos existentes × 6 cursos y de Lengua; casos límite e intento de inyección en todos
 los tipos y modos nuevos sin excepciones; Playwright en color y B/N; arranque del servidor.
 
-No hecho, queda anotado:
-- [ ] Resta con llevadas guiada paso a paso y perímetro sumando lados en 2º.
+**Pendiente para el 03/10/2026 (decidido con el usuario el 02/10 por la tarde).** Se dejaron fuera
+por acotar el trabajo, no por dificultad técnica (salvo los dos últimos):
+- [ ] Resta con llevadas guiada paso a paso (tachar la decena y reagrupar) — el más laborioso.
+- [ ] Perímetro sumando lados en 2º (abrir el modo de perímetro que ya existe para 4º-6º).
 - [ ] Balanza con pesas de medio y cuarto de kilo; capacidad contando botellas de medio litro.
-- [ ] Flechas de dirección en el trazo de LETRAS (las cifras sí las llevan).
-- [ ] "Huella" de un cuerpo geométrico, horario encadenado con reloj y mascota con bocadillo
-      (depende de un personaje propio en el banco).
-- [ ] Ficha real vía API de 1º y 2º con los tipos nuevos, y revisión de la maestra.
+- [ ] "Huella" de un cuerpo geométrico (unir cada cuerpo con la figura plana que deja).
+- [ ] Ejemplo resuelto en gris como primer ítem, empezando por los tipos de unir y de casillas.
+- [ ] Iconos de acción junto a la orden (lápiz, ojo), dibujados en línea, no emojis.
+- [ ] Mascota con bocadillo: dejar el mecanismo preparado; falta un personaje propio en el banco.
+- [ ] Flechas de dirección en el trazo de LETRAS: probar primero con las vocales y enseñárselo a la
+      maestra (en septiembre aceptó perderlas en las copias pequeñas de Cole Carreira).
+- [ ] Ficha real vía API de 1º y 2º con los tipos nuevos (prompts en
+      `Claude outputs/prompts/Prompts_novena_ampliacion_1o_2o.md`), subir a git y revisión de la maestra.
 
 ### Selector visual de tipos de ejercicio — pop-up en el formulario (08/09/2026)
 
@@ -3524,8 +3530,29 @@ generados en Colab con Gemini, en dos versiones con el mismo nombre de archivo:
 
 **Pendiente / ideas:**
 1. Colorear los 5 iconos nuevos.
-2. Abrir el catálogo que se le ofrece a Claude (`ICONOS_DISPONIBLES`, hoy 84 nombres) a los ~780 dibujos del banco.
+2. ~~Abrir el catálogo que se le ofrece a Claude~~ → hecho el 02/10/2026 (ver abajo).
 3. La carpeta de color pesa ~195 MB (150-440 KB por PNG) y aún NO está en git (02/10/2026). Antes de subirla: `node scripts/comprimir-dibujos.mjs` (necesita `npm install --save-dev sharp`). Deja los PNG con paleta de 256 colores, mismo nombre, unas 7 veces menos peso; se puede relanzar cuando lleguen dibujos nuevos (salta los ya comprimidos).
+
+---
+
+### Catálogo abierto y dibujos variados (02/10/2026, tarde)
+
+**Motivo (maestra):** con cientos de dibujos generados, la IA elegía casi siempre los mismos.
+Dos causas: solo podía elegir entre los 84 iconos antiguos, y entre esos repite sus favoritos.
+
+- **Catálogo de 84 a 446 dibujos.** `DIBUJOS_BANCO_CONTABLES` (`renderer-matematicas.js`) lista los
+  dibujos del banco que son cosas contables y reconocibles (animales, comida, objetos); quedan fuera
+  sonidos, nombres propios, acciones, escenas, partes del cuerpo y figuras. Cada uno entra en `ICONOS`
+  solo si su PNG existe. Para ofrecer un dibujo nuevo basta con añadir su nombre a esa lista.
+- **La lista se escribe una sola vez en el prompt** (bloque "CATÁLOGO DE DIBUJOS"); antes se repetía
+  entera en unos 15 sitios. El prompt de 1º crece solo de ~61.700 a ~66.400 caracteres.
+- **Dibujos sugeridos al azar.** En cada petición, `dibujosSugeridos()` (`server.js`) añade a los datos
+  de la ficha 24 dibujos elegidos al azar, con la orden de preferirlos y de usar uno distinto por
+  ejercicio. No se aplica si el docente eligió dibujos en el formulario.
+- El selector de iconos del formulario muestra ahora los 446, cargados según aparecen en pantalla.
+- Probado: arranque del servidor, prompt de 1º/2º/4º/6º, render con dibujos nuevos. **Pendiente:**
+  comprobar con fichas reales que la variedad se nota; revisar con la maestra si sobra o falta algún
+  dibujo en la lista.
 
 ---
 

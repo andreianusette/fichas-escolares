@@ -165,9 +165,24 @@ function construirSystemPromptMatematicas(curso, iconosElegidos) {
   // iconos después de generar (eso rompería la coherencia enunciado↔icono,
   // ver instrucción más abajo) — se restringe ANTES, para que el propio
   // Claude escriba el enunciado ya coherente con lo que puede usar.
-  const listaIconos = (iconosElegidos && iconosElegidos.length > 0)
+  // 02/10/2026: el catálogo pasó de 84 iconos a varios cientos de dibujos del
+  // banco. Como la lista se citaba entera unas 15 veces en estas
+  // instrucciones, ahora se escribe UNA sola vez (bloque "CATÁLOGO DE
+  // DIBUJOS", al principio) y el resto de sitios remiten a ella. Si el
+  // docente eligió iconos, son pocos y se siguen citando tal cual.
+  const hayIconosElegidos = iconosElegidos && iconosElegidos.length > 0;
+  const listaIconos = hayIconosElegidos
     ? iconosElegidos.join(', ')
-    : ICONOS_DISPONIBLES.join(', ');
+    : 'cualquiera del CATÁLOGO DE DIBUJOS (al principio de estas instrucciones)';
+  const bloqueCatalogoDibujos = hayIconosElegidos ? '' : `
+CATÁLOGO DE DIBUJOS — los únicos nombres válidos para cualquier campo "icono" (escríbelos
+EXACTAMENTE así, sin tildes; "ny" equivale a "ñ": "munyeca" es muñeca, "pinya" es piña):
+${ICONOS_DISPONIBLES.join(', ')}.
+VARIEDAD DE DIBUJOS: hay cientos donde elegir, así que NO uses siempre los mismos (manzana,
+estrella, pelota, gato...). En una misma ficha, cada ejercicio con dibujos usa uno DISTINTO
+siempre que sea posible, y da preferencia a los "dibujos sugeridos para esta ficha" que vienen
+en los datos de la ficha, salvo que la temática pedida por el docente necesite otros.
+`;
   const esConDibujos = ['1º', '2º'].includes(curso);
   const esGuiado = ['1º', '2º', '3º'].includes(curso);
   const esMultDiv = ['3º', '4º', '5º', '6º'].includes(curso);
@@ -1410,7 +1425,7 @@ OPCIONES DE PRESENTACIÓN (todas opcionales):
   return `
 Eres un experto en diseño de materiales didácticos de Matemáticas para Educación Primaria
 en España, con dominio de la LOMLOE (Ley Orgánica 3/2020) y el Real Decreto 157/2022.
-
+${bloqueCatalogoDibujos}
 Tu ÚNICA salida es JSON VÁLIDO. Nada de HTML, nada de markdown, nada de \`\`\`json,
 ni una sola palabra antes o después del objeto JSON.
 
@@ -1544,14 +1559,30 @@ REGLAS GENERALES:
 `.trim();
 }
 
-function construirPromptMatematicas({ curso, comunidad, instrucciones, idioma, sumandos }) {
+// Dibujos sugeridos (02/10/2026): unos cuantos del catálogo elegidos AL AZAR
+// en cada petición. La IA tiende a repetir sus favoritos; con esta lista,
+// distinta cada vez, las fichas salen con dibujos variados sin tocar nada más.
+const ICONOS_NO_SUGERIBLES = new Set(['circulo', 'cuadrado', 'hexagono', 'octogono', 'ovalo', 'pentagono', 'rectangulo', 'triangulo']);
+function dibujosSugeridos(cuantos = 24) {
+  const bolsa = ICONOS_DISPONIBLES.filter(n => !ICONOS_NO_SUGERIBLES.has(n));
+  for (let i = bolsa.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bolsa[i], bolsa[j]] = [bolsa[j], bolsa[i]];
+  }
+  return bolsa.slice(0, cuantos);
+}
+
+function construirPromptMatematicas({ curso, comunidad, instrucciones, idioma, sumandos, sugerirDibujos }) {
+  const lineaDibujos = sugerirDibujos
+    ? `\n- Dibujos sugeridos para esta ficha (úsalos con preferencia, uno distinto por ejercicio): ${dibujosSugeridos().join(', ')}`
+    : '';
   return `
 DATOS DE LA FICHA:
 - Curso: ${curso} de Educación Primaria
 - Idioma: ${idioma || 'Español'}
 - Comunidad Autónoma: ${comunidad || 'LOMLOE estatal (general)'}
 - Sumandos por suma: ${sumandos} (aplica solo a sumas; las restas son siempre de 2 números)
-- Instrucciones especiales del docente: ${instrucciones || 'Ninguna — genera una ficha variada y adecuada al curso.'}
+- Instrucciones especiales del docente: ${instrucciones || 'Ninguna — genera una ficha variada y adecuada al curso.'}${lineaDibujos}
   `.trim();
 }
 
@@ -1850,7 +1881,11 @@ RECUERDA: el título y los textos deben reflejar explícitamente la materia "${m
 // es una simple consulta al catálogo ya cargado en memoria, sin coste.
 // ─────────────────────────────────────────────────────────────────
 app.get('/api/iconos', (req, res) => {
-  res.json(ICONOS_SVG);
+  // Con cientos de dibujos, el selector del formulario los carga solo
+  // cuando van apareciendo en pantalla (loading="lazy").
+  const iconos = {};
+  for (const nombre of ICONOS_DISPONIBLES) iconos[nombre] = String(ICONOS_SVG[nombre]).replaceAll('<img ', '<img loading="lazy" ');
+  res.json(iconos);
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -1916,7 +1951,9 @@ app.post('/api/generar-ficha', async (req, res) => {
 
       const systemPrompt = construirSystemPromptMatematicas(curso, iconosValidados);
       const userPrompt = construirPromptMatematicas({
-        curso, comunidad, instrucciones, idioma, sumandos: sumandosValidados
+        curso, comunidad, instrucciones, idioma, sumandos: sumandosValidados,
+        // Solo si el docente no ha elegido él los dibujos en el formulario.
+        sugerirDibujos: iconosValidados.length === 0
       });
 
       const response = await anthropic.messages.create({
