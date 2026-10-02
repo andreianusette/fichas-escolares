@@ -1,0 +1,59 @@
+# Mantiene activo el proyecto de Supabase (plan gratuito) haciendo
+# una consulta mínima cada 3 días, para evitar la pausa por inactividad.
+#
+# Colocar en: .github/workflows/supabase-keepalive.yml
+#
+# Secretos necesarios (GitHub → Settings → Secrets and variables → Actions):
+#   SUPABASE_URL        → https://wrzluiljxuqvnoquoxlj.supabase.co
+#   SUPABASE_ANON_KEY   → la "anon public" key (Project Settings → API)
+#
+# Y UNO de estos dos (pestaña "Variables", no "Secrets"):
+#   SUPABASE_TABLE      → nombre de una tabla cualquiera del proyecto
+#   SUPABASE_BUCKET     → nombre del bucket de Storage con las imágenes
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 8 */3 * *"   # cada 3 días a las 08:17 UTC
+  workflow_dispatch:          # permite lanzarlo a mano para probar
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta mínima a Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_TABLE: ${{ vars.SUPABASE_TABLE }}
+          SUPABASE_BUCKET: ${{ vars.SUPABASE_BUCKET }}
+        run: |
+          set -e
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Faltan los secretos SUPABASE_URL o SUPABASE_ANON_KEY"; exit 1
+          fi
+
+          if [ -n "$SUPABASE_TABLE" ]; then
+            echo "Consultando la tabla '$SUPABASE_TABLE'..."
+            STATUS=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+              "$SUPABASE_URL/rest/v1/$SUPABASE_TABLE?select=*&limit=1" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          elif [ -n "$SUPABASE_BUCKET" ]; then
+            echo "Listando el bucket '$SUPABASE_BUCKET'..."
+            STATUS=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+              -X POST "$SUPABASE_URL/storage/v1/object/list/$SUPABASE_BUCKET" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"prefix":"","limit":1}')
+          else
+            echo "Define la variable SUPABASE_TABLE o SUPABASE_BUCKET"; exit 1
+          fi
+
+          echo "Respuesta HTTP: $STATUS"
+          head -c 300 /tmp/resp.txt; echo
+          # Si falla (p. ej. el proyecto ya está pausado), el job falla
+          # y GitHub te avisa por correo.
+          if [ "$STATUS" -ge 400 ]; then exit 1; fi
